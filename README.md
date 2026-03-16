@@ -1,9 +1,3 @@
-# "一生一芯"工程项目
+# "一生一芯"个人仓库
 
-这是"一生一芯"的工程项目. 通过运行
-```bash
-bash init.sh subproject-name
-```
-进行初始化, 具体请参考[实验讲义][lecture note].
-
-[lecture note]: https://ysyx.oscc.cc/docs/
+中国科学院大学《开源处理器芯片设计（研讨课）》用到的"一生一芯"项目代码。本仓库为个人仓库。
