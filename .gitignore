@@ -10,3 +10,12 @@
 !README.md
 !.gitignore
 !init.sh
+/am-kernels
+/nvboard
+/E4
+/mit
+/nemu-backup
+/npc-old
+/nvboard-old
+/fceux-am
+/yosys-sta
