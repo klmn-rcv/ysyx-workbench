@@ -71,16 +71,27 @@ static int cmd_si(char *args) {
 }
 
 static int cmd_info(char *args) {
+  if(args == NULL) {
+    printf("info: need an argument\n");
+    return 0;
+  }
   void wp_display();
   if(strcmp(args, "r")==0 || strcmp(args, "register")==0){
     isa_reg_display();
   }else if(strcmp(args, "w")==0 || strcmp(args, "watchpoint")==0){
     wp_display();
   }
+  else {
+    printf("info: invalid option '%s'\n", args);
+  }
   return 0;
 }
 
 static int cmd_x(char *args) {
+  if(args == NULL) {
+    printf("x: need an argument\n");
+    return 0;
+  }
   args = strtok(args, " ");
   int N = 0;
   for(int i = 0; i < strlen(args); i++){
@@ -114,6 +125,10 @@ static int cmd_x(char *args) {
 }
 
 static int cmd_p(char *args) {
+  if(args == NULL) {
+    printf("p: need an argument\n");
+    return 0;
+  }
   bool success = false;
   word_t value = expr(args, &success);
   if(success == false) {
@@ -128,10 +143,18 @@ static int cmd_w(char *args) {
 #ifndef CONFIG_WATCHPOINT
   printf("ATTENTION: watchpoint not activated\n");
 #endif
-  bool init_new_wp(char *s);
-  bool success = init_new_wp(args);
-  if(success == false) {
+  if(args == NULL) {
+    printf("w: need an argument\n");
+    return 0;
+  }
+  int init_new_wp(char *s);
+  int exit_status = init_new_wp(args);
+  if(exit_status == 1) {
     printf("w: invalid expression\n");
+    return 0;
+  }
+  else if(exit_status == 2) {
+    printf("w: too much watchpoints existing\n");
     return 0;
   }
   return 0;
@@ -141,18 +164,28 @@ static int cmd_d(char *args) {
 #ifndef CONFIG_WATCHPOINT
   printf("ATTENTION: watchpoint not activated\n");
 #endif
-  int N = 0;
-  for(int i = 0; i < strlen(args); i++){
-    if(isdigit(args[i]))
-      N = N * 10 + args[i] - '0';
-    else {
-      printf("d: args error: not a number\n");
-      return 0;
-    }
+  if(args == NULL) {
+    printf("d: need an argument\n");
+    return 0;
+  }
+  // int N = 0;
+  // for(int i = 0; i < strlen(args); i++){
+  //   if(isdigit(args[i]))
+  //     N = N * 10 + args[i] - '0';
+  //   else {
+  //     printf("d: args error: not a number\n");
+  //     return 0;
+  //   }
+  // }
+  bool success1 = false;
+  word_t NO = expr(args, &success1);
+  if(success1 == false) {
+    printf("d: invalid expression\n");
+    return 0;
   }
   bool delete_wp(int NO);
-  bool success = delete_wp(N);
-  if(success == false) {
+  bool success2 = delete_wp(NO);
+  if(success2 == false) {
     printf("d: watchpoint not found\n");
     return 0;
   }
@@ -206,11 +239,41 @@ void sdb_set_batch_mode() {
   is_batch_mode = true;
 }
 
+//// 测试expr表达式求值函数
+// static void test_expr() {
+//   FILE *fp = fopen("tools/gen-expr/build/input", "r");
+
+//   char line[65536];
+//   while (fgets(line, sizeof(line), fp) != NULL) {
+//     line[strcspn(line, "\n")] = '\0';
+//     char *space = strchr(line, ' ');
+//     assert(space != NULL);
+//     *space = '\0';
+//     char *golden_val_str = line;
+//     char *expression = golden_val_str + strlen(golden_val_str) + 1;
+//     word_t golden_value = atoi(golden_val_str);
+
+//     bool success = false;
+//     word_t value = expr(expression, &success);
+//     if(success == false) {
+//       printf("test_expr: expr parsing failed\n");
+//       assert(0);
+//     }
+//     if(value != golden_value) {
+//       printf("test_expr: calculate failed!\n");
+//       assert(0);
+//     }
+//   }
+//   printf("test_expr: pass!\n");
+// }
+
 void sdb_mainloop() {
   if (is_batch_mode) {
     cmd_c(NULL);
     return;
   }
+
+  // test_expr(); // 测试expr表达式求值函数
 
   for (char *str; (str = rl_gets()) != NULL; ) {
     char *str_end = str + strlen(str);

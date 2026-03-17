@@ -91,10 +91,10 @@ void init_regex() {
 
 typedef struct token {
   int type;
-  char str[64];
+  char str[256];
 } Token;
 
-#define MAX_TOKENS 256
+#define MAX_TOKENS 65536
 
 static Token tokens[MAX_TOKENS] __attribute__((used)) = {};
 static int nr_token __attribute__((used))  = 0;
@@ -254,7 +254,9 @@ int find_mainop(int p, int q, bool *valid) {  // return the index of the main op
   // printf("DEBUG: Enter find_mainop, p is %d, q is %d\n", p, q);
   int par_diff = 0;     // judge whether in parentheses
   int index = -1;
-  bool plus_minus_exit = false;
+  bool and_or_flag = false;
+  bool eq_ineq_flag = false;
+  bool plus_minus_flag = false;
   for(int i = p; i <= q; i++) {
     if(tokens[i].type == TK_LEFTPAR)
       par_diff++;
@@ -262,23 +264,31 @@ int find_mainop(int p, int q, bool *valid) {  // return the index of the main op
       par_diff--;
     if(par_diff < 0) {
       // Invalid expression!!!
-      // printf("DEBUG: find_mainop: par_diff < 0, invalid expression\n");
+      // printf("DEBUG: find_mainop (1): par_diff = %d, invalid expression\n", par_diff);
       *valid = false;
       return -1;
     }
     if(par_diff == 0) {
-      if(tokens[i].type == TK_PLUS || tokens[i].type == TK_MINUS) {
+      if(tokens[i].type == TK_AND || tokens[i].type == TK_OR) {
         index = i;
-        plus_minus_exit = true;
+        and_or_flag = true;
       }
-      if(plus_minus_exit == false && (tokens[i].type == TK_MULTI || tokens[i].type == TK_DEVI)) {
+      else if(and_or_flag == false && (tokens[i].type == TK_EQ || tokens[i].type == TK_INEQ)) {
+        index = i;
+        eq_ineq_flag = true;
+      }
+      else if(and_or_flag == false && eq_ineq_flag == false && (tokens[i].type == TK_PLUS || tokens[i].type == TK_MINUS)) {
+        index = i;
+        plus_minus_flag = true;
+      }
+      else if(and_or_flag == false && eq_ineq_flag == false && plus_minus_flag == false && (tokens[i].type == TK_MULTI || tokens[i].type == TK_DEVI)) {
         index = i;
       }
     }
   }
   if(par_diff != 0) {
     // Invalid expression!!!
-    // printf("DEBUG: find_mainop: par_diff != 0, invalid expression\n");
+    // printf("DEBUG: find_mainop (2): par_diff == %d, invalid expression\n", par_diff);
     *valid = false;
     return -1;
   }
@@ -291,7 +301,7 @@ word_t eval(int p, int q, bool *success) {
   if(*success == false) {
     return 0;
   } 
-  printf("DEBUG: eval (begin): p is %d, q is %d\n", p, q);
+  // printf("DEBUG: eval (begin): p is %d, q is %d\n", p, q);
   // *success = true;
   if (p > q) {
     /* Bad expression */
@@ -315,6 +325,7 @@ word_t eval(int p, int q, bool *success) {
           ret = ret * 10 + tokens[p].str[i] - '0';
         }
       }
+      // printf("DEBUG: eval (1): p: %d, q: %d, ret: %d\n", p, q, ret);
       return ret;
     }else if(tokens[p].type == TK_REG) {
       word_t isa_reg_str2val(const char *s, bool *success);
@@ -325,6 +336,7 @@ word_t eval(int p, int q, bool *success) {
         printf("eval: reg name not found\n");
         // assert(0);
       }
+      // printf("DEBUG: eval (2): p: %d, q: %d, ret: %d\n", p, q, ret);
       return ret;
     } else {
       assert(0);
@@ -334,7 +346,9 @@ word_t eval(int p, int q, bool *success) {
     /* The expression is surrounded by a matched pair of parentheses.
      * If that is the case, just throw away the parentheses.
      */
-    return eval(p + 1, q - 1, success);
+    word_t ret = eval(p + 1, q - 1, success);
+    // printf("DEBUG: eval (3): p: %d, q: %d, ret: %d\n", p, q, ret);
+    return ret;
   }
   else {
     /* We should do more things here. */
@@ -348,13 +362,17 @@ word_t eval(int p, int q, bool *success) {
       // printf("DEBUG: p is %d, q is %d, tokens[p].type is %d\n", p, q, tokens[p].type);
       // assert(tokens[p].type == TK_DEREF);
       if(tokens[p].type == TK_DEREF) {
-        printf("DEBUG: eval: p is %d, q is %d\n", p, q);
+        // printf("DEBUG: eval: p is %d, q is %d\n", p, q);
         word_t vaddr_read(vaddr_t addr, int len);  // read data in memory
         vaddr_t vaddr = eval(p + 1, q, success);  // p + 1 to q (p is TK_DEREF)
-        return vaddr_read(vaddr, 4);
+        word_t ret = vaddr_read(vaddr, 4);
+        // printf("DEBUG: eval (4): p: %d, q: %d, ret: %d\n", p, q, ret);
+        return ret;
       }
       else if(tokens[p].type == TK_NEG) {
-        return -eval(p + 1, q, success);
+        word_t ret = -eval(p + 1, q, success);
+        // printf("DEBUG: eval (5): p: %d, q: %d, ret: %d\n", p, q, ret);
+        return ret;
       }
       else if(tokens[p].type == TK_REG) {
         printf("eval: invalid expression (invalid '$')\n");
@@ -367,23 +385,23 @@ word_t eval(int p, int q, bool *success) {
     }
 
     else {
+      word_t op1 = eval(p, op_index - 1, success);
+      word_t op2 = eval(op_index + 1, q, success);
       switch (tokens[op_index].type) {
-        case TK_PLUS:  return eval(p, op_index - 1, success) + eval(op_index + 1, q, success);
-        case TK_MINUS: return eval(p, op_index - 1, success) - eval(op_index + 1, q, success);
-        case TK_MULTI: return eval(p, op_index - 1, success) * eval(op_index + 1, q, success);
-        case TK_DEVI:  
-          word_t divop1 = eval(p, op_index - 1, success);
-          word_t divop2 = eval(op_index + 1, q, success);
-          if(divop2 == 0) {
-            printf("eval error: divide by zero\n");
+        case TK_PLUS: return op1 + op2;
+        case TK_MINUS: return op1 - op2;
+        case TK_MULTI: return op1 * op2;
+        case TK_DEVI: 
+          if(op2 == 0) {
+            printf("eval error: divide by zero! p is %d, q is %d, op_index is %d\n", p, q, op_index);
             *success = false;
             return 0;
           }
-          return divop1 / divop2;
-        case TK_AND:   return eval(p, op_index - 1, success) && eval(op_index + 1, q, success);
-        case TK_OR:    return eval(p, op_index - 1, success) || eval(op_index + 1, q, success);
-        case TK_EQ:    return eval(p, op_index - 1, success) == eval(op_index + 1, q, success);
-        case TK_INEQ:  return eval(p, op_index - 1, success) != eval(op_index + 1, q, success);
+          return op1 / op2;
+        case TK_AND:   return op1 && op2;
+        case TK_OR:    return op1 || op2;
+        case TK_EQ:    return op1 == op2;
+        case TK_INEQ:  return op1 != op2;
         
         default:
           assert(0);
@@ -393,20 +411,22 @@ word_t eval(int p, int q, bool *success) {
   }
 }
 
-static void print_type(int idx) {
-  idx -= 256;
-  char *type_names[] = { "TK_NOTYPE", "TK_NUMBER", "TK_PLUS", "TK_MINUS", "TK_MULTI", "TK_DEVI", "TK_EQ", "TK_INEQ", 
-  "TK_AND", "TK_OR", "TK_LEFTPAR", "TK_RIGHTPAR", "TK_REG", "TK_DEREF", "TK_NEG" };
-  printf("%s", type_names[idx]);
-}
 
-static void print_tokens() {
-  for(int i = 0; i < nr_token; i++) {
-    printf("tokens[%d]: type: ", i);
-    print_type(tokens[i].type);  
-    printf(", str: %s\n", tokens[i].str);
-  }
-}
+// static void print_type(int idx) {
+//   idx -= 256;
+//   char *type_names[] = { "TK_NOTYPE", "TK_NUMBER", "TK_PLUS", "TK_MINUS", "TK_MULTI", "TK_DEVI", "TK_EQ", "TK_INEQ", 
+//   "TK_AND", "TK_OR", "TK_LEFTPAR", "TK_RIGHTPAR", "TK_REG", "TK_DEREF", "TK_NEG" };
+//   printf("%s", type_names[idx]);
+// }
+
+//// 辅助debug的打印token数组的函数
+// static void print_tokens() {
+//   for(int i = 0; i < nr_token; i++) {
+//     printf("tokens[%d]: type: ", i);
+//     print_type(tokens[i].type);  
+//     printf(", str: %s\n", tokens[i].str);
+//   }
+// }
 
 word_t expr(char *e, bool *success) {
   // printf("DEBUG: expr: e is %s\n", e);
@@ -414,9 +434,6 @@ word_t expr(char *e, bool *success) {
     *success = false;
     return 0;
   }
-
-  // printf("DEBUG: nr_token is %d\n", nr_token);
-  // print_tokens();
 
   for (int i = 0; i < nr_token; i ++) {
     if (tokens[i].type == TK_MULTI && (i == 0 || tokens[i - 1].type == TK_LEFTPAR || tokens[i - 1].type == TK_PLUS
@@ -435,7 +452,7 @@ word_t expr(char *e, bool *success) {
     }
   }
 
-  print_tokens();
+  // print_tokens();
 
   *success = true;
   word_t ret = eval(0, nr_token - 1, success);

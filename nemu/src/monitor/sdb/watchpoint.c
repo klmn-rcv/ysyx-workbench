@@ -44,8 +44,10 @@ void init_wp_pool() {
 
 
 WP* new_wp() {
-  if(free_ == NULL)
-    assert(0);
+  if(free_ == NULL) {
+    // assert(0);
+    return NULL;
+  }
   else {
     WP* current = head;
     if(head == NULL) {
@@ -96,15 +98,18 @@ void free_wp(WP *wp) {
   }
 }
 
-bool init_new_wp(char *s) {
+int init_new_wp(char *s) { // 返回值：0表示正常退出，1表示表达式不合法，2表示没有空闲监视点
   WP *wp = new_wp();
+  if(wp == NULL) {
+    return 2;
+  }
   bool success = false;
   wp->expr = strdup(s);
   wp->old_value = expr(wp->expr, &success);
   if(success == false) {
-    return false;
+    return 1;
   }
-  return true;
+  return 0;
 }
 
 bool delete_wp(int NO) {
@@ -114,7 +119,7 @@ bool delete_wp(int NO) {
       break;
     current = current->next;
   }
-  if(current->NO != NO) {
+  if(current == NULL/* || current->NO != NO*/) {
     return false;
   }
   free_wp(current);
