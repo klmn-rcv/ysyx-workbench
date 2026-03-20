@@ -26,10 +26,12 @@ $(BINARY):: compile_git
 
 override ARGS ?= --log=$(BUILD_DIR)/nemu-log.txt
 override ARGS += $(ARGS_DIFF)
+BATCH_ARGS = $(ARGS) -b
 
 # Command to execute NEMU
 IMG ?=
 NEMU_EXEC := $(BINARY) $(ARGS) $(IMG)
+NEMU_BATCH_EXEC := $(BINARY) $(BATCH_ARGS) $(IMG)
 
 run-env: $(BINARY) $(DIFF_REF_SO)
 
@@ -41,10 +43,14 @@ gdb: run-env
 	$(call git_commit, "gdb NEMU")
 	gdb -s $(BINARY) --args $(NEMU_EXEC)
 
+run-batch: run-env
+	$(call git_commit, "run-batch NEMU")
+	$(NEMU_BATCH_EXEC)
+
 clean-tools = $(dir $(shell find ./tools -maxdepth 2 -mindepth 2 -name "Makefile"))
 $(clean-tools):
 	-@$(MAKE) -s -C $@ clean
 clean-tools: $(clean-tools)
 clean-all: clean distclean clean-tools
 
-.PHONY: run gdb run-env clean-tools clean-all $(clean-tools)
+.PHONY: run gdb run-batch run-env clean-tools clean-all $(clean-tools)
