@@ -2,28 +2,153 @@
 
 #if !defined(__ISA_NATIVE__) || defined(__NATIVE_USE_KLIB__)
 
-int printf(const char *fmt, ...) {
+static int putchar(int ch) {
   panic("Not implemented");
+}
+
+static char *itoa(int val, char *buf) {
+  char *p = buf;
+  bool neg_flag = false;
+  if(val < 0) {
+    neg_flag = true;
+    val = -val;
+  }
+  do {
+    *p++ = (val % 10) + '0';
+    val /= 10;
+  } while(val > 0);
+  if(neg_flag) {
+    *p++ = '-';
+  }
+  *p = '\0';
+  return strrev(buf);
+}
+
+typedef int (*vformat_output_func)(void *ctx, char ch);
+
+typedef struct {
+  char *buf;        // output buffer
+  size_t size;      // size of the buffer (including '\0')
+  size_t need_write;   // chars needed to write
+} vsnprintf_ctx;
+
+static int vsnprintf_output(void *ctx, char ch) {
+  vsnprintf_ctx *c = (vsnprintf_ctx *)ctx;
+  // write only if there is space (leave room for '\0')
+  if (c->buf && c->need_write < c->size - 1) {
+    c->buf[c->need_write] = ch;
+  }
+  c->need_write++;
+  return 0;
+}
+
+typedef struct {
+    int count;        // count of chars that have been output
+} vprintf_ctx;
+
+static int vprintf_output(void *ctx, char ch) {
+  vprintf_ctx *c = (vprintf_ctx *)ctx;
+  if (putchar(ch) == EOF) {
+    return -1;
+  }
+  c->count++;
+  return 0;
+}
+
+// copy-paste is not a good habit, so I use vformat to implement vprintf and vsnprintf
+static int vformat(vformat_output_func output, void *ctx, const char *fmt, va_list ap) {
+  while (*fmt) {
+    if (*fmt != '%') {
+      // common chars
+      if (output(ctx, *fmt) != 0) 
+        return -1;
+      fmt++;
+      continue;
+    }
+    fmt++;
+    if (*fmt == '\0') 
+      break;   // format string ends up with %，ignore
+    char conv = *fmt++;
+
+    if (conv == 's') {
+      char *s = va_arg(ap, char *);
+      if (s == NULL) s = "(null)";
+      while (*s) {
+        if (output(ctx, *s) != 0) 
+          return -1;
+        s++;
+      }
+    } else if (conv == 'd') {
+      int val = va_arg(ap, int);
+      char buf[12];         // enough for -2147483648
+      itoa(val, buf);
+      char *p = buf;
+      while (*p) {
+        if (output(ctx, *p) != 0) 
+          return -1;
+        p++;
+      }
+    } else {
+      // unsupport transform, output as original string
+      if (output(ctx, '%') != 0) 
+        return -1;
+      if (output(ctx, conv) != 0) 
+        return -1;
+    }
+  }
+
+  return 0;
+}
+
+int printf(const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  int r = vprintf(fmt, ap);
+  va_end(ap);
+  return r;
 }
 
 int vprintf(const char *fmt, va_list ap) {
-  panic("Not implemented");
-}
-
-int vsprintf(char *out, const char *fmt, va_list ap) {
-  panic("Not implemented");
+  vprintf_ctx ctx = { .count = 0 };
+  int ret = vformat(vprintf_output, &ctx, fmt, ap);
+  if(ret < 0)
+    return -1;
+  return ctx.count;
 }
 
 int sprintf(char *out, const char *fmt, ...) {
-  panic("Not implemented");
+  va_list ap;
+  va_start(ap, fmt);
+  int r = vsprintf(out, fmt, ap);
+  va_end(ap);
+  return r;
+}
+
+int vsprintf(char *out, const char *fmt, va_list ap) {
+  return vsnprintf(out, SIZE_MAX, fmt, ap);
 }
 
 int snprintf(char *out, size_t n, const char *fmt, ...) {
-  panic("Not implemented");
+  va_list ap;
+  va_start(ap, fmt);
+  int r = vsnprintf(out, n, fmt, ap);
+  va_end(ap);
+  return r;
 }
 
 int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
-  panic("Not implemented");
+  vsnprintf_ctx ctx = { .buf = out, .size = n, .need_write = 0 };
+  vformat(vsnprintf_output, &ctx, fmt, ap);
+  
+  if (n > 0 && out) {
+    if (ctx.need_write < n) {
+      out[ctx.need_write] = '\0';
+    }
+    else {
+      out[n - 1] = '\0';
+    }
+  }
+  return (int)ctx.need_write;
 }
 
 int __am_vsscanf_internal(const char *str, const char **end_pstr, const char *fmt, va_list ap) {

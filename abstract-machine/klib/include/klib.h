@@ -25,6 +25,7 @@ int    strcmp    (const char *s1, const char *s2);
 int    strncmp   (const char *s1, const char *s2, size_t n);
 char  *strchr    (const char *s, int c);
 char  *strrchr   (const char *s, int c);
+char  *strrev    (char *s);
 
 // stdlib.h
 void   srand     (unsigned int seed);
@@ -57,6 +58,7 @@ int    tolower   (int c);
 int    toupper   (int c);
 
 // stdio.h
+#define EOF (-1)
 int    printf    (const char *format, ...);
 int    vprintf   (const char *fmt, va_list ap);
 int    sprintf   (char *str, const char *format, ...);

@@ -122,4 +122,24 @@ char *strrchr(const char *s, int c) {
   return NULL;
 }
 
+char *strrev(char *s) {  // string reverse
+    if (s == NULL) {
+        return NULL;
+    }
+    char *left = s;
+    char *right = s;
+    while (*right != '\0') {
+        right++;
+    }
+    right--;
+    while (left < right) {
+        char temp = *left;
+        *left = *right;
+        *right = temp;
+        left++;
+        right--;
+    }
+    return s;
+}
+
 #endif
