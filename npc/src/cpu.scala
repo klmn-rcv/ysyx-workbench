@@ -36,15 +36,17 @@ class CPU extends Module {
     exu.io.src1 := idu.io.src1
     exu.io.src2 := idu.io.src2
     exu.io.alu_op := idu.io.alu_op
+    exu.io.ebreak_in := idu.io.ebreak_out
 
     // LSU stage
     lsu.io.in_data := exu.io.result
-    
+    lsu.io.ebreak_in := exu.io.ebreak_out
 
     // WB stage
     wbu.io.in_data := lsu.io.out_data
     wbu.io.in_rd := idu.io.rd
     wbu.io.wr_reg := idu.io.wr_reg
+    wbu.io.ebreak_in := lsu.io.ebreak_out
 
     regfile.io.we := wbu.io.wr_reg
     regfile.io.waddr := wbu.io.wb_addr  // truncate

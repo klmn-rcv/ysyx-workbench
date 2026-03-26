@@ -29,6 +29,8 @@ class IDU extends Module {
 
         val bj_valid = Output(Bool())
         val bj_pc = Output(UInt(32.W))
+
+        val ebreak_out = Output(Bool())
     })
 
     val default = List(InstType.I, FuncType.alu, ALUOp.add)
@@ -39,6 +41,8 @@ class IDU extends Module {
     val (aluOp, _) = ALUOp.safe(decoded(2).asUInt)
 
     val (needRs1, needRs2, needRd) = DecodePolicy.regUsage(instType)
+
+    // printf("inst: %x, needRs1: %b, needRs2: %b, needRd: %b\n", io.inst, needRs1, needRs2, needRd)
 
     val rs1 = io.inst(19, 15)
     val rs2 = io.inst(24, 20)
@@ -57,6 +61,8 @@ class IDU extends Module {
 
     val src1 = Mux(needRs1, io.rdata1, 0.U)
     val src2 = Mux(needRs2, io.rdata2, imm)
+
+    // printf("src1: %x, src2: %x\n", src1, src2)
     
     io.src1 := src1
     io.src2 := src2
@@ -67,5 +73,9 @@ class IDU extends Module {
 
     io.wr_reg := needRd
     io.bj_valid := (funcType === FuncType.jump) || (funcType === FuncType.jplk) // || (funcType === FuncType.br) && ...
-    io.bj_pc := (src1 + imm) & ~1.U
+    io.bj_pc := (src1 + imm) & ~(1.U(32.W))
+
+    // printf("src1: %x, imm: %x, bj_valid: %b, bj_pc: %x\n", src1, imm, io.bj_valid, io.bj_pc)
+
+    io.ebreak_out := funcType === FuncType.ebreak;
 }

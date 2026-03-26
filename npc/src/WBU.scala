@@ -14,10 +14,15 @@ class WBU extends Module {
         val wb_data = Output(UInt(32.W))
         val wb_we = Output(Bool())
         val wb_addr = Output(UInt(5.W))
+
+        val ebreak_in = Input(Bool())
     })
 
     // jump writes link value (pc+4); arithmetic writes ALU result.
     io.wb_data := io.in_data
     io.wb_we := io.wr_reg
     io.wb_addr := io.in_rd
+
+    val halt = Module(new Halt)
+    halt.ebreak := io.ebreak_in
 }

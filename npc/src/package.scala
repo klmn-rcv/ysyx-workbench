@@ -11,7 +11,7 @@ package object cpu {
     }
 
     object FuncType extends ChiselEnum {
-        val alu, ls, br, jump, jplk = Value     // jplk: jump and link
+        val alu, ls, br, jump, jplk, ebreak = Value     // jplk: jump and link
     }
 
     // A typed policy layer: map abstract instruction classes to control metadata.
@@ -45,9 +45,11 @@ package object cpu {
     object MinirvInsts extends ChiselEnum {
         val addi = BitPat("b???????_?????_?????_000_?????_0010011")
         val jalr = BitPat("b???????_?????_?????_000_?????_1100111")
+        val ebreak = BitPat("b0000000_00001_00000_000_00000_1110011")
         val table = Array(
             addi -> List(InstType.I, FuncType.alu, ALUOp.add),
-            jalr -> List(InstType.I, FuncType.jplk, ALUOp.add)
+            jalr -> List(InstType.I, FuncType.jplk, ALUOp.add),
+            ebreak -> List(InstType.I, FuncType.ebreak, ALUOp.add)
         )
     }
 }

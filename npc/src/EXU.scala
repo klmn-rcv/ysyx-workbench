@@ -15,6 +15,9 @@ class EXU extends Module {
         val src2 = Input(UInt(32.W))
         val alu_op = Input(ALUOp())
         val result = Output(UInt(32.W))
+
+        val ebreak_in = Input(Bool())
+        val ebreak_out = Output(Bool())
     })
 
     val alu = Module(new ALU)
@@ -23,4 +26,6 @@ class EXU extends Module {
     alu.io.alu_src2 := io.src2
     alu.io.alu_op := io.alu_op
     io.result := alu.io.alu_result
+
+    io.ebreak_out := io.ebreak_in
 }
