@@ -11,7 +11,15 @@ package object cpu {
     }
 
     object FuncType extends ChiselEnum {
-        val alu, ls, br, jump, jplk, ebreak = Value     // jplk: jump and link
+        val alu, ld, st, br, jump, jplk, ebreak = Value     // jplk: jump and link
+    }
+
+    object BitWidth extends ChiselEnum {
+        val w8, w16, w32 = Value
+    }
+    
+    object Sign extends ChiselEnum {
+        val signed, unsigned = Value
     }
 
     // A typed policy layer: map abstract instruction classes to control metadata.
@@ -46,10 +54,48 @@ package object cpu {
         val addi = BitPat("b???????_?????_?????_000_?????_0010011")
         val jalr = BitPat("b???????_?????_?????_000_?????_1100111")
         val ebreak = BitPat("b0000000_00001_00000_000_00000_1110011")
+        // val lb = BitPat("b???????_?????_?????_000_?????_0000011")
+        // val lh = BitPat("b???????_?????_?????_001_?????_0000011")
+        val lw = BitPat("b???????_?????_?????_010_?????_0000011")
+        val lbu = BitPat("b???????_?????_?????_100_?????_0000011")
+        // val lhu = BitPat("b???????_?????_?????_101_????_0000011")
+        val sb = BitPat("b???????_?????_?????_000_?????_0100011")
+        // val sh = BitPat("b???????_?????_?????_001_?????_0100011")
+        val sw = BitPat("b???????_?????_?????_010_?????_0100011")
+        
         val table = Array(
-            addi -> List(InstType.I, FuncType.alu, ALUOp.add),
-            jalr -> List(InstType.I, FuncType.jplk, ALUOp.add),
-            ebreak -> List(InstType.I, FuncType.ebreak, ALUOp.add)
+            addi -> List(InstType.I, FuncType.alu, ALUOp.add, BitWidth.w32, Sign.signed),
+            jalr -> List(InstType.I, FuncType.jplk, ALUOp.add, BitWidth.w32, Sign.signed),
+            ebreak -> List(InstType.I, FuncType.ebreak, ALUOp.add, BitWidth.w32, Sign.signed),
+            lw -> List(InstType.I, FuncType.ld, ALUOp.add, BitWidth.w32, Sign.signed),
+            lbu -> List(InstType.I, FuncType.ld, ALUOp.add, BitWidth.w8, Sign.unsigned),
+            sb -> List(InstType.S, FuncType.st, ALUOp.add, BitWidth.w8, Sign.signed),
+            sw -> List(InstType.S, FuncType.st, ALUOp.add, BitWidth.w32, Sign.signed)
         )
+    }
+
+    object MaskGen {
+        def apply(addr: UInt, bitWidth: BitWidth.Type): UInt = {
+            val mask = MuxLookup(bitWidth.asUInt, "b0000".U(4.W))(Seq(
+                BitWidth.w8.asUInt -> UIntToOH(addr(1, 0), 4),    // UIntToOH是译码器，这里生成0001/0010/0100/1000
+                BitWidth.w16.asUInt -> Mux(addr(1), "b1100".U(4.W), "b0011".U(4.W)),    // 0011/1100
+                BitWidth.w32.asUInt -> "b1111".U(4.W)
+            ))
+            mask
+        }
+    }
+
+    object ExtractLoadData {
+        def apply(rdata: UInt, addr: UInt, bitWidth: BitWidth.Type, sign: Sign.Type): UInt = {
+            val shifted = rdata >> (addr(1, 0) << 3)  // addr(1, 0) << 3 就是 addr(1, 0) * 8，shifted是把rdata里我们需要的部分右移到边界
+            val b = shifted(7, 0)
+            val h = shifted(15, 0)
+            val loadData = MuxLookup(bitWidth.asUInt, shifted)(Seq(
+                BitWidth.w8.asUInt -> Mux(sign === Sign.signed, Cat(Fill(24, b(7)), b), b),
+                BitWidth.w16.asUInt -> Mux(sign === Sign.signed, Cat(Fill(16, h(15)), h), h),
+                BitWidth.w32.asUInt -> shifted
+            ))
+            loadData
+        }
     }
 }

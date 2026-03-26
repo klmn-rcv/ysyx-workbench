@@ -5,77 +5,81 @@ import chisel3.util._
 
 class IDU extends Module {
     val io = IO(new Bundle {
-        val inst = Input(UInt(32.W))
-
-        val rdata1 = Input(UInt(32.W))
-        val rdata2 = Input(UInt(32.W))
-
-        val pc = Input(UInt(32.W))
-
-        // val inst_type = Output(InstType())
-        // val func_type = Output(FuncType())
-        val alu_op = Output(ALUOp())
-
-        val imm = Output(UInt(32.W))
-
-        val rs1 = Output(UInt(5.W))
-        val rs2 = Output(UInt(5.W))
-        val rd = Output(UInt(5.W))
-
-        val src1 = Output(UInt(32.W))
-        val src2 = Output(UInt(32.W))
-        
-        val wr_reg = Output(Bool())
-
-        val bj_valid = Output(Bool())
-        val bj_pc = Output(UInt(32.W))
-
-        val ebreak_out = Output(Bool())
+        val in = new Bundle {
+            val inst = Input(UInt(32.W))
+            val rdata1 = Input(UInt(32.W))
+            val rdata2 = Input(UInt(32.W))
+            val pc = Input(UInt(32.W))
+        }
+        val out = new Bundle {
+            val alu_op = Output(ALUOp())
+            val imm = Output(UInt(32.W))
+            val rs1 = Output(UInt(5.W))
+            val rs2 = Output(UInt(5.W))
+            val rd = Output(UInt(5.W))
+            val src1 = Output(UInt(32.W))
+            val src2 = Output(UInt(32.W))
+            val wr_reg = Output(Bool())
+            val rd_mem = Output(Bool())
+            val wr_mem = Output(Bool())
+            val bit_width = Output(BitWidth())
+            val sign = Output(Sign())
+            val bj_valid = Output(Bool())
+            val bj_pc = Output(UInt(32.W))
+            val ebreak = Output(Bool())
+        }
     })
 
-    val default = List(InstType.I, FuncType.alu, ALUOp.add)
-    val decoded = ListLookup(io.inst, default, MinirvInsts.table)
+    val default = List(InstType.I, FuncType.alu, ALUOp.add, BitWidth.w32, Sign.signed)
+    val decoded = ListLookup(io.in.inst, default, MinirvInsts.table)
 
-    val (instType, _) = InstType.safe(decoded(0).asUInt)
-    val (funcType, _) = FuncType.safe(decoded(1).asUInt)
-    val (aluOp, _) = ALUOp.safe(decoded(2).asUInt)
+    val (instType, _)   = InstType.safe(decoded(0).asUInt)
+    val (funcType, _)   = FuncType.safe(decoded(1).asUInt)
+    val (aluOp, _)      = ALUOp.safe(decoded(2).asUInt)
+    val (bitWidth, _)   = BitWidth.safe(decoded(3).asUInt)
+    val (sign, _)       = Sign.safe(decoded(4).asUInt)
 
     val (needRs1, needRs2, needRd) = DecodePolicy.regUsage(instType)
 
     // printf("inst: %x, needRs1: %b, needRs2: %b, needRd: %b\n", io.inst, needRs1, needRs2, needRd)
 
-    val rs1 = io.inst(19, 15)
-    val rs2 = io.inst(24, 20)
-    val rd = io.inst(11, 7)
+    val rs1 = io.in.inst(19, 15)
+    val rs2 = io.in.inst(24, 20)
+    val rd = io.in.inst(11, 7)
 
-    val imm = DecodePolicy.immExtract(instType, io.inst)
+    val imm = DecodePolicy.immExtract(instType, io.in.inst)
 
     // io.inst_type := instType
     // io.func_type := funcType
-    io.alu_op := aluOp
-    io.imm := imm
+    io.out.alu_op := aluOp
+    io.out.imm := imm
 
-    io.rs1 := rs1
-    io.rs2 := rs2
-    io.rd := rd
+    io.out.rs1 := rs1
+    io.out.rs2 := rs2
+    io.out.rd := rd
 
-    val src1 = Mux(needRs1, io.rdata1, 0.U)
-    val src2 = Mux(needRs2, io.rdata2, imm)
+    val src1 = Mux(needRs1, io.in.rdata1, 0.U)
+    val src2 = Mux(needRs2, io.in.rdata2, imm)
 
     // printf("src1: %x, src2: %x\n", src1, src2)
     
-    io.src1 := src1
-    io.src2 := src2
+    io.out.src1 := src1
+    io.out.src2 := src2
     when(funcType === FuncType.jplk) { 
-        io.src1 := io.pc
-        io.src2 := 4.U
+        io.out.src1 := io.in.pc
+        io.out.src2 := 4.U
     }
 
-    io.wr_reg := needRd
-    io.bj_valid := (funcType === FuncType.jump) || (funcType === FuncType.jplk) // || (funcType === FuncType.br) && ...
-    io.bj_pc := (src1 + imm) & ~(1.U(32.W))
+    io.out.wr_reg := needRd
+    io.out.rd_mem := funcType === FuncType.ld
+    io.out.wr_mem := funcType === FuncType.st
+    io.out.bit_width := bitWidth
+    io.out.sign := sign
+
+    io.out.bj_valid := (funcType === FuncType.jump) || (funcType === FuncType.jplk) // || (funcType === FuncType.br) && ...
+    io.out.bj_pc := (src1 + imm) & ~(1.U(32.W))
 
     // printf("src1: %x, imm: %x, bj_valid: %b, bj_pc: %x\n", src1, imm, io.bj_valid, io.bj_pc)
 
-    io.ebreak_out := funcType === FuncType.ebreak;
+    io.out.ebreak := funcType === FuncType.ebreak
 }

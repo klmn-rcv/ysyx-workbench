@@ -5,24 +5,28 @@ import chisel3.util._
 
 class ALU extends Module {
     val io = IO(new Bundle {
-        val alu_src1 = Input(UInt(32.W))
-        val alu_src2 = Input(UInt(32.W))
-        val alu_op = Input(ALUOp())
-        val alu_result = Output(UInt(32.W))
+        val in = new Bundle {
+            val src1 = Input(UInt(32.W))
+            val src2 = Input(UInt(32.W))
+            val op = Input(ALUOp())
+        }
+        val out = new Bundle {
+            val result = Output(UInt(32.W))
+        }
     })
-    io.alu_result := 0.U
-    switch(io.alu_op) {
-        is(ALUOp.add) { io.alu_result := io.alu_src1 + io.alu_src2 }
-        is(ALUOp.sub) { io.alu_result := io.alu_src1 - io.alu_src2 }
-        is(ALUOp.slt) { io.alu_result := (io.alu_src1.asSInt < io.alu_src2.asSInt).asUInt } // 也可以用Mux实现
-        is(ALUOp.sltu) { io.alu_result := (io.alu_src1 < io.alu_src2).asUInt }
-        is(ALUOp.and) { io.alu_result := io.alu_src1 & io.alu_src2 }
-        is(ALUOp.or) { io.alu_result := io.alu_src1 | io.alu_src2 }
-        is(ALUOp.xor) { io.alu_result := io.alu_src1 ^ io.alu_src2 }
-        is(ALUOp.sll) { io.alu_result := io.alu_src1 << io.alu_src2(4, 0) }
-        is(ALUOp.srl) { io.alu_result := io.alu_src1 >> io.alu_src2(4, 0) }
-        is(ALUOp.sra) { io.alu_result := (io.alu_src1.asSInt >> io.alu_src2(4, 0)).asUInt }
-        is(ALUOp.lui) { io.alu_result := io.alu_src2 }
+    io.out.result := 0.U
+    switch(io.in.op) {
+        is(ALUOp.add) { io.out.result := io.in.src1 + io.in.src2 }
+        is(ALUOp.sub) { io.out.result := io.in.src1 - io.in.src2 }
+        is(ALUOp.slt) { io.out.result := (io.in.src1.asSInt < io.in.src2.asSInt).asUInt } // 也可以用Mux实现
+        is(ALUOp.sltu) { io.out.result := (io.in.src1 < io.in.src2).asUInt }
+        is(ALUOp.and) { io.out.result := io.in.src1 & io.in.src2 }
+        is(ALUOp.or) { io.out.result := io.in.src1 | io.in.src2 }
+        is(ALUOp.xor) { io.out.result := io.in.src1 ^ io.in.src2 }
+        is(ALUOp.sll) { io.out.result := io.in.src1 << io.in.src2(4, 0) }
+        is(ALUOp.srl) { io.out.result := io.in.src1 >> io.in.src2(4, 0) }
+        is(ALUOp.sra) { io.out.result := (io.in.src1.asSInt >> io.in.src2(4, 0)).asUInt }
+        is(ALUOp.lui) { io.out.result := io.in.src2 }
     }
 }
 
