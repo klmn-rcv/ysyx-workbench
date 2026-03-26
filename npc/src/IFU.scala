@@ -1,0 +1,20 @@
+package cpu
+
+import chisel3._
+import chisel3.util._
+
+class IFU extends Module {
+    val io = IO(new Bundle {
+        val bj_valid = Input(Bool())
+        val bj_pc = Input(UInt(32.W))
+        val pc = Output(UInt(32.W))
+        val next_pc = Output(UInt(32.W))
+    })
+
+    val pc_reg = RegInit("hfffffffc".U(32.W))
+    val snpc = pc_reg + 4.U
+    val dnpc = io.bj_pc
+    pc_reg := io.next_pc   // current pc
+    io.pc := pc_reg
+    io.next_pc := Mux(io.bj_valid, dnpc, snpc)  // next pc
+}

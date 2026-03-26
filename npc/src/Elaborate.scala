@@ -3,12 +3,12 @@ object Elaborate extends App {
     "--default-layer-specialization=enable",
     "--verification-flavor=immediate",
     "--lowering-options=" + List(
-      // make yosys happy
-      // see https://github.com/llvm/circt/blob/main/docs/VerilogGeneration.md
+      // Keep generated SV friendly to common downstream tools.
       "disallowLocalVariables",
       "disallowPackedArrays",
       "locationInfoStyle=wrapInAtSquareBracket"
-    ).reduce(_ + "," + _)
+    ).mkString(",")
   )
-  circt.stage.ChiselStage.emitSystemVerilogFile(new gcd.GCD(), args, firtoolOptions)
+
+  circt.stage.ChiselStage.emitSystemVerilogFile(new cpu.CPU(), args, firtoolOptions)
 }
