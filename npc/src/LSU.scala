@@ -7,7 +7,7 @@ class LSU extends Module {
     val io = IO(new Bundle {
         val in = new Bundle {
             val alu_data = Input(UInt(32.W))
-            val src2 = Input(UInt(32.W))  // for store data
+            val reg_data2 = Input(UInt(32.W))  // for store data
             val wr_reg = Input(Bool())
             val rd = Input(UInt(5.W))
             val rd_mem = Input(Bool())
@@ -36,7 +36,7 @@ class LSU extends Module {
     io.out.mem_wen := io.in.wr_mem
     io.out.raddr := io.in.alu_data
     io.out.waddr := io.in.alu_data
-    io.out.wdata := io.in.src2 << (io.out.waddr(1, 0) << 3) // 这里要左移来对齐到正确的字节位置
+    io.out.wdata := io.in.reg_data2 << (io.out.waddr(1, 0) << 3) // 这里要左移来对齐到正确的字节位置
     io.out.wmask := MaskGen(io.in.alu_data, io.in.bit_width)
 
     val loadData = ExtractLoadData(io.in.rdata, io.out.raddr, io.in.bit_width, io.in.sign)

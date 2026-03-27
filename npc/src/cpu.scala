@@ -6,19 +6,18 @@ import chisel3.util._
 class CPU extends Module {
     val io = IO(new Bundle {
         val in = new Bundle {
-            val mem_rinst = Input(UInt(32.W))
-            val mem_rdata = Input(UInt(32.W))
+            val rinst = Input(UInt(32.W))
+            val rdata = Input(UInt(32.W))
         }
         val out = new Bundle {
+            val inst_req_valid = Output(Bool())
+            val data_req_valid = Output(Bool())
+            val wen = Output(Bool())
             val pc = Output(UInt(32.W))
-            val mem_inst_req_valid = Output(Bool())
-            val mem_data_req_valid = Output(Bool())
-            val mem_wen = Output(Bool())
-            val mem_inst_pc = Output(UInt(32.W))
-            val mem_raddr = Output(UInt(32.W))
-            val mem_waddr = Output(UInt(32.W))
-            val mem_wdata = Output(UInt(32.W))
-            val mem_wmask = Output(UInt(4.W))
+            val raddr = Output(UInt(32.W))
+            val waddr = Output(UInt(32.W))
+            val wdata = Output(UInt(32.W))
+            val wmask = Output(UInt(4.W))
         }
     })
 
@@ -33,20 +32,19 @@ class CPU extends Module {
     ifu.io.in.bj_valid := idu.io.out.bj_valid
     ifu.io.in.bj_pc := idu.io.out.bj_pc
     idu.io.in.pc := ifu.io.out.pc
-    io.out.pc := ifu.io.out.next_pc
 
     // Current CPU only issues instruction fetches through memory interface.
-    io.out.mem_inst_req_valid := true.B
-    io.out.mem_data_req_valid := lsu.io.out.mem_data_req_valid
-    io.out.mem_wen := lsu.io.out.mem_wen
-    io.out.mem_inst_pc := ifu.io.out.next_pc
-    io.out.mem_raddr := lsu.io.out.raddr
-    io.out.mem_waddr := lsu.io.out.waddr
-    io.out.mem_wdata := lsu.io.out.wdata
-    io.out.mem_wmask := lsu.io.out.wmask
+    io.out.inst_req_valid := true.B
+    io.out.data_req_valid := lsu.io.out.mem_data_req_valid
+    io.out.wen := lsu.io.out.mem_wen
+    io.out.pc := ifu.io.out.next_pc
+    io.out.raddr := lsu.io.out.raddr
+    io.out.waddr := lsu.io.out.waddr
+    io.out.wdata := lsu.io.out.wdata
+    io.out.wmask := lsu.io.out.wmask
 
     // ID stage
-    idu.io.in.inst := io.in.mem_rinst
+    idu.io.in.inst := io.in.rinst
     regfile.io.in.raddr1 := idu.io.out.rs1     // truncate
     regfile.io.in.raddr2 := idu.io.out.rs2     // truncate
 
@@ -56,6 +54,7 @@ class CPU extends Module {
     // EX stage
     exu.io.in.src1 := idu.io.out.src1
     exu.io.in.src2 := idu.io.out.src2
+    exu.io.in.reg_data2 := idu.io.out.reg_data2
     exu.io.in.alu_op := idu.io.out.alu_op
     exu.io.in.wr_reg := idu.io.out.wr_reg
     exu.io.in.rd := idu.io.out.rd
@@ -67,14 +66,14 @@ class CPU extends Module {
 
     // LSU stage
     lsu.io.in.alu_data := exu.io.out.result
-    lsu.io.in.src2 := exu.io.out.src2
+    lsu.io.in.reg_data2 := exu.io.out.reg_data2
     lsu.io.in.wr_reg := exu.io.out.wr_reg
     lsu.io.in.rd := exu.io.out.rd
     lsu.io.in.rd_mem := exu.io.out.rd_mem
     lsu.io.in.wr_mem := exu.io.out.wr_mem
     lsu.io.in.bit_width := exu.io.out.bit_width
     lsu.io.in.sign := exu.io.out.sign
-    lsu.io.in.rdata := io.in.mem_rdata
+    lsu.io.in.rdata := io.in.rdata
     lsu.io.in.ebreak := exu.io.out.ebreak
 
     // WB stage

@@ -36,24 +36,25 @@ package object cpu {
             imm
         }
 
-        // Return (needRs1, needRs2, needRd)
-        def regUsage(instType: InstType.Type): (Bool, Bool, Bool) = {
-            val usageBits = MuxLookup(instType.asUInt, "b000".U(3.W))(Seq(
-                InstType.R.asUInt -> "b111".U(3.W),
-                InstType.I.asUInt -> "b101".U(3.W),
-                InstType.S.asUInt -> "b110".U(3.W),
-                InstType.B.asUInt -> "b110".U(3.W),
-                InstType.U.asUInt -> "b001".U(3.W),
-                InstType.J.asUInt -> "b001".U(3.W)
+        // Return (needRs1, needRs2, needImm, needRd)
+        def regUsage(instType: InstType.Type): (Bool, Bool, Bool, Bool) = {
+            val usageBits = MuxLookup(instType.asUInt, "b0000".U(4.W))(Seq(
+                InstType.R.asUInt -> "b1101".U(4.W),
+                InstType.I.asUInt -> "b1011".U(4.W),
+                InstType.S.asUInt -> "b1110".U(4.W),
+                InstType.B.asUInt -> "b1110".U(4.W),
+                InstType.U.asUInt -> "b0011".U(4.W),
+                InstType.J.asUInt -> "b0011".U(4.W)
             ))
-            (usageBits(2), usageBits(1), usageBits(0))
+            (usageBits(3), usageBits(2), usageBits(1), usageBits(0))
         }
     }
 
     object MinirvInsts extends ChiselEnum {
+        val lui = BitPat("b???????_?????_?????_???_?????_0110111")
         val addi = BitPat("b???????_?????_?????_000_?????_0010011")
         val jalr = BitPat("b???????_?????_?????_000_?????_1100111")
-        val ebreak = BitPat("b0000000_00001_00000_000_00000_1110011")
+        
         // val lb = BitPat("b???????_?????_?????_000_?????_0000011")
         // val lh = BitPat("b???????_?????_?????_001_?????_0000011")
         val lw = BitPat("b???????_?????_?????_010_?????_0000011")
@@ -62,15 +63,19 @@ package object cpu {
         val sb = BitPat("b???????_?????_?????_000_?????_0100011")
         // val sh = BitPat("b???????_?????_?????_001_?????_0100011")
         val sw = BitPat("b???????_?????_?????_010_?????_0100011")
+        val add = BitPat("b0000000_?????_?????_000_?????_0110011")
+        val ebreak = BitPat("b0000000_00001_00000_000_00000_1110011")
         
         val table = Array(
+            lui -> List(InstType.U, FuncType.alu, ALUOp.lui, BitWidth.w32, Sign.signed),
             addi -> List(InstType.I, FuncType.alu, ALUOp.add, BitWidth.w32, Sign.signed),
             jalr -> List(InstType.I, FuncType.jplk, ALUOp.add, BitWidth.w32, Sign.signed),
-            ebreak -> List(InstType.I, FuncType.ebreak, ALUOp.add, BitWidth.w32, Sign.signed),
             lw -> List(InstType.I, FuncType.ld, ALUOp.add, BitWidth.w32, Sign.signed),
             lbu -> List(InstType.I, FuncType.ld, ALUOp.add, BitWidth.w8, Sign.unsigned),
             sb -> List(InstType.S, FuncType.st, ALUOp.add, BitWidth.w8, Sign.signed),
-            sw -> List(InstType.S, FuncType.st, ALUOp.add, BitWidth.w32, Sign.signed)
+            sw -> List(InstType.S, FuncType.st, ALUOp.add, BitWidth.w32, Sign.signed),
+            add -> List(InstType.R, FuncType.alu, ALUOp.add, BitWidth.w32, Sign.signed),
+            ebreak -> List(InstType.I, FuncType.ebreak, ALUOp.add, BitWidth.w32, Sign.signed)
         )
     }
 

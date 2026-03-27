@@ -19,6 +19,7 @@ class IDU extends Module {
             val rd = Output(UInt(5.W))
             val src1 = Output(UInt(32.W))
             val src2 = Output(UInt(32.W))
+            val reg_data2 = Output(UInt(32.W))
             val wr_reg = Output(Bool())
             val rd_mem = Output(Bool())
             val wr_mem = Output(Bool())
@@ -39,9 +40,9 @@ class IDU extends Module {
     val (bitWidth, _)   = BitWidth.safe(decoded(3).asUInt)
     val (sign, _)       = Sign.safe(decoded(4).asUInt)
 
-    val (needRs1, needRs2, needRd) = DecodePolicy.regUsage(instType)
+    val (needRs1, needRs2, needImm, needRd) = DecodePolicy.regUsage(instType)
 
-    // printf("inst: %x, needRs1: %b, needRs2: %b, needRd: %b\n", io.inst, needRs1, needRs2, needRd)
+    // printf("inst: %x, needRs1: %b, needRs2: %b, needImm: %b, needRd: %b\n", io.inst, needRs1, needRs2, needImm, needRd)
 
     val rs1 = io.in.inst(19, 15)
     val rs2 = io.in.inst(24, 20)
@@ -59,12 +60,13 @@ class IDU extends Module {
     io.out.rd := rd
 
     val src1 = Mux(needRs1, io.in.rdata1, 0.U)
-    val src2 = Mux(needRs2, io.in.rdata2, imm)
+    val src2 = Mux(needImm, imm, io.in.rdata2)
 
     // printf("src1: %x, src2: %x\n", src1, src2)
     
     io.out.src1 := src1
     io.out.src2 := src2
+    io.out.reg_data2 := io.in.rdata2
     when(funcType === FuncType.jplk) { 
         io.out.src1 := io.in.pc
         io.out.src2 := 4.U
