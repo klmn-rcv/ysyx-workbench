@@ -1,5 +1,7 @@
 BUILD_DIR = ./build
 
+IMG ?=
+
 test:
 	mill -i test
 
@@ -29,7 +31,7 @@ clean:
 sim:
 	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
 	@echo "Write this Makefile by yourself."
-	verilator -Wall -Wno-fatal --cc -f build/filelist.f -Ibuild --top-module Top --trace --exe csrc/sim_main.cpp --build -j 0 && ./obj_dir/VTop
+	verilator -Wall -Wno-fatal --cc -f build/filelist.f -Ibuild --top-module Top --trace --exe csrc/sim_main.cpp --build -j 0 && ./obj_dir/VTop $(IMG)
 
 .PHONY: test verilog help reformat checkformat clean sim
 

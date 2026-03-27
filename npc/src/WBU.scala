@@ -24,5 +24,6 @@ class WBU extends Module {
     io.out.wb_addr := io.in.rd
 
     val halt = Module(new Halt)
+    halt.exit_code := io.in.data
     halt.ebreak := io.in.ebreak
 }

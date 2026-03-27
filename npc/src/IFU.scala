@@ -15,7 +15,7 @@ class IFU extends Module {
         }
     })
 
-    val pc_reg = RegInit("hfffffffc".U(32.W))
+    val pc_reg = RegInit("h7ffffffc".U(32.W))
     val snpc = pc_reg + 4.U
     val dnpc = io.in.bj_pc
     pc_reg := io.out.next_pc   // current pc

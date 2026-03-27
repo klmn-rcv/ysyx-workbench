@@ -59,8 +59,14 @@ class IDU extends Module {
     io.out.rs2 := rs2
     io.out.rd := rd
 
+    when(funcType === FuncType.ebreak) {
+        io.out.rs1 := 10.U
+        io.out.rs2 := 0.U
+        io.out.imm := 0.U
+    }
+
     val src1 = Mux(needRs1, io.in.rdata1, 0.U)
-    val src2 = Mux(needImm, imm, io.in.rdata2)
+    val src2 = Mux(needImm, io.out.imm, io.in.rdata2)
 
     // printf("src1: %x, src2: %x\n", src1, src2)
     

@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 
 class Halt extends ExtModule {
+    val exit_code = IO(Input(UInt(32.W)))
     val ebreak = IO(Input(Bool()))
     addResource("/Halt.sv")
 }
