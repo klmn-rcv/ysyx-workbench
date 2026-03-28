@@ -17,6 +17,7 @@
 #include <cpu/cpu.h>
 #include <cpu/ifetch.h>
 #include <cpu/decode.h>
+#include <cpu/iringbuf.h>
 
 #define R(i) gpr(i)
 #define Mr vaddr_read
@@ -125,6 +126,8 @@ static int decode_exec(Decode *s) {
 }
 
 int isa_exec_once(Decode *s) {
+  iringbuf_push_pc(s->pc);
   s->isa.inst = inst_fetch(&s->snpc, 4);
+  iringbuf_backfill_inst(s->pc, s->isa.inst);
   return decode_exec(s);
 }
