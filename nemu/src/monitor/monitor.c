@@ -15,6 +15,7 @@
 
 #include <isa.h>
 #include <memory/paddr.h>
+#include <ftrace.h>
 
 void init_rand();
 void init_log(const char *log_file);
@@ -68,8 +69,6 @@ static long load_img() {
   fclose(fp);
   return size;
 }
-
-void init_ftrace(const char *elf_file);
 
 static int parse_args(int argc, char *argv[]) {
   const struct option table[] = {

@@ -1,0 +1,18 @@
+#include <stdint.h>
+
+#define MAX_FUNC_NUM 1000
+
+typedef struct {
+    char name[128];
+    uint32_t start_addr;
+    uint32_t end_addr;  // not included
+} func_t;
+
+typedef struct {
+    int count;
+    func_t arr[MAX_FUNC_NUM];
+} func_array_t;
+
+extern func_array_t func_array;
+void init_ftrace(const char *elf_file);
+char *func_array_search(uint32_t addr);
