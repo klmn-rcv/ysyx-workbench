@@ -10,7 +10,6 @@
 !README.md
 !.gitignore
 !init.sh
-/am-kernels
 /nvboard
 /E4
 /mit
