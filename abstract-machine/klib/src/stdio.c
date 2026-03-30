@@ -1,4 +1,5 @@
 #include <klib.h>
+#include <limits.h>
 
 #if !defined(__ISA_NATIVE__) || defined(__NATIVE_USE_KLIB__)
 
@@ -7,6 +8,11 @@ static int putchar(int ch) {
 }
 
 static char *itoa(int val, char *buf) {
+  if (val == INT_MIN) {
+    strcpy(buf, "-2147483648");
+    return buf;
+  }
+
   char *p = buf;
   bool neg_flag = false;
   if(val < 0) {

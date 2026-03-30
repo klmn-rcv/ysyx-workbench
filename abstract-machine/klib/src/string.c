@@ -4,7 +4,7 @@
 
 size_t strlen(const char *s) {
   size_t len = 0;
-  for(int len = 0; s[len] != '\0'; len++)
+  for(len = 0; s[len] != '\0'; len++)
     ;
   return len;
 }
@@ -17,11 +17,13 @@ char *strcpy(char *dst, const char *src) {
 }
 
 char *strncpy(char *dst, const char *src, size_t n) {
-  int i;
+  size_t i;
   for(i = 0; i < n && src[i] != '\0'; i++) {
     dst[i] = src[i];
   }
-  dst[i] = '\0';
+  while(i < n) {
+    dst[i++] = '\0';
+  }
   return dst;
 }
 
@@ -113,7 +115,7 @@ char *strchr(const char *s, int c) {
 }
 
 char *strrchr(const char *s, int c) {
-  const char *p = s + strlen(s) + 1;
+  const char *p = s + strlen(s);
   do {
     if (*p == c) return (char *)p;
     if (s == p) break;
