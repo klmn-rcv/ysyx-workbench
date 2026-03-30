@@ -15,4 +15,4 @@ typedef struct {
 
 extern func_array_t func_array;
 void init_ftrace(const char *elf_file);
-char *func_array_search(uint32_t addr);
+int func_array_search(char *name, uint32_t addr, bool *is_func_entry);

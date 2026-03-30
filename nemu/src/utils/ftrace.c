@@ -39,7 +39,9 @@ static void func_array_push(const char *str, uint32_t start_addr, uint32_t end_a
     func_array.count++;
 }
 
-char *func_array_search(uint32_t addr) {
+int func_array_search(char *name, uint32_t addr, bool *is_func_entry) {
+    assert(name != NULL);
+    assert(is_func_entry != NULL);
     int left = 0, right = func_array.count - 1;
     while (left <= right) {
         int mid = left + (right - left) / 2;
@@ -50,11 +52,14 @@ char *func_array_search(uint32_t addr) {
         else if (addr >= f->end_addr) {
             left = mid + 1;
         }
-        else {
-            return func_array.arr[mid].name;
+        else {            
+            strcpy(name, func_array.arr[mid].name);
+            *is_func_entry = (addr == f->start_addr);
+            return 1;
         }
     }
-    return "???";   // Not found in any function range
+    *is_func_entry = false;
+    return 0;
 }
 
 static void ftrace_load_elf(const char *elf_file) {
@@ -132,26 +137,26 @@ static void ftrace_load_elf(const char *elf_file) {
     nread = fread(symtab, symtab_entry->sh_entsize, symtab_num, fp);
     Assert(nread == symtab_num, "ftrace: short read of ELF symtab section");
 
-    // Search for FUNC
+    // Search for FUNC symbols in symtab and push into func_array
     for(int i = 0; i < symtab_num; i++) {
         int st_type = ELF32_ST_TYPE(symtab[i].st_info);
         if(st_type == STT_FUNC) {
             char *symbol_name = strtab + symtab[i].st_name;
             uint32_t start_addr = symtab[i].st_value;
             uint32_t end_addr = start_addr + symtab[i].st_size;
-            printf("DEBUG: Function '%s' with start_addr 0x%08x and end_addr 0x%08x\n", symbol_name, start_addr, end_addr);
+            // printf("DEBUG: Function '%s' with start_addr 0x%08x and end_addr 0x%08x\n", symbol_name, start_addr, end_addr);
             func_array_push(symbol_name, start_addr, end_addr);
         }
     }
 
     func_array_sort();
 
-    // for debug
-    printf("DEBUG:\n");
-    for(int i = 0; i < func_array.count; i++) {
-        printf("DEBUG: Sorted Function '%s' with start_addr 0x%08x and end_addr 0x%08x\n",
-            func_array.arr[i].name, func_array.arr[i].start_addr, func_array.arr[i].end_addr);
-    }
+    // // for debug
+    // printf("DEBUG:\n");
+    // for(int i = 0; i < func_array.count; i++) {
+    //     printf("DEBUG: Sorted Function '%s' with start_addr 0x%08x and end_addr 0x%08x\n",
+    //         func_array.arr[i].name, func_array.arr[i].start_addr, func_array.arr[i].end_addr);
+    // }
 
     free(sh_table);
     free(shstrtab);

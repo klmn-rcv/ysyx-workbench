@@ -19,6 +19,10 @@
 #include <cpu/decode.h>
 #include <cpu/iringbuf.h>
 
+#ifdef CONFIG_FTRACE
+#include <ftrace.h>
+#endif
+
 #define R(i) gpr(i)
 #define Mr vaddr_read
 #define Mw vaddr_write
@@ -52,6 +56,10 @@ static void decode_operand(Decode *s, int *rd, word_t *src1, word_t *src2, word_
   }
 }
 
+static bool jal = false, jalr = false;  // for ftrace
+static int call_depth = 0;  // for ftrace
+static int jalr_rd = 0, jalr_rs1 = 0;
+
 static int decode_exec(Decode *s) {
   s->dnpc = s->snpc;
 
@@ -84,7 +92,7 @@ static int decode_exec(Decode *s) {
   INSTPAT("0000001 ????? ????? 110 ????? 01100 11", rem    , R, R(rd) = (sword_t)src1 % (sword_t)src2);
   INSTPAT("0000001 ????? ????? 111 ????? 01100 11", remu   , R, R(rd) = (word_t)src1 % (word_t)src2);
   // I-type
-  INSTPAT("??????? ????? ????? 000 ????? 11001 11", jalr   , I, R(rd) = s->snpc; s->dnpc = (src1 + imm) & ~1);
+  INSTPAT("??????? ????? ????? 000 ????? 11001 11", jalr   , I, R(rd) = s->snpc; s->dnpc = (src1 + imm) & ~1; jalr = true; jalr_rd = rd; jalr_rs1 = BITS(s->isa.inst, 19, 15)); // the last three setences are for ftrace
   INSTPAT("??????? ????? ????? 000 ????? 00000 11", lb     , I, R(rd) = SEXT(Mr(src1 + imm, 1), 8));
   INSTPAT("??????? ????? ????? 001 ????? 00000 11", lh     , I, R(rd) = SEXT(Mr(src1 + imm, 2), 16));
   INSTPAT("??????? ????? ????? 010 ????? 00000 11", lw     , I, R(rd) = Mr(src1 + imm, 4));
@@ -114,7 +122,7 @@ static int decode_exec(Decode *s) {
   INSTPAT("??????? ????? ????? ??? ????? 01101 11", lui    , U, R(rd) = imm);
   INSTPAT("??????? ????? ????? ??? ????? 00101 11", auipc  , U, R(rd) = s->pc + imm);
   // J-type
-  INSTPAT("??????? ????? ????? ??? ????? 11011 11", jal    , J, R(rd) = s->snpc; s->dnpc = s->pc + imm);
+  INSTPAT("??????? ????? ????? ??? ????? 11011 11", jal    , J, R(rd) = s->snpc; s->dnpc = s->pc + imm; jal = true);  // the last setence is for ftrace
   // N-type
   INSTPAT("0000000 00001 00000 000 00000 11100 11", ebreak , N, NEMUTRAP(s->pc, R(10))); // R(10) is $a0
   INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv    , N, INV(s->pc));
@@ -122,10 +130,30 @@ static int decode_exec(Decode *s) {
 
   R(0) = 0; // reset $zero to 0
 
+// ftrace
+#ifdef CONFIG_FTRACE
+  if (jal || jalr) {
+    char func_name[128];
+    bool is_func_entry;
+    if (func_array_search(func_name, s->dnpc, &is_func_entry)) {
+      if (is_func_entry) {
+        printf("[ftrace] 0x%08x: %*scall [%s@0x%08x]\n", s->pc, call_depth * 2, "", func_name, s->dnpc);
+        call_depth++;
+      }
+      else if(jalr && jalr_rd == 0 && jalr_rs1 == 1) { // ret
+        call_depth--;
+        assert(func_array_search(func_name, s->pc, &is_func_entry)); // search for the function that wants to return
+        printf("[ftrace] 0x%08x: %*sret [%s]\n", s->pc, call_depth * 2, "", func_name);
+      }
+    }
+  }
+#endif
+
   return 0;
 }
 
 int isa_exec_once(Decode *s) {
+  jal = false; jalr = false;
   iringbuf_push_pc(s->pc);
   s->isa.inst = inst_fetch(&s->snpc, 4);
   iringbuf_backfill_inst(s->pc, s->isa.inst);
