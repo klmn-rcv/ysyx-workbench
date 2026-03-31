@@ -3,9 +3,7 @@
 
 #if !defined(__ISA_NATIVE__) || defined(__NATIVE_USE_KLIB__)
 
-static int putchar(int ch) {
-  panic("Not implemented");
-}
+void putch(char ch);
 
 static char *itoa(int val, char *buf) {
   if (val == INT_MIN) {
@@ -54,9 +52,7 @@ typedef struct {
 
 static int vprintf_output(void *ctx, char ch) {
   vprintf_ctx *c = (vprintf_ctx *)ctx;
-  if (putchar(ch) == EOF) {
-    return -1;
-  }
+  putch(ch);
   c->count++;
   return 0;
 }

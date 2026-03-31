@@ -169,8 +169,12 @@ int isa_exec_once(Decode *s) {
 #ifdef CONFIG_FTRACE
   jal = false; jalr = false;
 #endif
+#ifdef CONFIG_ITRACE
   iringbuf_push_pc(s->pc);
+#endif
   s->isa.inst = inst_fetch(&s->snpc, 4);
+#ifdef CONFIG_ITRACE
   iringbuf_backfill_inst(s->pc, s->isa.inst);
+#endif
   return decode_exec(s);
 }

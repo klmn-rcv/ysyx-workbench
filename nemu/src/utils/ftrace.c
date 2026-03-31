@@ -1,3 +1,5 @@
+#ifdef CONFIG_FTRACE
+
 #include <elf.h>
 #include <stdio.h>
 
@@ -172,3 +174,5 @@ void init_ftrace(const char *elf_file) {
   Log("Loading ELF file '%s' for ftrace...", elf_file);
   ftrace_load_elf(elf_file);
 }
+
+#endif

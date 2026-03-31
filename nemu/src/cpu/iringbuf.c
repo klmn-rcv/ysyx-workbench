@@ -13,6 +13,9 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#include <common.h>
+
+#ifdef CONFIG_ITRACE
 #include <cpu/iringbuf.h>
 
 void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
@@ -87,3 +90,5 @@ void iringbuf_backfill_inst(vaddr_t pc, uint32_t inst) {
   assert(nl >= 0 && nl < (int)sizeof(line));
   iringbuf_rewrite_last_line(line);
 }
+
+#endif
