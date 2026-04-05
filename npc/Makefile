@@ -28,10 +28,15 @@ idea:
 clean:
 	-rm -rf $(BUILD_DIR)
 
+CSRCS := $(wildcard csrc/*.cpp)
+
 sim:
 	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
-	@echo "Write this Makefile by yourself."
-	verilator -Wall -Wno-fatal --cc -f build/filelist.f -Ibuild --top-module Top --trace --exe csrc/sim_main.cpp --build -j 0 && ./obj_dir/VTop $(IMG)
+	verilator -Wall -Wno-fatal --cc -f build/filelist.f -Ibuild \
+			--top-module Top --trace --exe $(CSRCS) \
+			-CFLAGS "-I../include" \
+			-LDFLAGS "-lreadline" \
+			--build -j 0 && ./obj_dir/VTop $(IMG)
 
 .PHONY: test verilog help reformat checkformat clean sim
 
