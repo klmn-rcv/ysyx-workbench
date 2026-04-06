@@ -116,8 +116,6 @@ static bool make_token(char *e) {
          * of tokens, some extra actions should be performed.
          */
 
-        // printf("DEBUG: make_token: token_type is %d\n", rules[i].token_type);
-
         switch (rules[i].token_type) {          
           case TK_NOTYPE:  
             num_index = 0;
@@ -213,19 +211,13 @@ static bool make_token(char *e) {
 }
 
 bool check_parentheses(int p, int q) {
-  // printf("DEBUG: check_parentheses (begin): p is %d, q is %d\n", p, q);
-
   int par_diff = 0;  // the difference of left and right parenthese number
   for(int i = p; i <= q; i++) {
     if(tokens[i].type == TK_LEFTPAR)
       par_diff++;
     else if(tokens[i].type == TK_RIGHTPAR)
       par_diff--;
-
-    // printf("DEBUG: check_parentheses (1): par_diff is %d\n", par_diff);
-
     if(i != p && i != q && par_diff == 0) {
-      // printf("DEBUG: check_parentheses (2): par_diff is %d\n", par_diff);
       return false;
     }
   }
@@ -237,7 +229,6 @@ bool check_parentheses(int p, int q) {
 }
 
 int find_mainop(int p, int q, bool *valid) {  // return the index of the main operation
-  // printf("DEBUG: Enter find_mainop, p is %d, q is %d\n", p, q);
   int par_diff = 0;     // judge whether in parentheses
   int index = -1;
   bool and_or_flag = false;
@@ -250,7 +241,6 @@ int find_mainop(int p, int q, bool *valid) {  // return the index of the main op
       par_diff--;
     if(par_diff < 0) {
       // Invalid expression!!!
-      // printf("DEBUG: find_mainop (1): par_diff = %d, invalid expression\n", par_diff);
       *valid = false;
       return -1;
     }
@@ -274,11 +264,9 @@ int find_mainop(int p, int q, bool *valid) {  // return the index of the main op
   }
   if(par_diff != 0) {
     // Invalid expression!!!
-    // printf("DEBUG: find_mainop (2): par_diff == %d, invalid expression\n", par_diff);
     *valid = false;
     return -1;
   }
-  // printf("DEBUG: Exit find_mainop, p is %d, q is %d, index is %d\n", p, q, index);
   return index;
 }
 
@@ -287,8 +275,6 @@ uint32_t eval(int p, int q, bool *success) {
   if(*success == false) {
     return 0;
   } 
-  // printf("DEBUG: eval (begin): p is %d, q is %d\n", p, q);
-  // *success = true;
   if (p > q) {
     /* Bad expression */
     assert(0);
@@ -311,18 +297,13 @@ uint32_t eval(int p, int q, bool *success) {
           ret = ret * 10 + tokens[p].str[i] - '0';
         }
       }
-      // printf("DEBUG: eval (1): p: %d, q: %d, ret: %d\n", p, q, ret);
       return ret;
     }else if(tokens[p].type == TK_REG) {
       uint32_t reg_str2val(const char *s, bool *success);
-      // bool success = false;
-      // printf("DEBUG: tokens[p].str (reg name): %s\n", tokens[p].str);
       uint32_t ret = reg_str2val(tokens[p].str, success);
       if(*success == false) {
         printf("eval: reg name not found\n");
-        // assert(0);
       }
-      // printf("DEBUG: eval (2): p: %d, q: %d, ret: %d\n", p, q, ret);
       return ret;
     } else {
       assert(0);
@@ -333,7 +314,6 @@ uint32_t eval(int p, int q, bool *success) {
      * If that is the case, just throw away the parentheses.
      */
     uint32_t ret = eval(p + 1, q - 1, success);
-    // printf("DEBUG: eval (3): p: %d, q: %d, ret: %d\n", p, q, ret);
     return ret;
   }
   else {
@@ -343,21 +323,14 @@ uint32_t eval(int p, int q, bool *success) {
       printf("eval: invalid expression\n");
       return 0;
     }
-    // printf("DEBUG: op_index is %d\n", op_index);
     if(op_index == -1) {  // only TK_DEREF can go into this if
-      // printf("DEBUG: p is %d, q is %d, tokens[p].type is %d\n", p, q, tokens[p].type);
-      // assert(tokens[p].type == TK_DEREF);
       if(tokens[p].type == TK_DEREF) {
-        // printf("DEBUG: eval: p is %d, q is %d\n", p, q);
-        // uint32_t pmem_read(uint32_t addr);  // read data in memory
         uint32_t addr = eval(p + 1, q, success);  // p + 1 to q (p is TK_DEREF)
-        uint32_t ret = pmem_read(addr);
-        // printf("DEBUG: eval (4): p: %d, q: %d, ret: %d\n", p, q, ret);
+        uint32_t ret = pmem_read(addr, MEM_SRC_DEBUG);
         return ret;
       }
       else if(tokens[p].type == TK_NEG) {
         uint32_t ret = -eval(p + 1, q, success);
-        // printf("DEBUG: eval (5): p: %d, q: %d, ret: %d\n", p, q, ret);
         return ret;
       }
       else if(tokens[p].type == TK_REG) {
@@ -397,25 +370,7 @@ uint32_t eval(int p, int q, bool *success) {
   }
 }
 
-
-// static void print_type(int idx) {
-//   idx -= 256;
-//   char *type_names[] = { "TK_NOTYPE", "TK_NUMBER", "TK_PLUS", "TK_MINUS", "TK_MULTI", "TK_DEVI", "TK_EQ", "TK_INEQ", 
-//   "TK_AND", "TK_OR", "TK_LEFTPAR", "TK_RIGHTPAR", "TK_REG", "TK_DEREF", "TK_NEG" };
-//   printf("%s", type_names[idx]);
-// }
-
-//// 辅助debug的打印token数组的函数
-// static void print_tokens() {
-//   for(int i = 0; i < nr_token; i++) {
-//     printf("tokens[%d]: type: ", i);
-//     print_type(tokens[i].type);  
-//     printf(", str: %s\n", tokens[i].str);
-//   }
-// }
-
 uint32_t expr(char *e, bool *success) {
-  // printf("DEBUG: expr: e is %s\n", e);
   if (!make_token(e)) {
     *success = false;
     return 0;
@@ -437,8 +392,6 @@ uint32_t expr(char *e, bool *success) {
       tokens[i].type = TK_NEG;
     }
   }
-
-  // print_tokens();
 
   *success = true;
 

@@ -46,6 +46,7 @@ class CPU extends Module {
     regfile.io.in.raddr1 := idu.io.out.rs1     // truncate
     regfile.io.in.raddr2 := idu.io.out.rs2     // truncate
 
+    idu.io.in.valid := ifu.io.out.valid
     idu.io.in.inst := io.in.rinst
     idu.io.in.pc := ifu.io.out.pc
     idu.io.in.rdata1 := regfile.io.out.rdata1

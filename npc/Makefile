@@ -35,7 +35,7 @@ ARGS ?=
 $(LIBCAPSTONE):
 	$(MAKE) -C tools/capstone
 
-sim: $(LIBCAPSTONE)
+sim: verilog $(LIBCAPSTONE)
 	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
 	verilator -Wall -Wno-fatal --cc -f build/filelist.f -Ibuild \
 			--top-module Top --trace --exe $(CSRCS) \

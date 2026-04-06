@@ -5,11 +5,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <inttypes.h>
 #include "macro.h"
 #include "config.h"
 
 #ifdef CONFIG_ITRACE
 #include "itrace.h"
+#include "iringbuf.h"
 #endif
 
 // ------ log ------

@@ -6,6 +6,7 @@ import chisel3.util._
 class IDU extends Module {
     val io = IO(new Bundle {
         val in = new Bundle {
+            val valid = Input(Bool())
             val inst = Input(UInt(32.W))
             val rdata1 = Input(UInt(32.W))
             val rdata2 = Input(UInt(32.W))
@@ -95,4 +96,12 @@ class IDU extends Module {
 
     io.out.inst := io.in.inst
     io.out.pc := io.in.pc
+
+    val iringbuf = Module(new Iringbuf)
+    iringbuf.clk := clock
+    iringbuf.rst := reset
+    iringbuf.pc := io.in.pc
+    iringbuf.inst := io.in.inst
+    iringbuf.before_ifetch := false.B
+    iringbuf.after_ifetch := io.in.valid
 }

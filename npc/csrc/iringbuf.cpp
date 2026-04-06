@@ -1,22 +1,6 @@
-/***************************************************************************************
-* Copyright (c) 2014-2024 Zihao Yu, Nanjing University
-*
-* NEMU is licensed under Mulan PSL v2.
-* You can use this software according to the terms and conditions of the Mulan PSL v2.
-* You may obtain a copy of Mulan PSL v2 at:
-*          http://license.coscl.org.cn/MulanPSL2
-*
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-* EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-* MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-*
-* See the Mulan PSL v2 for more details.
-***************************************************************************************/
-
 #include <common.h>
 
 #ifdef CONFIG_ITRACE
-#include <cpu/iringbuf.h>
 
 void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
 
@@ -62,14 +46,14 @@ void iringbuf_print(void) {
   }
 }
 
-void iringbuf_push_pc(vaddr_t pc) {
+void iringbuf_push_pc(uint32_t pc) {
   char line[128];
   int n = snprintf(line, sizeof(line), FMT_WORD ": %-32s %s", pc, "???", "?? ?? ?? ??");
   assert(n >= 0 && n < (int)sizeof(line));
   iringbuf_push(line);
 }
 
-void iringbuf_backfill_inst(vaddr_t pc, uint32_t inst) {
+void iringbuf_backfill_inst(uint32_t pc, uint32_t inst) {
   char asm_buf[64];
   char bytes_buf[16];
   char line[128];

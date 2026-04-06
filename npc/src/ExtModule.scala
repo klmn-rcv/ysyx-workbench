@@ -7,6 +7,7 @@ class Halt extends ExtModule {
     val exit_code = IO(Input(UInt(32.W)))
     val exit_pc = IO(Input(UInt(32.W)))
     val ebreak = IO(Input(Bool()))
+
     addResource("/Halt.sv")
 }
 
@@ -35,4 +36,15 @@ class Itrace extends ExtModule {
     val inst = IO(Input(UInt(32.W)))
 
     addResource("/Itrace.sv")
+}
+
+class Iringbuf extends ExtModule {
+    val clk = IO(Input(Clock()))
+    val rst = IO(Input(Bool()))
+    val pc = IO(Input(UInt(32.W)))
+    val inst = IO(Input(UInt(32.W)))
+    val before_ifetch = IO(Input(Bool()))
+    val after_ifetch = IO(Input(Bool()))
+
+    addResource("/Iringbuf.sv")
 }

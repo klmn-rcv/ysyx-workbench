@@ -99,12 +99,11 @@ static int cmd_x(char *args) {
     printf("x: invalid expression\n");
     return 0;
   }
-  // uint32_t pmem_read(uint32_t addr);  // read data in memory
   for(int i = 0; i < N; i++) {
     if(i % 4 == 0) {
       printf(ANSI_FG_GREEN "0x%08x:" ANSI_NONE "\t", addr);
     }
-    printf("0x%08x\t", pmem_read(addr));
+    printf("0x%08x\t", pmem_read(addr, MEM_SRC_DEBUG));
     addr += 4;
     if(i % 4 == 3)
       printf("\n");

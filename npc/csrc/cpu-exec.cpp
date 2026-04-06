@@ -104,7 +104,7 @@ extern "C" void assert_fail_msg() {
   reg_display();
   statistic();
 #ifdef CONFIG_ITRACE
-  // iringbuf_print();
+  iringbuf_print();
 #endif
 }
 
