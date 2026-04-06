@@ -28,6 +28,8 @@ class IDU extends Module {
             val bj_valid = Output(Bool())
             val bj_pc = Output(UInt(32.W))
             val ebreak = Output(Bool())
+            val inst = Output(UInt(32.W))
+            val pc = Output(UInt(32.W))
         }
     })
 
@@ -90,4 +92,7 @@ class IDU extends Module {
     // printf("src1: %x, imm: %x, bj_valid: %b, bj_pc: %x\n", src1, imm, io.bj_valid, io.bj_pc)
 
     io.out.ebreak := funcType === FuncType.ebreak
+
+    io.out.inst := io.in.inst
+    io.out.pc := io.in.pc
 }

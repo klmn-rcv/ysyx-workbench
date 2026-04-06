@@ -1,7 +1,4 @@
-#include <cstdio>
-#include <cstring>
-#include <cstdlib>
-#include <cassert>
+#include "common.h"
 #include "sdb.h"
 
 #define NR_WP 32
@@ -144,7 +141,7 @@ bool search_wp(int NO) {  // search wp by NO
 void wp_display() {
   for(int i = 0; i < NR_WP; i++) {  // ensure that the display is in order of NO
     if(search_wp(i)) {
-      std::printf("watchpoint %d: %s\n", i, wp_pool[i].expr);
+      printf("watchpoint %d: %s\n", i, wp_pool[i].expr);
     }
   }
 }

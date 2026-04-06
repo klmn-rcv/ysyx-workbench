@@ -1,5 +1,3 @@
-#include <cstdint>
-#include <cassert>
 #include "sim.h"
 #include "VTop___024root.h"
 

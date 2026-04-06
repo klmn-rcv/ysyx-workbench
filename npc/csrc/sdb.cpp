@@ -1,7 +1,6 @@
-#include <cstdio>
-#include <stdlib.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include "common.h"
 #include "sdb.h"
 #include "state.h"
 #include "cpu-exec.h"
@@ -52,7 +51,7 @@ static int cmd_si(char *args) {
       if(isdigit(args[i]))
         N = N * 10 + args[i] - '0';
       else {
-        std::printf("si: args error: not a number\n");
+        printf("si: args error: not a number\n");
         return 0;
       }
     }
@@ -63,7 +62,7 @@ static int cmd_si(char *args) {
 
 static int cmd_info(char *args) {
   if(args == NULL) {
-    std::printf("info: need an argument\n");
+    printf("info: need an argument\n");
     return 0;
   }
   void wp_display();
@@ -73,14 +72,14 @@ static int cmd_info(char *args) {
     wp_display();
   }
   else {
-    std::printf("info: invalid option '%s'\n", args);
+    printf("info: invalid option '%s'\n", args);
   }
   return 0;
 }
 
 static int cmd_x(char *args) {
   if(args == NULL) {
-    std::printf("x: need an argument\n");
+    printf("x: need an argument\n");
     return 0;
   }
   args = strtok(args, " ");
@@ -89,7 +88,7 @@ static int cmd_x(char *args) {
     if(isdigit(args[i]))
       N = N * 10 + args[i] - '0';
     else {
-      std::printf("x: args error: not a number\n");
+      printf("x: args error: not a number\n");
       return 0;
     }
   }
@@ -97,78 +96,78 @@ static int cmd_x(char *args) {
   bool success = false;
   uint32_t addr = expr(args, &success);
   if(success == false) {
-    std::printf("x: invalid expression\n");
+    printf("x: invalid expression\n");
     return 0;
   }
   // uint32_t pmem_read(uint32_t addr);  // read data in memory
   for(int i = 0; i < N; i++) {
     if(i % 4 == 0) {
-      std::printf(ANSI_FG_GREEN "0x%08x:" ANSI_NONE "\t", addr);
+      printf(ANSI_FG_GREEN "0x%08x:" ANSI_NONE "\t", addr);
     }
-    std::printf("0x%08x\t", pmem_read(addr));
+    printf("0x%08x\t", pmem_read(addr));
     addr += 4;
     if(i % 4 == 3)
-      std::printf("\n");
+      printf("\n");
   }
   if(N % 4 != 0)
-    std::printf("\n");
+    printf("\n");
   return 0;
 }
 
 static int cmd_p(char *args) {
   if(args == NULL) {
-    std::printf("p: need an argument\n");
+    printf("p: need an argument\n");
     return 0;
   }
   bool success = false;
   uint32_t value = expr(args, &success);
   if(success == false) {
-    std::printf("p: failed for previous error\n");
+    printf("p: failed for previous error\n");
     return 0;
   }
-  std::printf("%u\n", value);
+  printf("%u\n", value);
   return 0;
 }
 
 static int cmd_w(char *args) {
-// #ifndef CONFIG_WATCHPOINT
-//   std::printf("ATTENTION: watchpoint not activated\n");
-// #endif
+#ifndef CONFIG_WATCHPOINT
+  printf("ATTENTION: watchpoint not activated\n");
+#endif
   if(args == NULL) {
-    std::printf("w: need an argument\n");
+    printf("w: need an argument\n");
     return 0;
   }
   int init_new_wp(char *s);
   int exit_status = init_new_wp(args);
   if(exit_status == 1) {
-    std::printf("w: invalid expression\n");
+    printf("w: invalid expression\n");
     return 0;
   }
   else if(exit_status == 2) {
-    std::printf("w: too much watchpoints existing\n");
+    printf("w: too much watchpoints existing\n");
     return 0;
   }
   return 0;
 }
 
 static int cmd_d(char *args) {
-// #ifndef CONFIG_WATCHPOINT
-//   std::printf("ATTENTION: watchpoint not activated\n");
-// #endif
+#ifndef CONFIG_WATCHPOINT
+  printf("ATTENTION: watchpoint not activated\n");
+#endif
   if(args == NULL) {
-    std::printf("d: need an argument\n");
+    printf("d: need an argument\n");
     return 0;
   }
   bool success1 = false;
   uint32_t NO = expr(args, &success1);
   if(success1 == false) {
-    std::printf("d: invalid expression\n");
+    printf("d: invalid expression\n");
     return 0;
   }
   bool delete_wp(int NO);
   bool success2 = delete_wp(NO);
   if(success2 == false) {
-    std::printf("d: watchpoint not found\n");
+    printf("d: watchpoint not found\n");
     return 0;
   }
   return 0;
@@ -202,17 +201,17 @@ static int cmd_help(char *args) {
   if (arg == NULL) {
     /* no argument given */
     for (i = 0; i < NR_CMD; i ++) {
-      std::printf("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
+      printf("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
     }
   }
   else {
     for (i = 0; i < NR_CMD; i ++) {
       if (strcmp(arg, cmd_table[i].name) == 0) {
-        std::printf("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
+        printf("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
         return 0;
       }
     }
-    std::printf("Unknown command '%s'\n", arg);
+    printf("Unknown command '%s'\n", arg);
   }
   return 0;
 }
@@ -238,15 +237,15 @@ void sdb_set_batch_mode() {
 //     bool success = false;
 //     uint32_t value = expr(expression, &success);
 //     if(success == false) {
-//       std::printf("test_expr: expr parsing failed\n");
+//       printf("test_expr: expr parsing failed\n");
 //       assert(0);
 //     }
 //     if(value != golden_value) {
-//       std::printf("test_expr: calculate failed!\n");
+//       printf("test_expr: calculate failed!\n");
 //       assert(0);
 //     }
 //   }
-//   std::printf("test_expr: pass!\n");
+//   printf("test_expr: pass!\n");
 // }
 
 void sdb_mainloop() {
@@ -288,7 +287,7 @@ void sdb_mainloop() {
       }
     }
 
-    if (i == NR_CMD) { std::printf("Unknown command '%s'\n", cmd); }
+    if (i == NR_CMD) { printf("Unknown command '%s'\n", cmd); }
   }
 }
 

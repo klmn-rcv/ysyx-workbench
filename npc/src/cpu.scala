@@ -31,7 +31,6 @@ class CPU extends Module {
     // IF stage
     ifu.io.in.bj_valid := idu.io.out.bj_valid
     ifu.io.in.bj_pc := idu.io.out.bj_pc
-    idu.io.in.pc := ifu.io.out.pc
 
     // Current CPU only issues instruction fetches through memory interface.
     io.out.inst_req_valid := true.B
@@ -44,10 +43,11 @@ class CPU extends Module {
     io.out.wmask := lsu.io.out.wmask
 
     // ID stage
-    idu.io.in.inst := io.in.rinst
     regfile.io.in.raddr1 := idu.io.out.rs1     // truncate
     regfile.io.in.raddr2 := idu.io.out.rs2     // truncate
 
+    idu.io.in.inst := io.in.rinst
+    idu.io.in.pc := ifu.io.out.pc
     idu.io.in.rdata1 := regfile.io.out.rdata1
     idu.io.in.rdata2 := regfile.io.out.rdata2
 
@@ -63,6 +63,8 @@ class CPU extends Module {
     exu.io.in.bit_width := idu.io.out.bit_width
     exu.io.in.sign := idu.io.out.sign
     exu.io.in.ebreak := idu.io.out.ebreak
+    exu.io.in.inst := idu.io.out.inst
+    exu.io.in.pc := idu.io.out.pc
 
     // LSU stage
     lsu.io.in.alu_data := exu.io.out.result
@@ -75,12 +77,16 @@ class CPU extends Module {
     lsu.io.in.sign := exu.io.out.sign
     lsu.io.in.rdata := io.in.rdata
     lsu.io.in.ebreak := exu.io.out.ebreak
+    lsu.io.in.inst := exu.io.out.inst
+    lsu.io.in.pc := exu.io.out.pc
 
     // WB stage
     wbu.io.in.data := lsu.io.out.data
     wbu.io.in.rd := lsu.io.out.rd
     wbu.io.in.wr_reg := lsu.io.out.wr_reg
     wbu.io.in.ebreak := lsu.io.out.ebreak
+    wbu.io.in.inst := lsu.io.out.inst
+    wbu.io.in.pc := lsu.io.out.pc
 
     regfile.io.in.we := wbu.io.out.wb_we
     regfile.io.in.waddr := wbu.io.out.wb_addr  // truncate

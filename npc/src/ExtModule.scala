@@ -25,3 +25,13 @@ class Mem extends ExtModule {
 
     addResource("/Mem.sv")
 }
+
+class Itrace extends ExtModule {
+    val clk = IO(Input(Clock()))
+    val rst = IO(Input(Bool()))
+    val valid = IO(Input(Bool()))
+    val pc = IO(Input(UInt(32.W)))
+    val inst = IO(Input(UInt(32.W)))
+
+    addResource("/Itrace.sv")
+}

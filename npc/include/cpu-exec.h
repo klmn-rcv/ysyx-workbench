@@ -2,7 +2,6 @@
 #define __CPU_EXEC_H__
 
 #include <stdint.h>
-// #include <common.h>
 
 void cpu_exec(uint64_t n);
 

@@ -27,7 +27,7 @@ extern "C" int pmem_read(uint32_t raddr) {
   }
   const uint32_t mem_addr = static_cast<uint32_t>(raddr - start_pc) & ~0x3u;
   if(mem_addr + 4 > MEM_SIZE) {
-    std::printf(ANSI_FG_RED "[sim] pmem_read out of bounds at address 0x%x" ANSI_NONE "\n", mem_addr);
+    printf(ANSI_FG_RED "[sim] pmem_read out of bounds at address 0x%x" ANSI_NONE "\n", mem_addr);
     assert(false);
   }
   // assert(mem_addr + 4 <= MEM_SIZE && "pmem_read out of bounds");
@@ -43,7 +43,7 @@ extern "C" void pmem_write(uint32_t waddr, int wdata, char wmask) {
   }
   const uint32_t mem_addr = static_cast<uint32_t>(waddr - start_pc) & ~0x3u;
   if (mem_addr + 4 > MEM_SIZE) {
-    std::printf(ANSI_FG_RED "[sim] pmem_write out of bounds at address 0x%x" ANSI_NONE "\n", mem_addr);
+    printf(ANSI_FG_RED "[sim] pmem_write out of bounds at address 0x%x" ANSI_NONE "\n", mem_addr);
     assert(false);
   }
   wmask &= 0xf;  // 长度为4位的掩码
@@ -54,4 +54,11 @@ extern "C" void pmem_write(uint32_t waddr, int wdata, char wmask) {
   if (wmask & 0x8) byte_mask |= 0xFF000000;
   int *p = reinterpret_cast<int *>(pmem + mem_addr);
   *p = (*p & ~byte_mask) | (wdata & byte_mask);
+}
+
+extern "C" void itrace(uint32_t pc, uint32_t inst) {
+#ifdef CONFIG_ITRACE
+  s.inst = inst;
+  s.pc = pc;
+#endif
 }

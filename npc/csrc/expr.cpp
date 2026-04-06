@@ -3,7 +3,6 @@
  * Type 'man regex' for more information about POSIX regex functions.
  */
 #include <regex.h>
-#include <assert.h>
 #include "common.h"
 #include "debug.h"
 #include "dpi-c.h"
@@ -70,7 +69,7 @@ void init_regex() {
     ret = regcomp(&re[i], rules[i].regex, REG_EXTENDED);
     if (ret != 0) {
       regerror(ret, &re[i], error_msg, 128);
-      std::printf("regex compilation failed: %s\n%s", error_msg, rules[i].regex);
+      printf("regex compilation failed: %s\n%s", error_msg, rules[i].regex);
       assert(0);
     }
   }
@@ -107,8 +106,8 @@ static bool make_token(char *e) {
         char *substr_start = e + position;
         int substr_len = pmatch.rm_eo;
 
-        Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
-            i, rules[i].regex, position, substr_len, substr_len, substr_start);
+        // Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
+        //     i, rules[i].regex, position, substr_len, substr_len, substr_start);
 
         position += substr_len;
 

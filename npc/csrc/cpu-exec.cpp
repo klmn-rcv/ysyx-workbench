@@ -1,7 +1,8 @@
-#include <cstdio>
 #include <chrono>
+#include <cstdio>
 #include <locale.h>
 
+#include "common.h"
 #include "sim.h"
 #include "sdb.h"
 #include "state.h"
@@ -19,76 +20,70 @@ uint64_t g_nr_inst = 0;
 static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 
-
-// static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
-// #ifdef CONFIG_ITRACE_COND
-//   if (ITRACE_COND) { log_write("%s\n", _this->logbuf); }
-// #endif
-//   if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
-//   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
-
-// #ifdef CONFIG_WATCHPOINT
-//   bool check_all_wp_no_change(int *NO, char **expr_str);
-//   int NO;  char *expr_str;
-//   bool no_change = check_all_wp_no_change(&NO, &expr_str);
-//   if(!no_change) {
-//     npc_state.state = NPC_STOP;
-//     std::printf("Hit watchpoint %d: %s\n", NO, expr_str);
-//   }
-// #endif
-// }
-
-static void cycle_once() {
-    top->clock = 0;
-    top->eval();
-#ifdef GEN_TRACE
-    tfp->dump(sim_time++);
+#ifdef CONFIG_ITRACE
+Inst s;
 #endif
 
-    top->clock = 1;
-    top->eval();
-#ifdef GEN_TRACE
-    tfp->dump(sim_time++);
+static void trace_and_difftest() {
+#ifdef CONFIG_ITRACE
+  log_write("%s\n", s.logbuf);
+#endif
+  if (g_print_step && log_fp != stdout) { IFDEF(CONFIG_ITRACE, puts(s.logbuf)); }
+  IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, dnpc));
+
+#ifdef CONFIG_WATCHPOINT
+  bool check_all_wp_no_change(int *NO, char **expr_str);
+  int NO;  char *expr_str;
+  bool no_change = check_all_wp_no_change(&NO, &expr_str);
+  if(!no_change) {
+    npc_state.state = NPC_STOP;
+    printf("Hit watchpoint %d: %s\n", NO, expr_str);
+  }
 #endif
 }
 
-static void exec_once(/*Decode *s, vaddr_t pc*/) {
+static void cycle_once() {
+  top->clock = 0;
+  top->eval();
+#ifdef GEN_TRACE
+  tfp->dump(sim_time++);
+#endif
 
-    cycle_once();
-    npc_state.cycles++;
+  top->clock = 1;
+  top->eval();
+#ifdef GEN_TRACE
+  tfp->dump(sim_time++);
+#endif
+}
 
-// #ifdef CONFIG_ITRACE
-//   char *p = s->logbuf;
-//   p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc);
-//   int ilen = s->snpc - s->pc;
-//   int i;
-//   uint8_t *inst = (uint8_t *)&s->isa.inst;
-// #ifdef CONFIG_ISA_x86
-//   for (i = 0; i < ilen; i ++) {
-// #else
-//   for (i = ilen - 1; i >= 0; i --) {
-// #endif
-//     p += snprintf(p, 4, " %02x", inst[i]);
-//   }
-//   int ilen_max = MUXDEF(CONFIG_ISA_x86, 8, 4);
-//   int space_len = ilen_max - ilen;
-//   if (space_len < 0) space_len = 0;
-//   space_len = space_len * 3 + 1;
-//   memset(p, ' ', space_len);
-//   p += space_len;
+static void exec_once() {
 
-//   void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
-//   disassemble(p, s->logbuf + sizeof(s->logbuf) - p,
-//       MUXDEF(CONFIG_ISA_x86, s->snpc, s->pc), (uint8_t *)&s->isa.inst, ilen);
-// #endif
+  cycle_once();
+  npc_state.cycles++;
+
+#ifdef CONFIG_ITRACE
+  char *p = s.logbuf;
+  p += snprintf(p, sizeof(s.logbuf), FMT_WORD ":", s.pc);
+
+  int i;
+  uint8_t *inst = reinterpret_cast<uint8_t*>(&s.inst);
+  for (i = 3; i >= 0; i --) {
+    p += snprintf(p, 4, " %02x", inst[i]);
+  }
+  memset(p, ' ', 1);
+  p += 1;
+
+  void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
+  disassemble(p, s.logbuf + sizeof(s.logbuf) - p,
+      s.pc, reinterpret_cast<uint8_t*>(&s.inst), 4);
+#endif
 }
 
 static void execute(uint64_t n) {
-//   Decode s;
   for (;n > 0; n --) {
-    exec_once(/*&s, cpu.pc*/);
+    exec_once();
     g_nr_inst++;
-    // trace_and_difftest(&s, cpu.pc);
+    trace_and_difftest();
     if (npc_state.state != NPC_RUNNING) break;
     // IFDEF(CONFIG_DEVICE, device_update());
   }
@@ -108,9 +103,9 @@ static void statistic() {
 void assert_fail_msg() {
   reg_display();
   statistic();
-// #ifdef CONFIG_ITRACE
-//   iringbuf_print();
-// #endif
+#ifdef CONFIG_ITRACE
+  // iringbuf_print();
+#endif
 }
 
 /* Simulate how the CPU works. */
@@ -118,7 +113,7 @@ void cpu_exec(uint64_t n) {
   g_print_step = (n < MAX_INST_TO_PRINT);
   switch (npc_state.state) {
     case NPC_END: case NPC_ABORT: case NPC_QUIT:
-      std::printf("Program execution has ended. To restart the program, exit NPC and run again.\n");
+      printf("Program execution has ended. To restart the program, exit NPC and run again.\n");
       return;
     default: npc_state.state = NPC_RUNNING;
   }

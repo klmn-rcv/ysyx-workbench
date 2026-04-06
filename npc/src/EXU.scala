@@ -17,6 +17,8 @@ class EXU extends Module {
             val bit_width = Input(BitWidth())
             val sign = Input(Sign())
             val ebreak = Input(Bool())
+            val inst = Input(UInt(32.W))
+            val pc = Input(UInt(32.W))
         }
         val out = new Bundle {
             val result = Output(UInt(32.W))
@@ -28,6 +30,8 @@ class EXU extends Module {
             val bit_width = Output(BitWidth())
             val sign = Output(Sign())
             val ebreak = Output(Bool())
+            val inst = Output(UInt(32.W))
+            val pc = Output(UInt(32.W))
         }
     })
 
@@ -49,4 +53,7 @@ class EXU extends Module {
     io.out.sign := io.in.sign
 
     io.out.ebreak := io.in.ebreak
+
+    io.out.inst := io.in.inst
+    io.out.pc := io.in.pc
 }
