@@ -34,10 +34,10 @@ void init_log(const char *log_file);
     } \
   } while (0)
 
-// #define _Log(...) \
-//   do { \
-//     printf(__VA_ARGS__); \
-//     log_write(__VA_ARGS__); \
-//   } while (0)
+#define _Log(...) \
+  do { \
+    printf(__VA_ARGS__); \
+    log_write(__VA_ARGS__); \
+  } while (0)
 
 #endif

@@ -8,7 +8,7 @@
 
 // #define GEN_TRACE
 
-#define MEM_SIZE 0x10000000
+#define MEM_SIZE 0x8000000
 
 extern VTop* top;
 

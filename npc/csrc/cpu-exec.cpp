@@ -100,7 +100,7 @@ static void statistic() {
   }
 }
 
-void assert_fail_msg() {
+extern "C" void assert_fail_msg() {
   reg_display();
   statistic();
 #ifdef CONFIG_ITRACE
