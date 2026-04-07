@@ -15,6 +15,10 @@ void init_disasm();
 
 char pmem[MEM_SIZE];  // memory
 
+const char *img_file = NULL;
+const char *log_file = NULL;
+const char *elf_file = NULL;
+
 static void load_binary_image(const char* path) {
   std::FILE* fp = std::fopen(path, "rb");
   if (fp == nullptr) {
@@ -71,43 +75,47 @@ static void init_sim() {
   npc_state.cycles++;
 }
 
-static void process_args(int argc, char** argv) {
-  const char *prefix = "--log=";
-  const char *img_file = NULL;
-  const char *log_file = NULL;
+static void parse_args(int argc, char** argv) {
+  const char *prefix_log = "--log=";
+  const char *prefix_elf = "--elf=";
 
   for (int i = 1; i < argc; i++) {
     const char *arg = argv[i];
-    if (strncmp(arg, prefix, strlen(prefix)) == 0) {
-      log_file = arg + strlen(prefix);
+    if (strncmp(arg, prefix_log, strlen(prefix_log)) == 0) {
+      log_file = arg + strlen(prefix_log);
       assert(*log_file != '\0');
-    } 
+    }
+    else if (strncmp(arg, prefix_elf, strlen(prefix_elf)) == 0) {
+      elf_file = arg + strlen(prefix_elf);
+      assert(*elf_file != '\0');
+    }
     else {
       assert(img_file == NULL && "Only one binary image is allowed");
       img_file = arg;
     }
   }
 
-  assert(img_file != NULL && "Usage: sim <binary_image> [--log=<log_file>]");
-
-  std::memset(pmem, 0, sizeof(pmem));
-  load_binary_image(img_file);
-  init_log(log_file);
+  assert(img_file != NULL && "Usage: sim <binary_image> [--log=<log_file>] [--elf=<elf_file>]");
 }
 
 int main(int argc, char** argv) {
   Verilated::commandArgs(argc, argv);
 #ifdef GEN_TRACE
   Verilated::traceEverOn(true);
-#endif
-
-  process_args(argc, argv);
-
-  // pmem_write(0x1218, 0x00100073U, 0xf); // 在halt指令处写入ebreak指令, 使仿真结束
-
-#ifdef GEN_TRACE
   top->trace(tfp, 99);
   tfp->open("wave.vcd");
+#endif
+
+  parse_args(argc, argv);
+
+  std::memset(pmem, 0, sizeof(pmem));
+
+  load_binary_image(img_file);
+
+  init_log(log_file);
+
+#ifdef CONFIG_FTRACE
+  init_ftrace(elf_file);
 #endif
 
   init_sdb();

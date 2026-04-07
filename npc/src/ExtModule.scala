@@ -48,3 +48,17 @@ class Iringbuf extends ExtModule {
 
     addResource("/Iringbuf.sv")
 }
+
+class Ftrace extends ExtModule {
+    val clk = IO(Input(Clock()))
+    val rst = IO(Input(Bool()))
+    val pc = IO(Input(UInt(32.W)))
+    val target_pc = IO(Input(UInt(32.W)))
+    val rd = IO(Input(UInt(5.W)))
+    val rs1 = IO(Input(UInt(5.W)))
+    val imm = IO(Input(UInt(32.W)))
+    val is_jal = IO(Input(Bool()))
+    val is_jalr = IO(Input(Bool()))
+
+    addResource("/Ftrace.sv")
+}

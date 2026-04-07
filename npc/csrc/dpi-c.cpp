@@ -102,3 +102,30 @@ extern "C" void iringbuf_after_ifetch(uint32_t pc, uint32_t inst) {
   iringbuf_backfill_inst(pc, inst);
 #endif
 }
+
+extern "C" void ftrace(uint32_t pc, uint32_t target_pc, bool is_jalr, int rd, int rs1, int imm) {
+#ifdef CONFIG_FTRACE
+  static int call_depth = 0;
+  char func_name[128];
+  bool is_func_entry = false;
+  if(is_jalr && rd == 0 && (rs1 == 1 || rs1 == 5) && imm == 0) { // ret
+    call_depth--;
+    assert(call_depth >= 0); // sanity check
+    if(func_array_search(func_name, pc, &is_func_entry)) {
+      _Log("[ftrace] 0x%08x: %*sret [%s]\n", pc, call_depth * 2, "", func_name);
+    }
+    else {
+      _Log("[ftrace] 0x%08x: %*sret [unknown]\n", pc, call_depth * 2, "");
+    }
+  }
+  else if (func_array_search(func_name, target_pc, &is_func_entry) && is_func_entry) {  // call
+    if((!is_jalr && rd == 0) || (is_jalr && rd == 0)) { // jal/jalr with rd = 0 is (likely) a tail call, so do not increase call_depth
+      _Log("[ftrace] 0x%08x: %*stailcall [%s@0x%08x]\n", pc, call_depth * 2, "", func_name, target_pc);
+    }
+    else {
+      _Log("[ftrace] 0x%08x: %*scall [%s@0x%08x]\n", pc, call_depth * 2, "", func_name, target_pc);
+      call_depth++;
+    }
+  }
+#endif
+}

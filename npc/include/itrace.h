@@ -1,5 +1,5 @@
-#ifndef __INST_H__
-#define __INST_H__
+#ifndef __ITRACE_H__
+#define __ITRACE_H__
 
 #include <stdint.h>
 

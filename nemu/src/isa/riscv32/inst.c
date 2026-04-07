@@ -59,14 +59,48 @@ static void decode_operand(Decode *s, int *rd, word_t *src1, word_t *src2, word_
 #ifdef CONFIG_FTRACE
 static bool jal = false, jalr = false;  // for ftrace
 static int call_depth = 0;  // for ftrace
-static int jalr_rd = 0, jalr_rs1 = 0;
+static int jal_rd = 0, jalr_rd = 0, jalr_rs1 = 0, jalr_imm = 0; // for ftrace
 #define FTRACE_JALR_HOOK() \
   do { \
     jalr = true; \
     jalr_rd = rd; \
     jalr_rs1 = BITS(s->isa.inst, 19, 15); \
+    jalr_imm = imm; \
   } while (0)
-#define FTRACE_JAL_HOOK() do { jal = true; } while (0)
+#define FTRACE_JAL_HOOK() \
+  do { \
+    jal = true; \
+    jal_rd = rd; \
+  } while (0)
+
+static void ftrace(Decode *s) {
+  if (jal || jalr) {
+    char func_name[128];
+    bool is_func_entry = false;
+    if(jalr && jalr_rd == 0 && (jalr_rs1 == 1 || jalr_rs1 == 5) && jalr_imm == 0) { // ret
+      call_depth--;
+      assert(call_depth >= 0); // sanity check
+      if(func_array_search(func_name, s->pc, &is_func_entry)) {
+        _Log("[ftrace] 0x%08x: %*sret [%s]\n", s->pc, call_depth * 2, "", func_name);
+      }
+      else {
+        _Log("[ftrace] 0x%08x: %*sret [unknown]\n", s->pc, call_depth * 2, "");
+      }
+    }
+    else if (func_array_search(func_name, s->dnpc, &is_func_entry) && is_func_entry) {  // call
+      if((jal && jal_rd == 0) || (jalr && jalr_rd == 0)) { // jal/jalr with rd = 0 is (likely) a tail call, so do not increase call_depth
+        _Log("[ftrace] 0x%08x: %*stailcall [%s@0x%08x]\n", s->pc, call_depth * 2, "", func_name, s->dnpc);
+      }
+      else {
+        _Log("[ftrace] 0x%08x: %*scall [%s@0x%08x]\n", s->pc, call_depth * 2, "", func_name, s->dnpc);
+        call_depth++;
+      }
+    }
+  }
+
+  jal = false; jalr = false;
+  jal_rd = 0; jalr_rd = 0; jalr_rs1 = 0; jalr_imm = 0;
+}
 #else
 #define FTRACE_JALR_HOOK() do { } while (0)
 #define FTRACE_JAL_HOOK() do { } while (0)
@@ -144,31 +178,13 @@ static int decode_exec(Decode *s) {
 
 // ftrace
 #ifdef CONFIG_FTRACE
-  if (jal || jalr) {
-    char func_name[128];
-    bool is_func_entry;
-    if (func_array_search(func_name, s->dnpc, &is_func_entry)) {
-      if (is_func_entry) {
-        _Log("[ftrace] 0x%08x: %*scall [%s@0x%08x]\n", s->pc, call_depth * 2, "", func_name, s->dnpc);
-        call_depth++;
-      }
-      else if(jalr && jalr_rd == 0 && jalr_rs1 == 1) { // ret
-        call_depth--;
-        assert(call_depth >= 0); // sanity check
-        assert(func_array_search(func_name, s->pc, &is_func_entry)); // search for the function that wants to return
-        _Log("[ftrace] 0x%08x: %*sret [%s]\n", s->pc, call_depth * 2, "", func_name);
-      }
-    }
-  }
+  ftrace(s);
 #endif
 
   return 0;
 }
 
 int isa_exec_once(Decode *s) {
-#ifdef CONFIG_FTRACE
-  jal = false; jalr = false;
-#endif
 #ifdef CONFIG_ITRACE
   iringbuf_push_pc(s->pc);
 #endif

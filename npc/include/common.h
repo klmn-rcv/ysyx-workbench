@@ -12,6 +12,7 @@
 #ifdef CONFIG_ITRACE
 #include "itrace.h"
 #include "iringbuf.h"
+#include "ftrace.h"
 #endif
 
 // ------ log ------

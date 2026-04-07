@@ -104,4 +104,15 @@ class IDU extends Module {
     iringbuf.inst := io.in.inst
     iringbuf.before_ifetch := false.B
     iringbuf.after_ifetch := io.in.valid
+
+    val ftrace = Module(new Ftrace)
+    ftrace.clk := clock
+    ftrace.rst := reset
+    ftrace.pc := io.in.pc
+    ftrace.target_pc := io.out.bj_pc
+    ftrace.rd := rd
+    ftrace.rs1 := rs1
+    ftrace.imm := imm
+    ftrace.is_jal := instType === InstType.J && funcType === FuncType.jplk
+    ftrace.is_jalr := instType === InstType.I && funcType === FuncType.jplk
 }

@@ -1,11 +1,6 @@
-#include <ftrace.h>
-
-#ifdef CONFIG_FTRACE
-
-#include <elf.h>
-#include <stdio.h>
-
-#include <debug.h>
+#include "common.h"
+#include "elf.h"
+#include "debug.h"
 
 func_array_t func_array = {.count = 0};
 
@@ -94,7 +89,7 @@ static void ftrace_load_elf(const char *elf_file) {
          eh32.e_ident[EI_MAG3] == ELFMAG3,
          "ftrace: bad ELF magic in '%s'", elf_file);
 
-    Elf32_Shdr *sh_table = malloc(eh32.e_shentsize * eh32.e_shnum);  // section header table
+    Elf32_Shdr *sh_table = static_cast<Elf32_Shdr*>(malloc(eh32.e_shentsize * eh32.e_shnum));  // section header table
     Assert(sh_table != NULL, "ftrace: cannot allocate memory for ELF section header table");
 
     int ret;
@@ -109,7 +104,7 @@ static void ftrace_load_elf(const char *elf_file) {
     ret = fseek(fp, shstrtab_entry->sh_offset, SEEK_SET);
     Assert(ret == 0, "ftrace: fseek to shstrtab section failed");
 
-    char *shstrtab = malloc(shstrtab_entry->sh_size);
+    char *shstrtab = static_cast<char*>(malloc(shstrtab_entry->sh_size));
     assert(shstrtab);
     nread = fread(shstrtab, shstrtab_entry->sh_size, 1, fp);
     Assert(nread == 1, "ftrace: short read of ELF shstrtab section");
@@ -137,13 +132,13 @@ static void ftrace_load_elf(const char *elf_file) {
     // Read strtab
     ret = fseek(fp, strtab_entry->sh_offset, SEEK_SET);
     Assert(ret == 0, "ftrace: fseek to strtab section failed");
-    char *strtab = malloc(strtab_entry->sh_size);
+    char *strtab = static_cast<char*>(malloc(strtab_entry->sh_size));
     assert(strtab);
     nread = fread(strtab, strtab_entry->sh_size, 1, fp);
     Assert(nread == 1, "ftrace: short read of ELF strtab section");
 
     // Read symtab
-    Elf32_Sym *symtab = malloc(symtab_entry->sh_size);
+    Elf32_Sym *symtab = static_cast<Elf32_Sym*>(malloc(symtab_entry->sh_size));
     assert(symtab);
     ret = fseek(fp, symtab_entry->sh_offset, SEEK_SET);
     Assert(ret == 0, "ftrace: fseek to symtab section failed");
@@ -180,5 +175,3 @@ void init_ftrace(const char *elf_file) {
   Log("Loading ELF file '%s' for ftrace...", elf_file);
   ftrace_load_elf(elf_file);
 }
-
-#endif
