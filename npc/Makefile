@@ -3,6 +3,13 @@ BUILD_DIR = ./build
 IMG ?=
 LIBCAPSTONE = tools/capstone/repo/libcapstone.so.5
 
+CSRCS := $(wildcard csrc/*.cpp)
+CFLAGS += -I../include
+CFLAGS += -I../tools/capstone/repo/include
+LDFLAGS += -lreadline
+LDFLAGS += -ldl
+ARGS ?=
+
 test:
 	mill -i test
 
@@ -29,9 +36,6 @@ idea:
 clean:
 	-rm -rf $(BUILD_DIR)
 
-CSRCS := $(wildcard csrc/*.cpp)
-ARGS ?=
-
 $(LIBCAPSTONE):
 	$(MAKE) -C tools/capstone
 
@@ -39,10 +43,8 @@ sim: verilog $(LIBCAPSTONE)
 	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
 	verilator -Wall -Wno-fatal --cc -f build/filelist.f -Ibuild \
 			--top-module Top --trace --exe $(CSRCS) \
-			-CFLAGS "-I../include" \
-			-CFLAGS "-I../tools/capstone/repo/include" \
-			-LDFLAGS "-lreadline" \
-			-LDFLAGS "-ldl" \
+			-CFLAGS "$(CFLAGS)" \
+			-LDFLAGS "$(LDFLAGS)" \
 			--build -j 0 && ./obj_dir/VTop $(ARGS) $(IMG)
 
 .PHONY: test verilog help reformat checkformat clean sim

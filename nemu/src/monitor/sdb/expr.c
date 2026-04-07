@@ -363,9 +363,9 @@ word_t eval(int p, int q, bool *success) {
       // assert(tokens[p].type == TK_DEREF);
       if(tokens[p].type == TK_DEREF) {
         // printf("DEBUG: eval: p is %d, q is %d\n", p, q);
-        word_t vaddr_read(vaddr_t addr, int len);  // read data in memory
+        word_t vaddr_debug_read(vaddr_t addr, int len);  // read data in memory
         vaddr_t vaddr = eval(p + 1, q, success);  // p + 1 to q (p is TK_DEREF)
-        word_t ret = vaddr_read(vaddr, 4);
+        word_t ret = vaddr_debug_read(vaddr, 4);
         // printf("DEBUG: eval (4): p: %d, q: %d, ret: %d\n", p, q, ret);
         return ret;
       }

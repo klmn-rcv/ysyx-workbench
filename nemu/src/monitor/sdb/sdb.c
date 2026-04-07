@@ -109,12 +109,12 @@ static int cmd_x(char *args) {
     printf("x: invalid expression\n");
     return 0;
   }
-  word_t vaddr_read(vaddr_t addr, int len);  // read data in memory
+  word_t vaddr_debug_read(vaddr_t addr, int len);  // read data in memory
   for(int i = 0; i < N; i++) {
     if(i % 4 == 0) {
       printf("\033[1;32m0x%08x:\033[0m\t", addr);
     }
-    printf("0x%08x\t", vaddr_read(addr, 4));
+    printf("0x%08x\t", vaddr_debug_read(addr, 4));
     addr += 4;
     if(i % 4 == 3)
       printf("\n");

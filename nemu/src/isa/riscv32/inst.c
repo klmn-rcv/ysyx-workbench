@@ -149,14 +149,14 @@ static int decode_exec(Decode *s) {
     bool is_func_entry;
     if (func_array_search(func_name, s->dnpc, &is_func_entry)) {
       if (is_func_entry) {
-        printf("[ftrace] 0x%08x: %*scall [%s@0x%08x]\n", s->pc, call_depth * 2, "", func_name, s->dnpc);
+        _Log("[ftrace] 0x%08x: %*scall [%s@0x%08x]\n", s->pc, call_depth * 2, "", func_name, s->dnpc);
         call_depth++;
       }
       else if(jalr && jalr_rd == 0 && jalr_rs1 == 1) { // ret
         call_depth--;
         assert(call_depth >= 0); // sanity check
         assert(func_array_search(func_name, s->pc, &is_func_entry)); // search for the function that wants to return
-        printf("[ftrace] 0x%08x: %*sret [%s]\n", s->pc, call_depth * 2, "", func_name);
+        _Log("[ftrace] 0x%08x: %*sret [%s]\n", s->pc, call_depth * 2, "", func_name);
       }
     }
   }

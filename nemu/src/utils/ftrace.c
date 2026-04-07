@@ -1,10 +1,11 @@
+#include <ftrace.h>
+
 #ifdef CONFIG_FTRACE
 
 #include <elf.h>
 #include <stdio.h>
 
 #include <debug.h>
-#include <ftrace.h>
 
 func_array_t func_array = {.count = 0};
 

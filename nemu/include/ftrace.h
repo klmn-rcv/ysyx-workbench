@@ -1,9 +1,9 @@
-#ifdef CONFIG_FTRACE
-
 #ifndef __FTRACE_H__
 #define __FTRACE_H__
 
-#include <stdint.h>
+#include <common.h>
+
+#ifdef CONFIG_FTRACE
 
 #define MAX_FUNC_NUM 1000
 

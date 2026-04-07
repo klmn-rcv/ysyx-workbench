@@ -55,17 +55,9 @@ void add_mmio_map(const char *name, paddr_t addr, void *space, uint32_t len, io_
 
 /* bus interface */
 word_t mmio_read(paddr_t addr, int len) {
-#ifdef CONFIG_DTRACE
-  if(CONFIG_DTRACE_COND)
-    printf("[dtrace] map_read: addr = " FMT_PADDR ", len = %d\n", addr, len);
-#endif
   return map_read(addr, len, fetch_mmio_map(addr));
 }
 
 void mmio_write(paddr_t addr, int len, word_t data) {
-#ifdef CONFIG_DTRACE
-  if(CONFIG_DTRACE_COND)
-    printf("[dtrace] map_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
-#endif  
   map_write(addr, len, data, fetch_mmio_map(addr));
 }
