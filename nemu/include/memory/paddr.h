@@ -39,7 +39,7 @@ static inline bool in_pmem(paddr_t addr) {
   return addr - CONFIG_MBASE < CONFIG_MSIZE;
 }
 
-word_t paddr_read(paddr_t addr, int len, mem_read_t src);
+word_t paddr_read(paddr_t addr, int len, mem_read_t read_type);
 void paddr_write(paddr_t addr, int len, word_t data);
 
 #endif

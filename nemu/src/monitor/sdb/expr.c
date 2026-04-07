@@ -65,7 +65,24 @@ static struct rule {
   {"t", 't'},
   {"g", 'g'},
   {"s", 's'},
-  {"x", 'x'}              // x in '0x...' (hex number)
+  {"x", 'x'},             // x in '0x...' (hex number)
+  {"b", 'b'},
+  {"c", 'c'},
+  {"d", 'd'},
+  {"e", 'e'},
+  {"f", 'f'},
+  {"A", 'a'},
+  {"R", 'r'},
+  {"P", 'p'},
+  {"T", 't'},
+  {"G", 'g'},
+  {"S", 's'},
+  {"X", 'x'},
+  {"B", 'b'},
+  {"C", 'c'},
+  {"D", 'd'},
+  {"E", 'e'},
+  {"F", 'f'}
 };
 
 #define NR_REGEX ARRLEN(rules)
@@ -175,12 +192,12 @@ static bool make_token(char *e) {
             break;
           
           case TK_REG:
-              tokens[nr_token++].type = TK_REG;
-              num_index = 0;
-              reg_index = 0;
-              tokens[nr_token - 1].str[0] = '\0';
-            
+            tokens[nr_token++].type = TK_REG;
+            num_index = 0;
+            reg_index = 0;
+            tokens[nr_token - 1].str[0] = '\0';
             break;
+
           case 'a':
           case 'r':
           case 'p':
@@ -190,6 +207,25 @@ static bool make_token(char *e) {
             if(tokens[nr_token - 1].type == TK_REG) {
               tokens[nr_token - 1].str[reg_index++] = rules[i].token_type;
               tokens[nr_token - 1].str[reg_index] = '\0';
+            }
+            else if(tokens[nr_token - 1].type == TK_NUMBER && rules[i].token_type == 'a') {  // hex number
+              tokens[nr_token - 1].str[num_index++] = rules[i].token_type;
+              tokens[nr_token - 1].str[num_index] = '\0';
+            }
+            else {
+              printf("make_token error: invalid token '%c'\n", rules[i].token_type);
+              return false;
+            }
+            break;
+
+          case 'b':
+          case 'c':
+          case 'd':
+          case 'e':
+          case 'f':
+            if(tokens[nr_token - 1].type == TK_NUMBER) {  // hex number
+              tokens[nr_token - 1].str[num_index++] = rules[i].token_type;
+              tokens[nr_token - 1].str[num_index] = '\0';
             }
             else {
               printf("make_token error: invalid token '%c'\n", rules[i].token_type);
@@ -202,7 +238,7 @@ static bool make_token(char *e) {
               tokens[nr_token - 1].str[reg_index++] = rules[i].token_type;
               tokens[nr_token - 1].str[reg_index] = '\0';
             }
-            else if(tokens[nr_token - 1].type == TK_NUMBER && num_index == 1) {  // hex number
+            else if(tokens[nr_token - 1].type == TK_NUMBER && num_index == 1 && tokens[nr_token - 1].str[0] == '0') {  // hex number
               tokens[nr_token - 1].str[num_index++] = 'x';
               tokens[nr_token - 1].str[num_index] = '\0';
             }
@@ -315,9 +351,21 @@ word_t eval(int p, int q, bool *success) {
     if(tokens[p].type == TK_NUMBER) {
       int ret = 0;
       if(tokens[p].str[0] == '0' && tokens[p].str[1] == 'x') { // hex number
+        // printf("DEBUG: eval: hex number is %s\n", tokens[p].str);
         for(int i = 2; i < 32; i++) {
+          // printf("DEBUG: ret is %d, tokens[p].str[i] is %d\n", ret, tokens[p].str[i]);
           if(tokens[p].str[i] == '\0') break;
-          ret = ret * 16 + tokens[p].str[i] - '0';
+          if(tokens[p].str[i] >= '0' && tokens[p].str[i] <= '9') {
+            ret = ret * 16 + tokens[p].str[i] - '0';
+          }
+          else if(tokens[p].str[i] >= 'a' && tokens[p].str[i] <= 'f') {
+            ret = ret * 16 + tokens[p].str[i] - 'a' + 10;
+          }
+          else {
+            printf("eval: invalid hex number '%s'\n", tokens[p].str);
+            *success = false;
+            return 0;
+          }
         }
       } else {         // decimal number
         for(int i = 0; i < 32; i++) {
@@ -412,21 +460,21 @@ word_t eval(int p, int q, bool *success) {
 }
 
 
-// static void print_type(int idx) {
-//   idx -= 256;
-//   char *type_names[] = { "TK_NOTYPE", "TK_NUMBER", "TK_PLUS", "TK_MINUS", "TK_MULTI", "TK_DEVI", "TK_EQ", "TK_INEQ", 
-//   "TK_AND", "TK_OR", "TK_LEFTPAR", "TK_RIGHTPAR", "TK_REG", "TK_DEREF", "TK_NEG" };
-//   printf("%s", type_names[idx]);
-// }
+static void print_type(int idx) {
+  idx -= 256;
+  char *type_names[] = { "TK_NOTYPE", "TK_NUMBER", "TK_PLUS", "TK_MINUS", "TK_MULTI", "TK_DEVI", "TK_EQ", "TK_INEQ", 
+  "TK_AND", "TK_OR", "TK_LEFTPAR", "TK_RIGHTPAR", "TK_REG", "TK_DEREF", "TK_NEG" };
+  printf("%s", type_names[idx]);
+}
 
-//// 辅助debug的打印token数组的函数
-// static void print_tokens() {
-//   for(int i = 0; i < nr_token; i++) {
-//     printf("tokens[%d]: type: ", i);
-//     print_type(tokens[i].type);  
-//     printf(", str: %s\n", tokens[i].str);
-//   }
-// }
+// 辅助debug的打印token数组的函数
+static void print_tokens() {
+  for(int i = 0; i < nr_token; i++) {
+    printf("tokens[%d]: type: ", i);
+    print_type(tokens[i].type);  
+    printf(", str: %s\n", tokens[i].str);
+  }
+}
 
 word_t expr(char *e, bool *success) {
   // printf("DEBUG: expr: e is %s\n", e);

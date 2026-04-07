@@ -50,7 +50,24 @@ static struct rule {
   {"t", 't'},
   {"g", 'g'},
   {"s", 's'},
-  {"x", 'x'}              // x in '0x...' (hex number)
+  {"x", 'x'},             // x in '0x...' (hex number)
+  {"b", 'b'},
+  {"c", 'c'},
+  {"d", 'd'},
+  {"e", 'e'},
+  {"f", 'f'},
+  {"A", 'a'},
+  {"R", 'r'},
+  {"P", 'p'},
+  {"T", 't'},
+  {"G", 'g'},
+  {"S", 's'},
+  {"X", 'x'},
+  {"B", 'b'},
+  {"C", 'c'},
+  {"D", 'd'},
+  {"E", 'e'},
+  {"F", 'f'}
 };
 
 #define NR_REGEX ARRLEN(rules)
@@ -159,12 +176,12 @@ static bool make_token(char *e) {
             break;
           
           case TK_REG:
-              tokens[nr_token++].type = TK_REG;
-              num_index = 0;
-              reg_index = 0;
-              tokens[nr_token - 1].str[0] = '\0';
-            
+            tokens[nr_token++].type = TK_REG;
+            num_index = 0;
+            reg_index = 0;
+            tokens[nr_token - 1].str[0] = '\0';
             break;
+
           case 'a':
           case 'r':
           case 'p':
@@ -174,6 +191,25 @@ static bool make_token(char *e) {
             if(tokens[nr_token - 1].type == TK_REG) {
               tokens[nr_token - 1].str[reg_index++] = rules[i].token_type;
               tokens[nr_token - 1].str[reg_index] = '\0';
+            }
+            else if(tokens[nr_token - 1].type == TK_NUMBER && rules[i].token_type == 'a') {  // hex number
+              tokens[nr_token - 1].str[num_index++] = rules[i].token_type;
+              tokens[nr_token - 1].str[num_index] = '\0';
+            }
+            else {
+              printf("make_token error: invalid token '%c'\n", rules[i].token_type);
+              return false;
+            }
+            break;
+
+          case 'b':
+          case 'c':
+          case 'd':
+          case 'e':
+          case 'f':
+            if(tokens[nr_token - 1].type == TK_NUMBER) {  // hex number
+              tokens[nr_token - 1].str[num_index++] = rules[i].token_type;
+              tokens[nr_token - 1].str[num_index] = '\0';
             }
             else {
               printf("make_token error: invalid token '%c'\n", rules[i].token_type);
@@ -186,7 +222,7 @@ static bool make_token(char *e) {
               tokens[nr_token - 1].str[reg_index++] = rules[i].token_type;
               tokens[nr_token - 1].str[reg_index] = '\0';
             }
-            else if(tokens[nr_token - 1].type == TK_NUMBER && num_index == 1) {  // hex number
+            else if(tokens[nr_token - 1].type == TK_NUMBER && num_index == 1 && tokens[nr_token - 1].str[0] == '0') {  // hex number
               tokens[nr_token - 1].str[num_index++] = 'x';
               tokens[nr_token - 1].str[num_index] = '\0';
             }
@@ -289,7 +325,17 @@ uint32_t eval(int p, int q, bool *success) {
       if(tokens[p].str[0] == '0' && tokens[p].str[1] == 'x') { // hex number
         for(int i = 2; i < 32; i++) {
           if(tokens[p].str[i] == '\0') break;
-          ret = ret * 16 + tokens[p].str[i] - '0';
+          if(tokens[p].str[i] >= '0' && tokens[p].str[i] <= '9') {
+            ret = ret * 16 + tokens[p].str[i] - '0';
+          }
+          else if(tokens[p].str[i] >= 'a' && tokens[p].str[i] <= 'f') {
+            ret = ret * 16 + tokens[p].str[i] - 'a' + 10;
+          }
+          else {
+            printf("eval: invalid hex number '%s'\n", tokens[p].str);
+            *success = false;
+            return 0;
+          }
         }
       } else {         // decimal number
         for(int i = 0; i < 32; i++) {
@@ -326,7 +372,7 @@ uint32_t eval(int p, int q, bool *success) {
     if(op_index == -1) {  // only TK_DEREF can go into this if
       if(tokens[p].type == TK_DEREF) {
         uint32_t addr = eval(p + 1, q, success);  // p + 1 to q (p is TK_DEREF)
-        uint32_t ret = pmem_read(addr, MEM_SRC_DEBUG);
+        uint32_t ret = pmem_read(addr, MEM_READ_DEBUG);
         return ret;
       }
       else if(tokens[p].type == TK_NEG) {

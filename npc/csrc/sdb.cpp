@@ -103,7 +103,7 @@ static int cmd_x(char *args) {
     if(i % 4 == 0) {
       printf(ANSI_FG_GREEN "0x%08x:" ANSI_NONE "\t", addr);
     }
-    printf("0x%08x\t", pmem_read(addr, MEM_SRC_DEBUG));
+    printf("0x%08x\t", pmem_read(addr, MEM_READ_DEBUG));
     addr += 4;
     if(i % 4 == 3)
       printf("\n");

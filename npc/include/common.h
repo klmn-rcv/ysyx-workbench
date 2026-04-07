@@ -24,6 +24,7 @@
 #define ANSI_FMT(str, fmt) fmt str ANSI_NONE
 
 #define FMT_WORD "0x%08" PRIx32
+#define FMT_PADDR "0x%08" PRIx32
 
 extern FILE *log_fp;
 void init_log(const char *log_file);

@@ -50,21 +50,21 @@ void init_mem() {
   Log("physical memory area [" FMT_PADDR ", " FMT_PADDR "]", PMEM_LEFT, PMEM_RIGHT);
 }
 
-word_t paddr_read(paddr_t addr, int len, mem_read_t src) {
+word_t paddr_read(paddr_t addr, int len, mem_read_t read_type) {
 #if defined(CONFIG_MTRACE) || defined(CONFIG_DTRACE)
-  const char *src_str[] = { "inst", "data", "debug" };
+  const char *str_type[] = { "inst", "data", "debug" };
 #endif
   if (likely(in_pmem(addr))) {
 #ifdef CONFIG_MTRACE
     if(CONFIG_MTRACE_COND)
-      _Log("[mtrace] pmem_read (%s): addr = " FMT_PADDR ", len = %d\n", src_str[src], addr, len);
+      _Log("[mtrace] pmem_read (%s): addr = " FMT_PADDR ", len = %d\n", str_type[read_type], addr, len);
 #endif
     return pmem_read(addr, len);
   }
 #ifdef CONFIG_DEVICE
 #ifdef CONFIG_DTRACE
   if(CONFIG_DTRACE_COND)
-    _Log("[dtrace] mmio_read (%s): addr = " FMT_PADDR ", len = %d\n", src_str[src], addr, len);
+    _Log("[dtrace] mmio_read (%s): addr = " FMT_PADDR ", len = %d\n", str_type[read_type], addr, len);
 #endif
   return mmio_read(addr, len);
 #endif
