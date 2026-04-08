@@ -25,12 +25,15 @@ endif
 remove_quote = $(patsubst "%",%,$(1))
 
 # Extract variabls from menuconfig
-GUEST_ISA ?= $(call remove_quote,$(CONFIG_ISA))
-ENGINE ?= $(call remove_quote,$(CONFIG_ENGINE))
+# CONFIG_ISA一般是"riscv32"
+GUEST_ISA ?= $(strip $(call remove_quote,$(CONFIG_ISA)))
+# CONFIG_ENGINE一般是"interpreter"
+ENGINE ?= $(strip $(call remove_quote,$(CONFIG_ENGINE)))
+# NAME是生成的可执行文件的名字的一部分，一般是riscv32-nemu-interpreter
 NAME    = $(GUEST_ISA)-nemu-$(ENGINE)
 
 # Include all filelist.mk to merge file lists
-FILELIST_MK = $(shell find -L ./src -name "filelist.mk")
+FILELIST_MK = $(shell find -L ./src -name "filelist.mk") # 主Makefile把所有模块的filelist.mk拉进来，最终SRCS变量就会包含所有模块的源文件，便于统一编译。
 include $(FILELIST_MK)
 
 # Filter out directories and files in blacklist to obtain the final set of source files

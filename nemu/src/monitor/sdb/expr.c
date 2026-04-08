@@ -460,21 +460,21 @@ word_t eval(int p, int q, bool *success) {
 }
 
 
-static void print_type(int idx) {
-  idx -= 256;
-  char *type_names[] = { "TK_NOTYPE", "TK_NUMBER", "TK_PLUS", "TK_MINUS", "TK_MULTI", "TK_DEVI", "TK_EQ", "TK_INEQ", 
-  "TK_AND", "TK_OR", "TK_LEFTPAR", "TK_RIGHTPAR", "TK_REG", "TK_DEREF", "TK_NEG" };
-  printf("%s", type_names[idx]);
-}
+// static void print_type(int idx) {
+//   idx -= 256;
+//   char *type_names[] = { "TK_NOTYPE", "TK_NUMBER", "TK_PLUS", "TK_MINUS", "TK_MULTI", "TK_DEVI", "TK_EQ", "TK_INEQ", 
+//   "TK_AND", "TK_OR", "TK_LEFTPAR", "TK_RIGHTPAR", "TK_REG", "TK_DEREF", "TK_NEG" };
+//   printf("%s", type_names[idx]);
+// }
 
-// 辅助debug的打印token数组的函数
-static void print_tokens() {
-  for(int i = 0; i < nr_token; i++) {
-    printf("tokens[%d]: type: ", i);
-    print_type(tokens[i].type);  
-    printf(", str: %s\n", tokens[i].str);
-  }
-}
+// // 辅助debug的打印token数组的函数
+// static void print_tokens() {
+//   for(int i = 0; i < nr_token; i++) {
+//     printf("tokens[%d]: type: ", i);
+//     print_type(tokens[i].type);  
+//     printf(", str: %s\n", tokens[i].str);
+//   }
+// }
 
 word_t expr(char *e, bool *success) {
   // printf("DEBUG: expr: e is %s\n", e);

@@ -3,7 +3,7 @@
 #include "sdb.h"
 #include "state.h"
 #include "debug.h"
-
+#include "difftest.h"
 
 VTop* top = new VTop;
 #ifdef GEN_TRACE
@@ -15,25 +15,28 @@ void init_disasm();
 
 char pmem[MEM_SIZE];  // memory
 
-const char *img_file = NULL;
-const char *log_file = NULL;
-const char *elf_file = NULL;
+static const char *img_file = NULL;
+static const char *log_file = NULL;
+static const char *elf_file = NULL;
+static const char *diff_so_file = NULL;
+static int difftest_port = 1234;
 
-static void load_binary_image(const char* path) {
+static long load_image(const char* path) {
   std::FILE* fp = std::fopen(path, "rb");
   if (fp == nullptr) {
     std::fprintf(stderr, "[sim] failed to open bin file: %s\n", path);
     std::exit(1);
   }
 
-  const size_t n = std::fread(pmem, 1, MEM_SIZE, fp);
+  const long n = std::fread(pmem, 1, MEM_SIZE, fp);
   if (std::ferror(fp)) {
     std::fprintf(stderr, "[sim] failed to read bin file: %s\n", path);
     std::fclose(fp);
     std::exit(1);
   }
   std::fclose(fp);
-  printf("[sim] loaded %zu bytes from %s\n", n, path);
+  printf("[sim] loaded %ld bytes from %s\n", n, path);
+  return n;
 }
 
 static void init_sim() {
@@ -78,6 +81,7 @@ static void init_sim() {
 static void parse_args(int argc, char** argv) {
   const char *prefix_log = "--log=";
   const char *prefix_elf = "--elf=";
+  const char *prefix_diff = "--diff=";
 
   for (int i = 1; i < argc; i++) {
     const char *arg = argv[i];
@@ -89,13 +93,17 @@ static void parse_args(int argc, char** argv) {
       elf_file = arg + strlen(prefix_elf);
       assert(*elf_file != '\0');
     }
+    else if (strncmp(arg, prefix_diff, strlen(prefix_diff)) == 0) {
+      diff_so_file = arg + strlen(prefix_diff);
+      assert(*diff_so_file != '\0');
+    }
     else {
       assert(img_file == NULL && "Only one binary image is allowed");
       img_file = arg;
     }
   }
 
-  assert(img_file != NULL && "Usage: sim <binary_image> [--log=<log_file>] [--elf=<elf_file>]");
+  assert(img_file != NULL && "Usage: sim <binary_image> [--log=<log_file>] [--elf=<elf_file>] [--diff=<diff_so_file>]");
 }
 
 int main(int argc, char** argv) {
@@ -108,21 +116,23 @@ int main(int argc, char** argv) {
 
   parse_args(argc, argv);
 
+  init_log(log_file);
+
   std::memset(pmem, 0, sizeof(pmem));
 
-  load_binary_image(img_file);
-
-  init_log(log_file);
+  long img_size = load_image(img_file);
 
 #ifdef CONFIG_FTRACE
   init_ftrace(elf_file);
 #endif
 
+  init_sim();
+
+  IFDEF(CONFIG_DIFFTEST, init_difftest(diff_so_file, img_size, difftest_port));
+
   init_sdb();
 
   IFDEF(CONFIG_ITRACE, init_disasm());
-
-  init_sim();
 
   sdb_mainloop();
 

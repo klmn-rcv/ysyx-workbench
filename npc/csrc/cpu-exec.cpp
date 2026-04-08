@@ -8,6 +8,7 @@
 #include "state.h"
 #include "debug.h"
 #include "cpu-exec.h"
+#include "difftest.h"
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -20,16 +21,14 @@ uint64_t g_nr_inst = 0;
 static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 
-#ifdef CONFIG_ITRACE
 Inst s;
-#endif
 
 static void trace_and_difftest() {
 #ifdef CONFIG_ITRACE
   log_write("%s\n", s.logbuf);
 #endif
   if (g_print_step && log_fp != stdout) { IFDEF(CONFIG_ITRACE, puts(s.logbuf)); }
-  IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, dnpc));
+  IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc));
 
 #ifdef CONFIG_WATCHPOINT
   bool check_all_wp_no_change(int *NO, char **expr_str);
@@ -102,10 +101,8 @@ static void statistic() {
 
 extern "C" void assert_fail_msg() {
   reg_display();
+  IFDEF(CONFIG_ITRACE, iringbuf_print());
   statistic();
-#ifdef CONFIG_ITRACE
-  iringbuf_print();
-#endif
 }
 
 /* Simulate how the CPU works. */

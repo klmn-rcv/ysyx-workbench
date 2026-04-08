@@ -44,4 +44,10 @@ void init_log(const char *log_file);
     log_write(__VA_ARGS__); \
   } while (0)
 
+typedef uint32_t word_t;
+typedef word_t paddr_t;
+typedef word_t vaddr_t;
+
+#include "riscv.h"
+
 #endif

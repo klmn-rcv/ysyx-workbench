@@ -84,11 +84,10 @@ extern "C" void pmem_write(uint32_t waddr, int wdata, uint8_t wmask) {
   *p = pmem_data;
 }
 
+// 没有定义CONFIG_ITRACE时，这个函数也会记录inst和pc，因为要维护s给difftest使用
 extern "C" void itrace(uint32_t pc, uint32_t inst) {
-#ifdef CONFIG_ITRACE
   s.inst = inst;
   s.pc = pc;
-#endif
 }
 
 extern "C" void iringbuf_before_ifetch(uint32_t pc) {
