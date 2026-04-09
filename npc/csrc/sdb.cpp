@@ -248,6 +248,9 @@ void sdb_set_batch_mode() {
 // }
 
 void sdb_mainloop() {
+
+  printf("DEBUG: sdb_mainloop(), is_batch_mode = %d, npc_state.state = %d\n", is_batch_mode, npc_state.state);
+
   if (is_batch_mode) {
     cmd_c(NULL);
     return;

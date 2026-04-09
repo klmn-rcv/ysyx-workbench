@@ -107,6 +107,7 @@ extern "C" void assert_fail_msg() {
 
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
+  // printf("DEBUG: cpu_exec(%" PRIu64 "), npc_state.state = %d\n", n, npc_state.state);
   g_print_step = (n < MAX_INST_TO_PRINT);
   switch (npc_state.state) {
     case NPC_END: case NPC_ABORT: case NPC_QUIT:

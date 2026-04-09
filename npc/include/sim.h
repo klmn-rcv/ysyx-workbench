@@ -6,7 +6,7 @@
 
 #include "VTop.h"
 
-// #define GEN_TRACE
+#define GEN_TRACE
 
 #define MEM_SIZE 0x8000000
 

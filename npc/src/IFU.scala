@@ -6,8 +6,10 @@ import chisel3.util._
 class IFU extends Module {
     val io = IO(new Bundle {
         val in = new Bundle {
-            val bj_valid = Input(Bool())
-            val bj_pc = Input(UInt(32.W))
+            val jump_valid = Input(Bool())
+            val jump_target = Input(UInt(32.W))
+            val br_taken = Input(Bool())
+            val br_target = Input(UInt(32.W))
         }
         val out = new Bundle {
             val valid = Output(Bool())
@@ -20,10 +22,11 @@ class IFU extends Module {
 
     val pc_reg = RegInit("h7ffffffc".U(32.W))
     val snpc = pc_reg + 4.U
-    val dnpc = io.in.bj_pc
+    val dnpc = Mux(io.in.br_taken, io.in.br_target,
+               Mux(io.in.jump_valid, io.in.jump_target, snpc))
     pc_reg := io.out.next_pc   // current pc
     io.out.pc := pc_reg
-    io.out.next_pc := Mux(io.in.bj_valid, dnpc, snpc)  // next pc
+    io.out.next_pc := dnpc  // next pc
 
     val iringbuf = Module(new Iringbuf)
     iringbuf.clk := clock

@@ -10,6 +10,7 @@ class WBU extends Module {
             val wr_reg = Input(Bool())
             val rd = Input(UInt(5.W))
             val ebreak = Input(Bool())
+            val inv = Input(Bool())
             val inst = Input(UInt(32.W))
             val pc = Input(UInt(32.W))
         }
@@ -26,9 +27,9 @@ class WBU extends Module {
     io.out.wb_addr := io.in.rd
 
     val halt = Module(new Halt)
-    halt.exit_code := io.in.data
+    halt.exit_code := Mux(io.in.inv, 1.U, io.in.data)
     halt.exit_pc := io.in.pc
-    halt.ebreak := io.in.ebreak
+    halt.halt_valid := io.in.ebreak || io.in.inv
 
     val reset_reg = RegInit(true.B)
     reset_reg := reset

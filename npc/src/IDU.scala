@@ -26,15 +26,19 @@ class IDU extends Module {
             val wr_mem = Output(Bool())
             val bit_width = Output(BitWidth())
             val sign = Output(Sign())
-            val bj_valid = Output(Bool())
-            val bj_pc = Output(UInt(32.W))
+            val jump_valid = Output(Bool())
+            val jump_target = Output(UInt(32.W))
+            val br_valid = Output(Bool())
+            val br_expect_0 = Output(Bool())
+            val br_target = Output(UInt(32.W))
             val ebreak = Output(Bool())
+            val inv = Output(Bool())
             val inst = Output(UInt(32.W))
             val pc = Output(UInt(32.W))
         }
     })
 
-    val default = List(InstType.I, FuncType.alu, ALUOp.add, BitWidth.w32, Sign.signed)
+    val default = List(InstType.N, FuncType.inv, ALUOp.add, BitWidth.w32, Sign.signed)
     val decoded = ListLookup(io.in.inst, default, MinirvInsts.table)
 
     val (instType, _)   = InstType.safe(decoded(0).asUInt)
@@ -69,16 +73,22 @@ class IDU extends Module {
     }
 
     val src1 = Mux(needRs1, io.in.rdata1, 0.U)
-    val src2 = Mux(needImm, io.out.imm, io.in.rdata2)
+    val src2 = Mux(funcType === FuncType.br, io.in.rdata2,
+               Mux(needImm, io.out.imm, io.in.rdata2))
 
     // printf("src1: %x, src2: %x\n", src1, src2)
     
     io.out.src1 := src1
     io.out.src2 := src2
     io.out.reg_data2 := io.in.rdata2
-    when(funcType === FuncType.jplk) { 
+    when(funcType === FuncType.jplk) {
         io.out.src1 := io.in.pc
         io.out.src2 := 4.U
+    }
+
+    when(funcType === FuncType.auipc) {
+        io.out.src1 := io.in.pc
+        io.out.src2 := imm
     }
 
     io.out.wr_reg := needRd
@@ -87,12 +97,22 @@ class IDU extends Module {
     io.out.bit_width := bitWidth
     io.out.sign := sign
 
-    io.out.bj_valid := (funcType === FuncType.jump) || (funcType === FuncType.jplk) // || (funcType === FuncType.br) && ...
-    io.out.bj_pc := (src1 + imm) & ~(1.U(32.W))
+    io.out.jump_valid := funcType === FuncType.jplk
+    io.out.jump_target := Mux(
+        instType === InstType.J,
+        io.in.pc + imm,
+        (io.in.rdata1 + imm) & ~(1.U(32.W))
+    )
+
+    io.out.br_target := io.in.pc + imm
+    io.out.br_valid := funcType === FuncType.br
+    io.out.br_expect_0 := (funcType === FuncType.br) &&
+        ((io.in.inst(14, 12) === "b000".U) || (io.in.inst(14, 12) === "b101".U) || (io.in.inst(14, 12) === "b111".U))
 
     // printf("src1: %x, imm: %x, bj_valid: %b, bj_pc: %x\n", src1, imm, io.bj_valid, io.bj_pc)
 
     io.out.ebreak := funcType === FuncType.ebreak
+    io.out.inv := io.in.valid && funcType === FuncType.inv
 
     io.out.inst := io.in.inst
     io.out.pc := io.in.pc
@@ -109,7 +129,7 @@ class IDU extends Module {
     ftrace.clk := clock
     ftrace.rst := reset
     ftrace.pc := io.in.pc
-    ftrace.target_pc := io.out.bj_pc
+    ftrace.target_pc := io.out.jump_target
     ftrace.rd := rd
     ftrace.rs1 := rs1
     ftrace.imm := imm

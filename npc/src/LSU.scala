@@ -16,6 +16,7 @@ class LSU extends Module {
             val sign = Input(Sign())
             val rdata = Input(UInt(32.W))  // for load data
             val ebreak = Input(Bool())
+            val inv = Input(Bool())
             val inst = Input(UInt(32.W))
             val pc = Input(UInt(32.W))
         }
@@ -31,6 +32,7 @@ class LSU extends Module {
             val wr_reg = Output(Bool())
             val rd = Output(UInt(5.W))
             val ebreak = Output(Bool())
+            val inv = Output(Bool())
             val inst = Output(UInt(32.W))
             val pc = Output(UInt(32.W))
         }
@@ -49,6 +51,7 @@ class LSU extends Module {
     io.out.wr_reg := io.in.wr_reg
     io.out.rd := io.in.rd
     io.out.ebreak := io.in.ebreak
+    io.out.inv := io.in.inv
 
     io.out.inst := io.in.inst
     io.out.pc := io.in.pc

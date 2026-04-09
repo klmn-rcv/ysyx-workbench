@@ -7,11 +7,11 @@ package object cpu {
     }
 
     object InstType extends ChiselEnum {
-        val R, I, S, B, U, J = Value
+        val R, I, S, B, U, J, N = Value   // N: No type (invalid instruction)
     }
 
     object FuncType extends ChiselEnum {
-        val alu, ld, st, br, jump, jplk, ebreak = Value     // jplk: jump and link
+        val alu, ld, st, br, jump, jplk, auipc, ebreak, inv = Value     // jplk: jump and link
     }
 
     object BitWidth extends ChiselEnum {
@@ -51,31 +51,106 @@ package object cpu {
     }
 
     object MinirvInsts extends ChiselEnum {
-        val lui = BitPat("b???????_?????_?????_???_?????_0110111")
-        val addi = BitPat("b???????_?????_?????_000_?????_0010011")
-        val jalr = BitPat("b???????_?????_?????_000_?????_1100111")
-        
-        // val lb = BitPat("b???????_?????_?????_000_?????_0000011")
-        // val lh = BitPat("b???????_?????_?????_001_?????_0000011")
-        val lw = BitPat("b???????_?????_?????_010_?????_0000011")
-        val lbu = BitPat("b???????_?????_?????_100_?????_0000011")
-        // val lhu = BitPat("b???????_?????_?????_101_????_0000011")
-        val sb = BitPat("b???????_?????_?????_000_?????_0100011")
-        // val sh = BitPat("b???????_?????_?????_001_?????_0100011")
-        val sw = BitPat("b???????_?????_?????_010_?????_0100011")
-        val add = BitPat("b0000000_?????_?????_000_?????_0110011")
+        // R-type
+        val add    = BitPat("b0000000_?????_?????_000_?????_0110011")
+        val sub    = BitPat("b0100000_?????_?????_000_?????_0110011")
+        val sll    = BitPat("b0000000_?????_?????_001_?????_0110011")
+        val slt    = BitPat("b0000000_?????_?????_010_?????_0110011")
+        val sltu   = BitPat("b0000000_?????_?????_011_?????_0110011")
+        val xor    = BitPat("b0000000_?????_?????_100_?????_0110011")
+        val srl    = BitPat("b0000000_?????_?????_101_?????_0110011")
+        val sra    = BitPat("b0100000_?????_?????_101_?????_0110011")
+        val or     = BitPat("b0000000_?????_?????_110_?????_0110011")
+        val and    = BitPat("b0000000_?????_?????_111_?????_0110011")
+
+        // I-type
+        val jalr   = BitPat("b???????_?????_?????_000_?????_1100111")
+        val lb     = BitPat("b???????_?????_?????_000_?????_0000011")
+        val lh     = BitPat("b???????_?????_?????_001_?????_0000011")
+        val lw     = BitPat("b???????_?????_?????_010_?????_0000011")
+        val lbu    = BitPat("b???????_?????_?????_100_?????_0000011")
+        val lhu    = BitPat("b???????_?????_?????_101_?????_0000011")
+        val addi   = BitPat("b???????_?????_?????_000_?????_0010011")
+        val slti   = BitPat("b???????_?????_?????_010_?????_0010011")
+        val sltiu  = BitPat("b???????_?????_?????_011_?????_0010011")
+        val xori   = BitPat("b???????_?????_?????_100_?????_0010011")
+        val ori    = BitPat("b???????_?????_?????_110_?????_0010011")
+        val andi   = BitPat("b???????_?????_?????_111_?????_0010011")
+        val slli   = BitPat("b0000000_?????_?????_001_?????_0010011")
+        val srli   = BitPat("b0000000_?????_?????_101_?????_0010011")
+        val srai   = BitPat("b0100000_?????_?????_101_?????_0010011")
         val ebreak = BitPat("b0000000_00001_00000_000_00000_1110011")
+
+        // S-type
+        val sb     = BitPat("b???????_?????_?????_000_?????_0100011")
+        val sh     = BitPat("b???????_?????_?????_001_?????_0100011")
+        val sw     = BitPat("b???????_?????_?????_010_?????_0100011")
+
+        // B-type
+        val beq    = BitPat("b???????_?????_?????_000_?????_1100011")
+        val bne    = BitPat("b???????_?????_?????_001_?????_1100011")
+        val blt    = BitPat("b???????_?????_?????_100_?????_1100011")
+        val bge    = BitPat("b???????_?????_?????_101_?????_1100011")
+        val bltu   = BitPat("b???????_?????_?????_110_?????_1100011")
+        val bgeu   = BitPat("b???????_?????_?????_111_?????_1100011")
+
+        // U-type
+        val lui    = BitPat("b???????_?????_?????_???_?????_0110111")
+        val auipc  = BitPat("b???????_?????_?????_???_?????_0010111")
+
+        // J-type
+        val jal    = BitPat("b???????_?????_?????_???_?????_1101111")
         
         val table = Array(
-            lui -> List(InstType.U, FuncType.alu, ALUOp.lui, BitWidth.w32, Sign.signed),
-            addi -> List(InstType.I, FuncType.alu, ALUOp.add, BitWidth.w32, Sign.signed),
-            jalr -> List(InstType.I, FuncType.jplk, ALUOp.add, BitWidth.w32, Sign.signed),
-            lw -> List(InstType.I, FuncType.ld, ALUOp.add, BitWidth.w32, Sign.signed),
-            lbu -> List(InstType.I, FuncType.ld, ALUOp.add, BitWidth.w8, Sign.unsigned),
-            sb -> List(InstType.S, FuncType.st, ALUOp.add, BitWidth.w8, Sign.signed),
-            sw -> List(InstType.S, FuncType.st, ALUOp.add, BitWidth.w32, Sign.signed),
-            add -> List(InstType.R, FuncType.alu, ALUOp.add, BitWidth.w32, Sign.signed),
-            ebreak -> List(InstType.I, FuncType.ebreak, ALUOp.add, BitWidth.w32, Sign.signed)
+            // R-type
+            add    -> List(InstType.R, FuncType.alu,    ALUOp.add,  BitWidth.w32, Sign.signed  ),  // R(rd) = src1 + src2;
+            sub    -> List(InstType.R, FuncType.alu,    ALUOp.sub,  BitWidth.w32, Sign.signed  ),  // R(rd) = src1 - src2;
+            sll    -> List(InstType.R, FuncType.alu,    ALUOp.sll,  BitWidth.w32, Sign.signed  ),  // R(rd) = src1 << (src2 & 0x1f);
+            slt    -> List(InstType.R, FuncType.alu,    ALUOp.slt,  BitWidth.w32, Sign.signed  ),  // R(rd) = (sword_t)src1 < (sword_t)src2 ? 1 : 0;
+            sltu   -> List(InstType.R, FuncType.alu,    ALUOp.sltu, BitWidth.w32, Sign.unsigned),  // R(rd) = (word_t)src1 < (word_t)src2 ? 1 : 0;
+            xor    -> List(InstType.R, FuncType.alu,    ALUOp.xor,  BitWidth.w32, Sign.signed  ),  // R(rd) = src1 ^ src2;
+            srl    -> List(InstType.R, FuncType.alu,    ALUOp.srl,  BitWidth.w32, Sign.signed  ),  // R(rd) = src1 >> (src2 & 0x1f);
+            sra    -> List(InstType.R, FuncType.alu,    ALUOp.sra,  BitWidth.w32, Sign.signed  ),  // R(rd) = (sword_t)src1 >> (src2 & 0x1f);
+            or     -> List(InstType.R, FuncType.alu,    ALUOp.or,   BitWidth.w32, Sign.signed  ),  // R(rd) = src1 | src2;
+            and    -> List(InstType.R, FuncType.alu,    ALUOp.and,  BitWidth.w32, Sign.signed  ),  // R(rd) = src1 & src2;
+            
+            // I-type
+            jalr   -> List(InstType.I, FuncType.jplk,   ALUOp.add,  BitWidth.w32, Sign.signed  ),  // R(rd) = s->snpc; s->dnpc = (src1 + imm) & ~1; FTRACE_JALR_HOOK();
+            lb     -> List(InstType.I, FuncType.ld,     ALUOp.add,  BitWidth.w8,  Sign.signed  ),  // R(rd) = SEXT(Mr(src1 + imm, 1), 8);
+            lh     -> List(InstType.I, FuncType.ld,     ALUOp.add,  BitWidth.w16, Sign.signed  ),  // R(rd) = SEXT(Mr(src1 + imm, 2), 16);
+            lw     -> List(InstType.I, FuncType.ld,     ALUOp.add,  BitWidth.w32, Sign.signed  ),  // R(rd) = Mr(src1 + imm, 4);
+            lbu    -> List(InstType.I, FuncType.ld,     ALUOp.add,  BitWidth.w8,  Sign.unsigned),  // R(rd) = Mr(src1 + imm, 1);
+            lhu    -> List(InstType.I, FuncType.ld,     ALUOp.add,  BitWidth.w16, Sign.unsigned),  // R(rd) = Mr(src1 + imm, 2);
+            addi   -> List(InstType.I, FuncType.alu,    ALUOp.add,  BitWidth.w32, Sign.signed  ),  // R(rd) = src1 + imm;
+            slti   -> List(InstType.I, FuncType.alu,    ALUOp.slt,  BitWidth.w32, Sign.signed  ),  // R(rd) = (sword_t)src1 < (sword_t)imm ? 1 : 0;
+            sltiu  -> List(InstType.I, FuncType.alu,    ALUOp.sltu, BitWidth.w32, Sign.unsigned),  // R(rd) = (word_t)src1 < (word_t)imm ? 1 : 0;
+            xori   -> List(InstType.I, FuncType.alu,    ALUOp.xor,  BitWidth.w32, Sign.signed  ),  // R(rd) = src1 ^ imm;
+            ori    -> List(InstType.I, FuncType.alu,    ALUOp.or,   BitWidth.w32, Sign.signed  ),  // R(rd) = src1 | imm;
+            andi   -> List(InstType.I, FuncType.alu,    ALUOp.and,  BitWidth.w32, Sign.signed  ),  // R(rd) = src1 & imm;
+            slli   -> List(InstType.I, FuncType.alu,    ALUOp.sll,  BitWidth.w32, Sign.signed  ),  // R(rd) = src1 << (imm & 0x1f);
+            srli   -> List(InstType.I, FuncType.alu,    ALUOp.srl,  BitWidth.w32, Sign.signed  ),  // R(rd) = src1 >> (imm & 0x1f);
+            srai   -> List(InstType.I, FuncType.alu,    ALUOp.sra,  BitWidth.w32, Sign.signed  ),  // R(rd) = (sword_t)src1 >> (imm & 0x1f);
+            ebreak -> List(InstType.I, FuncType.ebreak, ALUOp.add,  BitWidth.w32, Sign.signed  ),  // NEMUTRAP(s->pc, R(10));
+
+            // S-type
+            sb     -> List(InstType.S, FuncType.st,     ALUOp.add,  BitWidth.w8,  Sign.signed  ),  // Mw(src1 + imm, 1, src2);
+            sh     -> List(InstType.S, FuncType.st,     ALUOp.add,  BitWidth.w16, Sign.signed  ),  // Mw(src1 + imm, 2, src2);
+            sw     -> List(InstType.S, FuncType.st,     ALUOp.add,  BitWidth.w32, Sign.signed  ),  // Mw(src1 + imm, 4, src2);
+
+            // B-type
+            beq    -> List(InstType.B, FuncType.br,     ALUOp.sub,  BitWidth.w32, Sign.signed  ),  // s->dnpc = (src1 == src2 ? s->pc + imm : s->snpc);
+            bne    -> List(InstType.B, FuncType.br,     ALUOp.sub,  BitWidth.w32, Sign.signed  ),  // s->dnpc = (src1 != src2 ? s->pc + imm : s->snpc);
+            blt    -> List(InstType.B, FuncType.br,     ALUOp.slt,  BitWidth.w32, Sign.signed  ),  // s->dnpc = ((sword_t)src1 < (sword_t)src2 ? s->pc + imm : s->snpc);
+            bge    -> List(InstType.B, FuncType.br,     ALUOp.slt,  BitWidth.w32, Sign.signed  ),  // s->dnpc = ((sword_t)src1 >= (sword_t)src2 ? s->pc + imm : s->snpc);
+            bltu   -> List(InstType.B, FuncType.br,     ALUOp.sltu, BitWidth.w32, Sign.unsigned),  // s->dnpc = ((word_t)src1 < (word_t)src2 ? s->pc + imm : s->snpc);
+            bgeu   -> List(InstType.B, FuncType.br,     ALUOp.sltu, BitWidth.w32, Sign.unsigned),  // s->dnpc = ((word_t)src1 >= (word_t)src2 ? s->pc + imm : s->snpc);
+
+            // U-type
+            lui    -> List(InstType.U, FuncType.alu,    ALUOp.lui,  BitWidth.w32, Sign.signed  ),  // R(rd) = imm;
+            auipc  -> List(InstType.U, FuncType.auipc,  ALUOp.add,  BitWidth.w32, Sign.signed  ),  // R(rd) = s->pc + imm;（需要思考怎么把PC放到src1上）
+
+            // J-type
+            jal    -> List(InstType.J, FuncType.jplk,   ALUOp.add,  BitWidth.w32, Sign.signed  ),  // R(rd) = s->snpc; s->dnpc = s->pc + imm; FTRACE_JAL_HOOK();
         )
     }
 

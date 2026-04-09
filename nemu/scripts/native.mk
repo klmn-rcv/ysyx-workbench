@@ -32,22 +32,22 @@ BATCH_ARGS = $(ARGS) -b
 # Command to execute NEMU
 IMG ?=
 ELF ?= $(IMG:.bin=.elf)
-NEMU_EXEC := $(BINARY) $(ARGS) $(IMG)
+NEMU_DEBUG_EXEC := $(BINARY) $(ARGS) $(IMG)
 NEMU_BATCH_EXEC := $(BINARY) $(BATCH_ARGS) $(IMG)
 
 run-env: $(BINARY) $(DIFF_REF_SO)
 
 run: run-env
 	$(call git_commit, "run NEMU")
-	$(NEMU_EXEC)
+	$(NEMU_BATCH_EXEC)
 
 gdb: run-env
 	$(call git_commit, "gdb NEMU")
-	gdb -s $(BINARY) --args $(NEMU_EXEC)
+	gdb -s $(BINARY) --args $(NEMU_DEBUG_EXEC)
 
-run-batch: run-env
-	$(call git_commit, "run-batch NEMU")
-	$(NEMU_BATCH_EXEC)
+debug: run-env
+	$(call git_commit, "debug NEMU")
+	$(NEMU_DEBUG_EXEC)
 
 clean-tools = $(dir $(shell find ./tools -maxdepth 2 -mindepth 2 -name "Makefile"))
 $(clean-tools):
@@ -55,4 +55,4 @@ $(clean-tools):
 clean-tools: $(clean-tools)
 clean-all: clean distclean clean-tools
 
-.PHONY: run gdb run-batch run-env clean-tools clean-all $(clean-tools)
+.PHONY: run gdb debug run-env clean-tools clean-all $(clean-tools)

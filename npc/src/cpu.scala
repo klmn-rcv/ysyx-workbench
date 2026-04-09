@@ -29,8 +29,10 @@ class CPU extends Module {
     val regfile = Module(new regfile)
 
     // IF stage
-    ifu.io.in.bj_valid := idu.io.out.bj_valid
-    ifu.io.in.bj_pc := idu.io.out.bj_pc
+    ifu.io.in.jump_valid := idu.io.out.jump_valid
+    ifu.io.in.jump_target := idu.io.out.jump_target
+    ifu.io.in.br_taken := exu.io.out.br_taken
+    ifu.io.in.br_target := exu.io.out.br_target
 
     // Current CPU only issues instruction fetches through memory interface.
     io.out.inst_req_valid := true.B
@@ -63,7 +65,11 @@ class CPU extends Module {
     exu.io.in.wr_mem := idu.io.out.wr_mem
     exu.io.in.bit_width := idu.io.out.bit_width
     exu.io.in.sign := idu.io.out.sign
+    exu.io.in.br_valid := idu.io.out.br_valid
+    exu.io.in.br_expect_0 := idu.io.out.br_expect_0
+    exu.io.in.br_target := idu.io.out.br_target
     exu.io.in.ebreak := idu.io.out.ebreak
+    exu.io.in.inv := idu.io.out.inv
     exu.io.in.inst := idu.io.out.inst
     exu.io.in.pc := idu.io.out.pc
 
@@ -78,6 +84,7 @@ class CPU extends Module {
     lsu.io.in.sign := exu.io.out.sign
     lsu.io.in.rdata := io.in.rdata
     lsu.io.in.ebreak := exu.io.out.ebreak
+    lsu.io.in.inv := exu.io.out.inv
     lsu.io.in.inst := exu.io.out.inst
     lsu.io.in.pc := exu.io.out.pc
 
@@ -86,6 +93,7 @@ class CPU extends Module {
     wbu.io.in.rd := lsu.io.out.rd
     wbu.io.in.wr_reg := lsu.io.out.wr_reg
     wbu.io.in.ebreak := lsu.io.out.ebreak
+    wbu.io.in.inv := lsu.io.out.inv
     wbu.io.in.inst := lsu.io.out.inst
     wbu.io.in.pc := lsu.io.out.pc
 

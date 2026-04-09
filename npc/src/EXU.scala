@@ -16,12 +16,18 @@ class EXU extends Module {
             val wr_mem = Input(Bool())
             val bit_width = Input(BitWidth())
             val sign = Input(Sign())
+            val br_valid = Input(Bool())
+            val br_expect_0 = Input(Bool())
+            val br_target = Input(UInt(32.W))
             val ebreak = Input(Bool())
+            val inv = Input(Bool())
             val inst = Input(UInt(32.W))
             val pc = Input(UInt(32.W))
         }
         val out = new Bundle {
             val result = Output(UInt(32.W))
+            val br_taken = Output(Bool())
+            val br_target = Output(UInt(32.W))
             val reg_data2 = Output(UInt(32.W))  // for store data
             val wr_reg = Output(Bool())
             val rd = Output(UInt(5.W))
@@ -30,6 +36,7 @@ class EXU extends Module {
             val bit_width = Output(BitWidth())
             val sign = Output(Sign())
             val ebreak = Output(Bool())
+            val inv = Output(Bool())
             val inst = Output(UInt(32.W))
             val pc = Output(UInt(32.W))
         }
@@ -39,7 +46,11 @@ class EXU extends Module {
     alu.io.in.src1 := io.in.src1
     alu.io.in.src2 := io.in.src2
     alu.io.in.op := io.in.alu_op
-    
+
+    val br_alu_zero = alu.io.out.result === 0.U
+    io.out.br_taken := io.in.br_valid && (br_alu_zero === io.in.br_expect_0)
+    io.out.br_target := io.in.br_target
+
     io.out.result := alu.io.out.result
     io.out.reg_data2 := io.in.reg_data2
 
@@ -53,6 +64,7 @@ class EXU extends Module {
     io.out.sign := io.in.sign
 
     io.out.ebreak := io.in.ebreak
+    io.out.inv := io.in.inv
 
     io.out.inst := io.in.inst
     io.out.pc := io.in.pc

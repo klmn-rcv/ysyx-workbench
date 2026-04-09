@@ -2,6 +2,8 @@
 #include "elf.h"
 #include "debug.h"
 
+#ifdef CONFIG_FTRACE
+
 func_array_t func_array = {.count = 0};
 
 static int func_cmp(const void *a, const void *b) { // compare by start_addr
@@ -175,3 +177,5 @@ void init_ftrace(const char *elf_file) {
   Log("Loading ELF file '%s' for ftrace...", elf_file);
   ftrace_load_elf(elf_file);
 }
+
+#endif

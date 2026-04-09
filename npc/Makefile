@@ -2,6 +2,11 @@ BUILD_DIR = ./build
 
 IMG ?=
 LIBCAPSTONE = tools/capstone/repo/libcapstone.so.5
+VERILOG_STAMP = $(BUILD_DIR)/.verilog.stamp
+
+CHISEL_SRCS := $(shell find src -name '*.scala' | sort)
+VERILOG_RESOURCES := $(shell find resources -name '*.sv' | sort)
+VERILOG_DEPS := $(CHISEL_SRCS) $(VERILOG_RESOURCES) Makefile
 
 CSRCS := $(wildcard csrc/*.cpp)
 CFLAGS += -I../include
@@ -13,10 +18,13 @@ ARGS ?=
 test:
 	mill -i test
 
-verilog:
+$(VERILOG_STAMP): $(VERILOG_DEPS)
 	$(call git_commit, "generate verilog")
 	mkdir -p $(BUILD_DIR)
 	mill -i runMain Elaborate --target-dir $(BUILD_DIR)
+	touch $(VERILOG_STAMP)
+
+verilog: $(VERILOG_STAMP)
 
 help:
 	mill -i runMain Elaborate --help
@@ -39,7 +47,7 @@ clean:
 $(LIBCAPSTONE):
 	$(MAKE) -C tools/capstone
 
-sim: verilog $(LIBCAPSTONE)
+sim: $(VERILOG_STAMP) $(LIBCAPSTONE)
 	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
 	verilator -Wall -Wno-fatal --cc -f build/filelist.f -Ibuild \
 			--top-module Top --trace --exe $(CSRCS) \

@@ -12,6 +12,7 @@ VerilatedVcdC* tfp = new VerilatedVcdC;
 #endif
 
 void init_disasm();
+void sdb_set_batch_mode();
 
 char pmem[MEM_SIZE];  // memory
 
@@ -82,6 +83,7 @@ static void parse_args(int argc, char** argv) {
   const char *prefix_log = "--log=";
   const char *prefix_elf = "--elf=";
   const char *prefix_diff = "--diff=";
+  const char *str_batch = "--batch";
 
   for (int i = 1; i < argc; i++) {
     const char *arg = argv[i];
@@ -96,6 +98,9 @@ static void parse_args(int argc, char** argv) {
     else if (strncmp(arg, prefix_diff, strlen(prefix_diff)) == 0) {
       diff_so_file = arg + strlen(prefix_diff);
       assert(*diff_so_file != '\0');
+    }
+    else if (strcmp(arg, str_batch) == 0) {
+      sdb_set_batch_mode();
     }
     else {
       assert(img_file == NULL && "Only one binary image is allowed");
