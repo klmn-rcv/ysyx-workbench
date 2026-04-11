@@ -22,7 +22,8 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
 
 #ifdef CONFIG_ETRACE
   if (CONFIG_ETRACE_COND) {
-    _Log("[etrace] raise: mcause = %d, mepc = " FMT_WORD "\n", NO, epc);
+    const char mode_str[] = "US?M";
+    _Log("[etrace] raise from %c-mode: mcause = %d, mepc = " FMT_WORD "\n", mode_str[cpu.priv], NO, epc);
   }
 #endif
   cpu.mcause = NO;  // 中断位目前还没办法处理
@@ -38,14 +39,18 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
 }
 
 word_t isa_return_trap() {
-#ifdef CONFIG_ETRACE
-  if (CONFIG_ETRACE_COND) _Log("[etrace] ret: mret to " FMT_WORD "\n", cpu.mepc);
-#endif
+
   word_t mpie = CSR_READ(cpu.mstatus, MSTATUS_MPIE);
   CSR_WRITE(cpu.mstatus, MSTATUS_MIE, mpie);
   CSR_WRITE(cpu.mstatus, MSTATUS_MPIE, 1);
   cpu.priv = CSR_READ(cpu.mstatus, MSTATUS_MPP);
   CSR_WRITE(cpu.mstatus, MSTATUS_MPP, M_MODE);
+#ifdef CONFIG_ETRACE
+  if (CONFIG_ETRACE_COND) {
+    const char mode_str[] = "US?M";
+    _Log("[etrace] ret: mret to %c-mode: " FMT_WORD "\n", mode_str[cpu.priv], cpu.mepc);
+  }
+#endif
   return cpu.mepc;
 }
 

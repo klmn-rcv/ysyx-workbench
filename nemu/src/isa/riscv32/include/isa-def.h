@@ -42,21 +42,22 @@ typedef struct {
 #define MEPC         0x341
 #define MCAUSE       0x342
 
-#define MSTATUS_MIE_SHIFT       3
-#define MSTATUS_MPIE_SHIFT      7
-#define MSTATUS_MPP_SHIFT       11  // 12-11
+// these are field masks
+#define MSTATUS_MIE  0x00000008
+#define MSTATUS_MPIE 0x00000080
+#define MSTATUS_MPP  0x00001800
 
-#define MSTATUS_MIE_WIDTH       1
-#define MSTATUS_MPIE_WIDTH      1
-#define MSTATUS_MPP_WIDTH       2
+static inline int mask2shift(word_t mask) {
+  int shift = 0;
+  while (((mask >> shift) & 1) == 0) shift++;
+  return shift;
+}
 
-#define CSR_FIELD_SHIFT(field) field##_SHIFT
-#define CSR_FIELD_WIDTH(field) field##_WIDTH
-#define CSR_READ(reg, field) BITS((reg), CSR_FIELD_SHIFT(field) + CSR_FIELD_WIDTH(field) - 1, CSR_FIELD_SHIFT(field))
+#define CSR_READ(reg, field) (((reg) & (field)) >> mask2shift(field))
 #define CSR_WRITE(reg, field, val) \
   do { \
-    (reg) = ((reg) & ~((word_t)BITMASK(CSR_FIELD_WIDTH(field)) << CSR_FIELD_SHIFT(field))) | \
-            (((word_t)(val) & BITMASK(CSR_FIELD_WIDTH(field))) << CSR_FIELD_SHIFT(field)); \
+    int __shift = mask2shift(field); \
+    (reg) = ((reg) & ~(field)) | ((((word_t)(val)) << __shift) & (field)); \
   } while (0)
 
 

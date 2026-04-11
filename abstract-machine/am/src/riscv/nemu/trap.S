@@ -64,6 +64,8 @@ __am_asm_trap:
   mv a0, sp
   call __am_irq_handle
 
+  mv sp, a0  // 切换到新进程的栈（sp现在指向新进程的上下文）
+
   // mcause不用恢复，之前把它放入栈中只是为了传递给__am_irq_handle
   LOAD t1, OFFSET_STATUS(sp)
   LOAD t2, OFFSET_EPC(sp)

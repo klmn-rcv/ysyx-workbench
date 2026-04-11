@@ -37,7 +37,7 @@ static void restart() {
   cpu.priv = M_MODE;
 
   /* Initialize the CSRs. */
-  cpu.mstatus = 0;
+  cpu.mstatus = MSTATUS_MPP & (M_MODE << mask2shift(MSTATUS_MPP));
   cpu.mepc = 0;
   cpu.mcause = 0;
   cpu.mtvec = 0;

@@ -20,6 +20,7 @@
 #include <memory/paddr.h>
 #include <utils.h>
 #include <difftest-def.h>
+#include <cpu/iringbuf.h>
 
 void (*ref_difftest_memcpy)(paddr_t addr, void *buf, size_t n, bool direction) = NULL;
 void (*ref_difftest_regcpy)(void *dut, bool direction) = NULL;
@@ -97,6 +98,7 @@ static void checkregs(CPU_state *ref, vaddr_t pc) {
     nemu_state.halt_pc = pc;
     Log(ANSI_FG_RED "Difftest: Failed at pc = " FMT_WORD ANSI_NONE, pc);
     isa_reg_display();
+    IFDEF(CONFIG_ITRACE, iringbuf_print());
   }
 }
 

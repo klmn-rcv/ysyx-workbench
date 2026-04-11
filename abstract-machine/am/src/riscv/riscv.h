@@ -31,8 +31,22 @@ enum { MODE_U, MODE_S, MODE_M = 3 };
 #define MSTATUS_UXL  0
 #endif
 
+#define U_MODE 0
+#define S_MODE 1
+#define M_MODE 3
+
 #define MCAUSE_ECALL_FROM_U  8
 #define MCAUSE_ECALL_FROM_S  9
 #define MCAUSE_ECALL_FROM_M  11
+
+#define MSTATUS_MIE  0x00000008
+#define MSTATUS_MPIE 0x00000080
+#define MSTATUS_MPP  0x00001800
+
+static inline int mask2shift(uint32_t mask) {
+  int shift = 0;
+  while (((mask >> shift) & 1) == 0) shift++;
+  return shift;
+}
 
 #endif

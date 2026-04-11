@@ -4,7 +4,7 @@
 #define STACK_SIZE (4096 * 8)
 typedef union {
   uint8_t stack[STACK_SIZE];
-  struct { Context *cp; };
+  struct { Context *cp; };  // 指向该线程自己在栈上保存的上下文（这个上下文就是在陷入trap时由trap.S保存的那个上下文，包含所有寄存器，这一点与OSLAB不同）
 } PCB;
 static PCB pcb[2], pcb_boot, *current = &pcb_boot;
 

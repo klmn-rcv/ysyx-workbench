@@ -8,7 +8,9 @@ Context* __am_irq_handle(Context *c) {
   if (user_handler) {
     Event ev = {0};
     switch (c->mcause) {
-      case MCAUSE_ECALL_FROM_M: 
+      case MCAUSE_ECALL_FROM_U:
+      case MCAUSE_ECALL_FROM_S:
+      case MCAUSE_ECALL_FROM_M:
         c->mepc += 4;
         if(c->GPR1 == -1) ev.event = EVENT_YIELD;
         else ev.event = EVENT_SYSCALL;
@@ -36,7 +38,18 @@ bool cte_init(Context*(*handler)(Event, Context*)) {
 }
 
 Context *kcontext(Area kstack, void (*entry)(void *), void *arg) {
-  return NULL;
+  uintptr_t sp = (uintptr_t)kstack.end;
+  sp -= sizeof(Context);
+  Context *ctx = (Context *)sp;
+  for(int i = 0; i < NR_REGS; i++) {
+    ctx->gpr[i] = 0;  // 不用管sp，因为trap.S根本没把sp存到栈上
+  }
+  ctx->gpr[10] = (uintptr_t)arg;  // a0
+  ctx->mcause = 0;
+  ctx->mepc = (uintptr_t)entry;
+  ctx->mstatus = (MSTATUS_MPP & (U_MODE << mask2shift(MSTATUS_MPP)));  // 需要回到用户态
+  ctx->pdir = NULL;
+  return ctx;
 }
 
 void yield() {
