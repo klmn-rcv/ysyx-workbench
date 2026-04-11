@@ -59,4 +59,10 @@ typedef struct {
             (((word_t)(val) & BITMASK(CSR_FIELD_WIDTH(field))) << CSR_FIELD_SHIFT(field)); \
   } while (0)
 
+
+/* Exception/Interrupt code */
+#define MCAUSE_ECALL_FROM_U  8
+#define MCAUSE_ECALL_FROM_S  9
+#define MCAUSE_ECALL_FROM_M  11
+
 #endif

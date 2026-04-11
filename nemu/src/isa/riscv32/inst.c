@@ -190,7 +190,7 @@ static int decode_exec(Decode *s) {
   INSTPAT("??????? ????? ????? ??? ????? 11011 11", jal    , J, R(rd) = s->snpc; s->dnpc = s->pc + imm; FTRACE_JAL_HOOK());
   // N-type
   // 把ecall和ebreak放到N-type是因为它们不需要获取操作数/立即数，但事实上它们属于I-type。
-  INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , N, word_t NO = R(MUXDEF(CONFIG_RVE, 15, 17)); s->dnpc = isa_raise_intr(NO, s->pc));
+  INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , N, s->dnpc = isa_raise_intr(MCAUSE_ECALL_FROM_M, s->pc));
   INSTPAT("0000000 00001 00000 000 00000 11100 11", ebreak , N, NEMUTRAP(s->pc, R(10))); // R(10) is $a0
   INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , N, s->dnpc = isa_return_trap());
   INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv    , N, INV(s->pc));

@@ -181,6 +181,16 @@ config DTRACE_COND
   string "Only device addresses when the condition is true"
   default "true"
 
+config ETRACE
+  depends on TRACE && TARGET_NATIVE_ELF && ENGINE_INTERPRETER
+  bool "Enable exception tracer"
+  default n
+
+config ETRACE_COND
+  depends on ETRACE
+  string "Only trace exceptions when the condition is true"
+  default "true"
+
 
 config WATCHPOINT
   bool "Enable watchpoint"

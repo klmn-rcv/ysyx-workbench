@@ -34,6 +34,5 @@ enum { MODE_U, MODE_S, MODE_M = 3 };
 #define MCAUSE_ECALL_FROM_U  8
 #define MCAUSE_ECALL_FROM_S  9
 #define MCAUSE_ECALL_FROM_M  11
-#define MCAUSE_YIELD         -1
 
 #endif

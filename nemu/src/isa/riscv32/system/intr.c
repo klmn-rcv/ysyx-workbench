@@ -20,6 +20,11 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
    * Then return the address of the interrupt/exception vector.
    */
 
+#ifdef CONFIG_ETRACE
+  if (CONFIG_ETRACE_COND) {
+    _Log("[etrace] raise: mcause = %d, mepc = " FMT_WORD "\n", NO, epc);
+  }
+#endif
   cpu.mcause = NO;  // 中断位目前还没办法处理
   cpu.mepc = epc;  // 对于系统调用，epc要加4，但这是软件的任务，而这里是硬件，只把epc存到mepc就行了
 
@@ -33,6 +38,9 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
 }
 
 word_t isa_return_trap() {
+#ifdef CONFIG_ETRACE
+  if (CONFIG_ETRACE_COND) _Log("[etrace] ret: mret to " FMT_WORD "\n", cpu.mepc);
+#endif
   word_t mpie = CSR_READ(cpu.mstatus, MSTATUS_MPIE);
   CSR_WRITE(cpu.mstatus, MSTATUS_MIE, mpie);
   CSR_WRITE(cpu.mstatus, MSTATUS_MPIE, 1);
