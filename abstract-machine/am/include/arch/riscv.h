@@ -8,9 +8,9 @@
 #endif
 
 struct Context {
-  // TODO: fix the order of these members to match trap.S
-  uintptr_t mepc, mcause, gpr[NR_REGS], mstatus;
-  void *pdir;
+  // now the order of these members matches trap.S
+  uintptr_t gpr[NR_REGS], mcause, mstatus, mepc;
+  void *pdir;  // trap.S里没有这个成员，所以这里有潜在问题，但为了编译通过，必须先保持原样
 };
 
 #ifdef __riscv_e

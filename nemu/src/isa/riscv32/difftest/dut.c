@@ -15,6 +15,7 @@
 
 #include <isa.h>
 #include <cpu/difftest.h>
+#include <debug.h>
 #include "../local-include/reg.h"
 
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
@@ -22,10 +23,12 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   int gpr_num = MUXDEF(CONFIG_RVE, 16, 32);
   for (int i = 0; i < gpr_num; i++) {
     if (dut_r->gpr[i] != ref_r->gpr[i]) {
+      Log(ANSI_FG_RED "Difftest: gpr %d mismatch (dut: " FMT_WORD ", ref: " FMT_WORD ")" ANSI_NONE, i, dut_r->gpr[i], ref_r->gpr[i]);
       return false;
     }
   }
   if(dut_r->pc != ref_r->pc) {
+    Log(ANSI_FG_RED "Difftest: pc mismatch (dut: " FMT_WORD ", ref: " FMT_WORD ")" ANSI_NONE, dut_r->pc, ref_r->pc);
     return false;
   }
   return true;

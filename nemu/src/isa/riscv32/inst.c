@@ -106,6 +106,19 @@ static void ftrace(Decode *s) {
 #define FTRACE_JAL_HOOK() do { } while (0)
 #endif
 
+#define CSR_OPERAND_FETCH(csr) \
+  do { \
+    switch(BITS(s->isa.inst, 31, 20)) { \
+      case MSTATUS: csr = &cpu.mstatus; break; \
+      case MTVEC:   csr = &cpu.mtvec;   break; \
+      case MEPC:    csr = &cpu.mepc;    break; \
+      case MCAUSE:  csr = &cpu.mcause;  break; \
+      default: assert(0); \
+    } \
+  } while (0)
+
+#define RS1_OR_UIMM() BITS(s->isa.inst, 19, 15)
+
 static int decode_exec(Decode *s) {
   s->dnpc = s->snpc;
 
@@ -153,6 +166,12 @@ static int decode_exec(Decode *s) {
   INSTPAT("0000000 ????? ????? 001 ????? 00100 11", slli   , I, R(rd) = src1 << (imm & 0x1f));
   INSTPAT("0000000 ????? ????? 101 ????? 00100 11", srli   , I, R(rd) = src1 >> (imm & 0x1f));
   INSTPAT("0100000 ????? ????? 101 ????? 00100 11", srai   , I, R(rd) = (sword_t)src1 >> (imm & 0x1f));
+  INSTPAT("??????? ????? ????? 001 ????? 11100 11", csrrw  , I, word_t *csr; CSR_OPERAND_FETCH(csr); word_t old = *csr; *csr = src1; R(rd) = old);
+  INSTPAT("??????? ????? ????? 010 ????? 11100 11", csrrs  , I, word_t *csr, rs1; CSR_OPERAND_FETCH(csr); rs1 = RS1_OR_UIMM(); word_t old = *csr; if(rs1 != 0) *csr = old | src1; R(rd) = old);
+  INSTPAT("??????? ????? ????? 011 ????? 11100 11", csrrc  , I, word_t *csr, rs1; CSR_OPERAND_FETCH(csr); rs1 = RS1_OR_UIMM(); word_t old = *csr; if(rs1 != 0) *csr = old & ~src1; R(rd) = old);
+  INSTPAT("??????? ????? ????? 101 ????? 11100 11", csrrwi , I, word_t *csr, uimm; CSR_OPERAND_FETCH(csr); uimm = RS1_OR_UIMM(); word_t old = *csr; *csr = uimm; R(rd) = old);
+  INSTPAT("??????? ????? ????? 110 ????? 11100 11", csrrsi , I, word_t *csr, uimm; CSR_OPERAND_FETCH(csr); uimm = RS1_OR_UIMM(); word_t old = *csr; if(uimm != 0) *csr = old | uimm; R(rd) = old);
+  INSTPAT("??????? ????? ????? 111 ????? 11100 11", csrrci , I, word_t *csr, uimm; CSR_OPERAND_FETCH(csr); uimm = RS1_OR_UIMM(); word_t old = *csr; if(uimm != 0) *csr = old & ~uimm; R(rd) = old);
   // S-type
   INSTPAT("??????? ????? ????? 000 ????? 01000 11", sb     , S, Mw(src1 + imm, 1, src2));
   INSTPAT("??????? ????? ????? 001 ????? 01000 11", sh     , S, Mw(src1 + imm, 2, src2));
@@ -170,7 +189,10 @@ static int decode_exec(Decode *s) {
   // J-type
   INSTPAT("??????? ????? ????? ??? ????? 11011 11", jal    , J, R(rd) = s->snpc; s->dnpc = s->pc + imm; FTRACE_JAL_HOOK());
   // N-type
+  // 把ecall和ebreak放到N-type是因为它们不需要获取操作数/立即数，但事实上它们属于I-type。
+  INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , N, word_t NO = R(MUXDEF(CONFIG_RVE, 15, 17)); s->dnpc = isa_raise_intr(NO, s->pc));
   INSTPAT("0000000 00001 00000 000 00000 11100 11", ebreak , N, NEMUTRAP(s->pc, R(10))); // R(10) is $a0
+  INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , N, s->dnpc = isa_return_trap());
   INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv    , N, INV(s->pc));
   INSTPAT_END();
 

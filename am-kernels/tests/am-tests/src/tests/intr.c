@@ -1,5 +1,6 @@
 #include <amtest.h>
 
+// 就是 user_handler（事件处理回调函数）
 Context *simple_trap(Event ev, Context *ctx) {
   switch(ev.event) {
     case EVENT_IRQ_TIMER:
@@ -20,6 +21,8 @@ void hello_intr() {
   io_read(AM_INPUT_CONFIG);
   iset(1);
   while (1) {
+    // 这里用带 volatile 的循环是为了防止调用 yield 的频率过高导致输出过快
+    // 普通循环可能被完全优化掉，而带 volatile 的循环必须老老实实执行 1000 万次内存操作
     for (volatile int i = 0; i < 10000000; i++) ;
     yield();
   }
