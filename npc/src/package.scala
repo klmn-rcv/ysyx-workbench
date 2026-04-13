@@ -11,7 +11,7 @@ package object cpu {
     }
 
     object FuncType extends ChiselEnum {
-        val alu, ld, st, br, jump, jplk, auipc, ebreak, inv = Value     // jplk: jump and link
+        val alu, ld, st, br, jump, jplk, auipc, ebreak, csr, inv = Value     // jplk: jump and link
     }
 
     object BitWidth extends ChiselEnum {
@@ -50,7 +50,7 @@ package object cpu {
         }
     }
 
-    object MinirvInsts extends ChiselEnum {
+    object RISCV32EInsts extends ChiselEnum {
         // R-type
         val add    = BitPat("b0000000_?????_?????_000_?????_0110011")
         val sub    = BitPat("b0100000_?????_?????_000_?????_0110011")
@@ -80,6 +80,12 @@ package object cpu {
         val srli   = BitPat("b0000000_?????_?????_101_?????_0010011")
         val srai   = BitPat("b0100000_?????_?????_101_?????_0010011")
         val ebreak = BitPat("b0000000_00001_00000_000_00000_1110011")
+        val csrrw  = BitPat("b???????_?????_?????_001_?????_1110011")
+        val csrrs  = BitPat("b???????_?????_?????_010_?????_1110011")
+        val csrrc  = BitPat("b???????_?????_?????_011_?????_1110011")
+        val csrrwi = BitPat("b???????_?????_?????_101_?????_1110011")
+        val csrrsi = BitPat("b???????_?????_?????_110_?????_1110011")
+        val csrrci = BitPat("b???????_?????_?????_111_?????_1110011")
 
         // S-type
         val sb     = BitPat("b???????_?????_?????_000_?????_0100011")
@@ -130,7 +136,12 @@ package object cpu {
             slli   -> List(InstType.I, FuncType.alu,    ALUOp.sll,  BitWidth.w32, Sign.signed  ),  // R(rd) = src1 << (imm & 0x1f);
             srli   -> List(InstType.I, FuncType.alu,    ALUOp.srl,  BitWidth.w32, Sign.signed  ),  // R(rd) = src1 >> (imm & 0x1f);
             srai   -> List(InstType.I, FuncType.alu,    ALUOp.sra,  BitWidth.w32, Sign.signed  ),  // R(rd) = (sword_t)src1 >> (imm & 0x1f);
-            ebreak -> List(InstType.I, FuncType.ebreak, ALUOp.add,  BitWidth.w32, Sign.signed  ),  // NEMUTRAP(s->pc, R(10));
+            csrrw  -> List(InstType.I, FuncType.csr,    ALUOp.add,  BitWidth.w32, Sign.signed  ),  // word_t *csr; CSR_OPERAND_FETCH(csr); word_t old = *csr; *csr = src1; R(rd) = old);
+            csrrs  -> List(InstType.I, FuncType.csr,    ALUOp.add,  BitWidth.w32, Sign.signed  ),  // word_t *csr, rs1; CSR_OPERAND_FETCH(csr); rs1 = RS1_OR_UIMM(); word_t old = *csr; if(rs1 != 0) *csr = old | src1; R(rd) = old);
+            csrrc  -> List(InstType.I, FuncType.csr,    ALUOp.add,  BitWidth.w32, Sign.signed  ),  // word_t *csr, rs1; CSR_OPERAND_FETCH(csr); rs1 = RS1_OR_UIMM(); word_t old = *csr; if(rs1 != 0) *csr = old & ~src1; R(rd) = old);
+            csrrwi -> List(InstType.I, FuncType.csr,    ALUOp.add,  BitWidth.w32, Sign.signed  ),  // word_t *csr, uimm; CSR_OPERAND_FETCH(csr); uimm = RS1_OR_UIMM(); word_t old = *csr; *csr = uimm; R(rd) = old);
+            csrrsi -> List(InstType.I, FuncType.csr,    ALUOp.add,  BitWidth.w32, Sign.signed  ),  // word_t *csr, uimm; CSR_OPERAND_FETCH(csr); uimm = RS1_OR_UIMM(); word_t old = *csr; if(uimm != 0) *csr = old | uimm; R(rd) = old);
+            csrrci -> List(InstType.I, FuncType.csr,    ALUOp.add,  BitWidth.w32, Sign.signed  ),  // word_t *csr, uimm; CSR_OPERAND_FETCH(csr); uimm = RS1_OR_UIMM(); word_t old = *csr; if(uimm != 0) *csr = old & ~uimm; R(rd) = old);
 
             // S-type
             sb     -> List(InstType.S, FuncType.st,     ALUOp.add,  BitWidth.w8,  Sign.signed  ),  // Mw(src1 + imm, 1, src2);
@@ -147,10 +158,13 @@ package object cpu {
 
             // U-type
             lui    -> List(InstType.U, FuncType.alu,    ALUOp.lui,  BitWidth.w32, Sign.signed  ),  // R(rd) = imm;
-            auipc  -> List(InstType.U, FuncType.auipc,  ALUOp.add,  BitWidth.w32, Sign.signed  ),  // R(rd) = s->pc + imm;（需要思考怎么把PC放到src1上）
+            auipc  -> List(InstType.U, FuncType.auipc,  ALUOp.add,  BitWidth.w32, Sign.signed  ),  // R(rd) = s->pc + imm;
 
             // J-type
             jal    -> List(InstType.J, FuncType.jplk,   ALUOp.add,  BitWidth.w32, Sign.signed  ),  // R(rd) = s->snpc; s->dnpc = s->pc + imm; FTRACE_JAL_HOOK();
+        
+            // N-type
+            ebreak -> List(InstType.N, FuncType.ebreak, ALUOp.add,  BitWidth.w32, Sign.signed  ),  // NEMUTRAP(s->pc, R(10));
         )
     }
 
@@ -177,5 +191,16 @@ package object cpu {
             ))
             loadData
         }
+    }
+
+    object CSRAddr {
+        val mstatus = 0x300
+        val mtvec = 0x305
+        val mepc = 0x341
+        val mcause = 0x342
+        val mcycle = 0xB00
+        val mcycleh = 0xB80
+        val mvendorid = 0xF11
+        val marchid = 0xF12
     }
 }

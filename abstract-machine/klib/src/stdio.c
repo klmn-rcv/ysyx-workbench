@@ -5,22 +5,34 @@
 
 void putch(char ch);
 
-static char *itoa(int val, char *buf) {
-  if (val == INT_MIN) {
-    strcpy(buf, "-2147483648");
-    return buf;
-  }
-
+static char *itoa(int val, char *buf, bool hex_flag, bool unsigned_flag) {
   char *p = buf;
   bool neg_flag = false;
-  if(val < 0) {
-    neg_flag = true;
-    val = -val;
+  bool using_unsigned = hex_flag | unsigned_flag;
+
+  if (!using_unsigned) {
+    if (val == INT_MIN) {
+      strcpy(buf, "-2147483648");
+      return buf;
+    }
+    if(val < 0) {
+      neg_flag = true;
+      val = -val;
+    }
   }
+
+  unsigned int uval = (unsigned int)val;
+
   do {
-    *p++ = (val % 10) + '0';
-    val /= 10;
-  } while(val > 0);
+    if(hex_flag) {
+      *p++ = "0123456789abcdef"[uval % 16];
+      uval /= 16;
+    }
+    else {
+      *p++ = (uval % 10) + '0';
+      uval /= 10;
+    }
+  } while(uval > 0);
   if(neg_flag) {
     *p++ = '-';
   }
@@ -83,7 +95,31 @@ static int vformat(vformat_output_func output, void *ctx, const char *fmt, va_li
     } else if (conv == 'd') {
       int val = va_arg(ap, int);
       char buf[12];         // enough for -2147483648
-      itoa(val, buf);
+      itoa(val, buf, false, false);
+      char *p = buf;
+      while (*p) {
+        if (output(ctx, *p) != 0) 
+          return -1;
+        p++;
+      }
+    } else if (conv == 'c') {
+      char ch = (char)va_arg(ap, int); // char is promoted to int when passed through '...'
+      if (output(ctx, ch) != 0) 
+        return -1;
+    } else if (conv == 'x') {
+      int val = va_arg(ap, int);
+      char buf[9];          // enough for 8 hex digits + '\0'
+      itoa(val, buf, true, false);
+      char *p = buf;
+      while (*p) {
+        if (output(ctx, *p) != 0) 
+          return -1;
+        p++;
+      }
+    } else if (conv == 'u') {
+      int val = va_arg(ap, int);
+      char buf[11];         // enough for 10 digits + '\0'
+      itoa(val, buf, false, true);
       char *p = buf;
       while (*p) {
         if (output(ctx, *p) != 0) 

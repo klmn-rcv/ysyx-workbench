@@ -14,7 +14,6 @@ class IDU extends Module {
         }
         val out = new Bundle {
             val alu_op = Output(ALUOp())
-            val imm = Output(UInt(32.W))
             val rs1 = Output(UInt(5.W))
             val rs2 = Output(UInt(5.W))
             val rd = Output(UInt(5.W))
@@ -35,11 +34,17 @@ class IDU extends Module {
             val inv = Output(Bool())
             val inst = Output(UInt(32.W))
             val pc = Output(UInt(32.W))
+            // CSR信号传给EXU，由EXU统一处理CSR指令的执行和CSR寄存器的读写
+            val csr_addr = Output(UInt(12.W))
+            val csr_re = Output(Bool())
+            val csr_we = Output(Bool())
+            val csr_wmask = Output(UInt(32.W))
+            val csr_wvalue = Output(UInt(32.W))
         }
     })
 
     val default = List(InstType.N, FuncType.inv, ALUOp.add, BitWidth.w32, Sign.signed)
-    val decoded = ListLookup(io.in.inst, default, MinirvInsts.table)
+    val decoded = ListLookup(io.in.inst, default, RISCV32EInsts.table)
 
     val (instType, _)   = InstType.safe(decoded(0).asUInt)
     val (funcType, _)   = FuncType.safe(decoded(1).asUInt)
@@ -60,7 +65,6 @@ class IDU extends Module {
     // io.inst_type := instType
     // io.func_type := funcType
     io.out.alu_op := aluOp
-    io.out.imm := imm
 
     io.out.rs1 := rs1
     io.out.rs2 := rs2
@@ -68,13 +72,13 @@ class IDU extends Module {
 
     when(funcType === FuncType.ebreak) {
         io.out.rs1 := 10.U
-        io.out.rs2 := 0.U
-        io.out.imm := 0.U
+        io.out.src1 := io.in.rdata1
+        io.out.src2 := 0.U
     }
 
     val src1 = Mux(needRs1, io.in.rdata1, 0.U)
     val src2 = Mux(funcType === FuncType.br, io.in.rdata2,
-               Mux(needImm, io.out.imm, io.in.rdata2))
+               Mux(needImm, imm, Mux(needRs2, io.in.rdata2, 0.U)))
 
     // printf("src1: %x, src2: %x\n", src1, src2)
     
@@ -117,6 +121,38 @@ class IDU extends Module {
     io.out.inst := io.in.inst
     io.out.pc := io.in.pc
 
+    // CSR指令相关译码信号
+    io.out.csr_addr := 0.U
+    io.out.csr_we := false.B
+    io.out.csr_wvalue := 0.U
+    io.out.csr_wmask := 0.U
+    io.out.csr_re := false.B
+    val csr_src1 = Mux(io.in.inst(14) === 0.U, io.in.rdata1, Cat(0.U(27.W), io.in.inst(19, 15)))  // io.in.inst(19, 15) is uimm, zero-extend to 32 bits
+    val csr_sc_we = Mux(io.in.inst(19, 15) === 0.U, false.B, true.B)
+
+    when(funcType === FuncType.csr) {
+        io.out.csr_addr := io.in.inst(31, 20)
+        io.out.csr_re := true.B
+        switch(io.in.inst(13, 12)) {
+            is("b00".U) {
+                io.out.csr_we := true.B
+                io.out.csr_wvalue := csr_src1
+                io.out.csr_wmask := "hffffffff".U
+            }
+            is("b01".U) {
+                io.out.csr_we := csr_sc_we
+                io.out.csr_wvalue := "hffffffff".U
+                io.out.csr_wmask := csr_src1
+            }
+            is("b10".U) {
+                io.out.csr_we := csr_sc_we
+                io.out.csr_wvalue := 0.U
+                io.out.csr_wmask := csr_src1
+            }
+        }
+    }
+
+    // trace
     val iringbuf = Module(new Iringbuf)
     iringbuf.clk := clock
     iringbuf.rst := reset

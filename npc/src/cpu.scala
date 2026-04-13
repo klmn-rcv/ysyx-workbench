@@ -27,14 +27,9 @@ class CPU extends Module {
     val lsu = Module(new LSU)
     val wbu = Module(new WBU)
     val regfile = Module(new regfile)
+    val csr = Module(new CSR)
 
-    // IF stage
-    ifu.io.in.jump_valid := idu.io.out.jump_valid
-    ifu.io.in.jump_target := idu.io.out.jump_target
-    ifu.io.in.br_taken := exu.io.out.br_taken
-    ifu.io.in.br_target := exu.io.out.br_target
-
-    // Current CPU only issues instruction fetches through memory interface.
+    // CPU core's output
     io.out.inst_req_valid := true.B
     io.out.data_req_valid := lsu.io.out.mem_data_req_valid
     io.out.wen := lsu.io.out.mem_wen
@@ -44,17 +39,33 @@ class CPU extends Module {
     io.out.wdata := lsu.io.out.wdata
     io.out.wmask := lsu.io.out.wmask
 
-    // ID stage
+    // CSR's input
+    csr.io.in.addr := exu.io.out.csr_addr
+    csr.io.in.we := exu.io.out.csr_we
+    csr.io.in.wmask := exu.io.out.csr_wmask
+    csr.io.in.wvalue := exu.io.out.csr_wvalue
+
+    // regfile's input
     regfile.io.in.raddr1 := idu.io.out.rs1     // truncate
     regfile.io.in.raddr2 := idu.io.out.rs2     // truncate
+    regfile.io.in.we := wbu.io.out.wb_we
+    regfile.io.in.waddr := wbu.io.out.wb_addr  // truncate
+    regfile.io.in.wdata := wbu.io.out.wb_data
 
+    // IFU's input
+    ifu.io.in.jump_valid := idu.io.out.jump_valid
+    ifu.io.in.jump_target := idu.io.out.jump_target
+    ifu.io.in.br_taken := exu.io.out.br_taken
+    ifu.io.in.br_target := exu.io.out.br_target
+
+    // IDU's input
     idu.io.in.valid := ifu.io.out.valid
     idu.io.in.inst := io.in.rinst
     idu.io.in.pc := ifu.io.out.pc
     idu.io.in.rdata1 := regfile.io.out.rdata1
     idu.io.in.rdata2 := regfile.io.out.rdata2
 
-    // EX stage
+    // EXU's input
     exu.io.in.src1 := idu.io.out.src1
     exu.io.in.src2 := idu.io.out.src2
     exu.io.in.reg_data2 := idu.io.out.reg_data2
@@ -72,8 +83,14 @@ class CPU extends Module {
     exu.io.in.inv := idu.io.out.inv
     exu.io.in.inst := idu.io.out.inst
     exu.io.in.pc := idu.io.out.pc
+    exu.io.in.csr_addr := idu.io.out.csr_addr
+    exu.io.in.csr_re := idu.io.out.csr_re
+    exu.io.in.csr_we := idu.io.out.csr_we
+    exu.io.in.csr_wmask := idu.io.out.csr_wmask
+    exu.io.in.csr_wvalue := idu.io.out.csr_wvalue
+    exu.io.in.csr_rvalue := csr.io.out.rvalue
 
-    // LSU stage
+    // LSU's input
     lsu.io.in.alu_data := exu.io.out.result
     lsu.io.in.reg_data2 := exu.io.out.reg_data2
     lsu.io.in.wr_reg := exu.io.out.wr_reg
@@ -88,7 +105,7 @@ class CPU extends Module {
     lsu.io.in.inst := exu.io.out.inst
     lsu.io.in.pc := exu.io.out.pc
 
-    // WB stage
+    // WBU's input
     wbu.io.in.data := lsu.io.out.data
     wbu.io.in.rd := lsu.io.out.rd
     wbu.io.in.wr_reg := lsu.io.out.wr_reg
@@ -96,8 +113,4 @@ class CPU extends Module {
     wbu.io.in.inv := lsu.io.out.inv
     wbu.io.in.inst := lsu.io.out.inst
     wbu.io.in.pc := lsu.io.out.pc
-
-    regfile.io.in.we := wbu.io.out.wb_we
-    regfile.io.in.waddr := wbu.io.out.wb_addr  // truncate
-    regfile.io.in.wdata := wbu.io.out.wb_data
 }
