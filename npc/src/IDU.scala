@@ -34,12 +34,9 @@ class IDU extends Module {
             val inv = Output(Bool())
             val inst = Output(UInt(32.W))
             val pc = Output(UInt(32.W))
-            // CSR信号传给EXU，由EXU统一处理CSR指令的执行和CSR寄存器的读写
-            val csr_addr = Output(UInt(12.W))
-            val csr_re = Output(Bool())
-            val csr_we = Output(Bool())
-            val csr_wmask = Output(UInt(32.W))
-            val csr_wvalue = Output(UInt(32.W))
+            val csrReq = Output(new CSRReq)
+            val ecall = Output(Bool())
+            val mret = Output(Bool())
         }
     })
 
@@ -122,35 +119,38 @@ class IDU extends Module {
     io.out.pc := io.in.pc
 
     // CSR指令相关译码信号
-    io.out.csr_addr := 0.U
-    io.out.csr_we := false.B
-    io.out.csr_wvalue := 0.U
-    io.out.csr_wmask := 0.U
-    io.out.csr_re := false.B
+    io.out.csrReq.addr := 0.U
+    io.out.csrReq.re := false.B
+    io.out.csrReq.we := false.B
+    io.out.csrReq.wmask := 0.U
+    io.out.csrReq.wvalue := 0.U
     val csr_src1 = Mux(io.in.inst(14) === 0.U, io.in.rdata1, Cat(0.U(27.W), io.in.inst(19, 15)))  // io.in.inst(19, 15) is uimm, zero-extend to 32 bits
     val csr_sc_we = Mux(io.in.inst(19, 15) === 0.U, false.B, true.B)
 
     when(funcType === FuncType.csr) {
-        io.out.csr_addr := io.in.inst(31, 20)
-        io.out.csr_re := true.B
+        io.out.csrReq.addr := io.in.inst(31, 20)
+        io.out.csrReq.re := true.B
         switch(io.in.inst(13, 12)) {
             is("b00".U) {
-                io.out.csr_we := true.B
-                io.out.csr_wvalue := csr_src1
-                io.out.csr_wmask := "hffffffff".U
+                io.out.csrReq.we := true.B
+                io.out.csrReq.wvalue := csr_src1
+                io.out.csrReq.wmask := "hffffffff".U
             }
             is("b01".U) {
-                io.out.csr_we := csr_sc_we
-                io.out.csr_wvalue := "hffffffff".U
-                io.out.csr_wmask := csr_src1
+                io.out.csrReq.we := csr_sc_we
+                io.out.csrReq.wvalue := "hffffffff".U
+                io.out.csrReq.wmask := csr_src1
             }
             is("b10".U) {
-                io.out.csr_we := csr_sc_we
-                io.out.csr_wvalue := 0.U
-                io.out.csr_wmask := csr_src1
+                io.out.csrReq.we := csr_sc_we
+                io.out.csrReq.wvalue := 0.U
+                io.out.csrReq.wmask := csr_src1
             }
         }
     }
+
+    io.out.ecall := funcType === FuncType.ecall
+    io.out.mret := funcType === FuncType.mret
 
     // trace
     val iringbuf = Module(new Iringbuf)

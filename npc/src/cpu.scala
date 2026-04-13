@@ -40,10 +40,7 @@ class CPU extends Module {
     io.out.wmask := lsu.io.out.wmask
 
     // CSR's input
-    csr.io.in.addr := exu.io.out.csr_addr
-    csr.io.in.we := exu.io.out.csr_we
-    csr.io.in.wmask := exu.io.out.csr_wmask
-    csr.io.in.wvalue := exu.io.out.csr_wvalue
+    csr.io.in.req := wbu.io.out.csrReq
 
     // regfile's input
     regfile.io.in.raddr1 := idu.io.out.rs1     // truncate
@@ -53,6 +50,8 @@ class CPU extends Module {
     regfile.io.in.wdata := wbu.io.out.wb_data
 
     // IFU's input
+    ifu.io.in.ex_redirect_valid := csr.io.out.redirect_valid
+    ifu.io.in.ex_redirect_target := csr.io.out.redirect_target
     ifu.io.in.jump_valid := idu.io.out.jump_valid
     ifu.io.in.jump_target := idu.io.out.jump_target
     ifu.io.in.br_taken := exu.io.out.br_taken
@@ -83,12 +82,9 @@ class CPU extends Module {
     exu.io.in.inv := idu.io.out.inv
     exu.io.in.inst := idu.io.out.inst
     exu.io.in.pc := idu.io.out.pc
-    exu.io.in.csr_addr := idu.io.out.csr_addr
-    exu.io.in.csr_re := idu.io.out.csr_re
-    exu.io.in.csr_we := idu.io.out.csr_we
-    exu.io.in.csr_wmask := idu.io.out.csr_wmask
-    exu.io.in.csr_wvalue := idu.io.out.csr_wvalue
-    exu.io.in.csr_rvalue := csr.io.out.rvalue
+    exu.io.in.csrReq := idu.io.out.csrReq
+    exu.io.in.ecall := idu.io.out.ecall
+    exu.io.in.mret := idu.io.out.mret
 
     // LSU's input
     lsu.io.in.alu_data := exu.io.out.result
@@ -104,8 +100,12 @@ class CPU extends Module {
     lsu.io.in.inv := exu.io.out.inv
     lsu.io.in.inst := exu.io.out.inst
     lsu.io.in.pc := exu.io.out.pc
+    lsu.io.in.csrReq := exu.io.out.csrReq
+    lsu.io.in.ecall := exu.io.out.ecall
+    lsu.io.in.mret := exu.io.out.mret
 
     // WBU's input
+    wbu.io.in.priv := csr.io.out.priv
     wbu.io.in.data := lsu.io.out.data
     wbu.io.in.rd := lsu.io.out.rd
     wbu.io.in.wr_reg := lsu.io.out.wr_reg
@@ -113,4 +113,13 @@ class CPU extends Module {
     wbu.io.in.inv := lsu.io.out.inv
     wbu.io.in.inst := lsu.io.out.inst
     wbu.io.in.pc := lsu.io.out.pc
+    wbu.io.in.csrReq := lsu.io.out.csrReq
+    wbu.io.in.csrResp := csr.io.out.resp
+    wbu.io.in.ecall := lsu.io.out.ecall
+    wbu.io.in.mret := lsu.io.out.mret
+
+    csr.io.in.wb_ex := wbu.io.out.wb_ex
+    csr.io.in.wb_cause := wbu.io.out.wb_cause
+    csr.io.in.wb_pc := wbu.io.out.wb_pc
+    csr.io.in.mret := wbu.io.out.mret
 }

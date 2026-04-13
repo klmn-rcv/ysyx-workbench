@@ -23,14 +23,10 @@ class EXU extends Module {
             val inv = Input(Bool())
             val inst = Input(UInt(32.W))
             val pc = Input(UInt(32.W))
-            // 从译码级接收CSR信号
-            val csr_addr = Input(UInt(12.W))
-            val csr_re = Input(Bool())  // 不需要传给CSR模块
-            val csr_we = Input(Bool())
-            val csr_wmask = Input(UInt(32.W))
-            val csr_wvalue = Input(UInt(32.W))
-            // 从CSR模块接收CSR寄存器的读数据
-            val csr_rvalue = Input(UInt(32.W))
+            val csrReq = Input(new CSRReq)
+            
+            val ecall = Input(Bool())
+            val mret = Input(Bool())
         }
         val out = new Bundle {
             val result = Output(UInt(32.W))
@@ -47,11 +43,10 @@ class EXU extends Module {
             val inv = Output(Bool())
             val inst = Output(UInt(32.W))
             val pc = Output(UInt(32.W))
-            // 将CSR相关信号传给CSR模块
-            val csr_addr = Output(UInt(12.W))
-            val csr_we = Output(Bool())
-            val csr_wmask = Output(UInt(32.W))
-            val csr_wvalue = Output(UInt(32.W))
+            val csrReq = Output(new CSRReq)
+            
+            val ecall = Output(Bool())
+            val mret = Output(Bool())
         }
     })
 
@@ -81,14 +76,8 @@ class EXU extends Module {
 
     io.out.inst := io.in.inst
     io.out.pc := io.in.pc
+    io.out.csrReq := io.in.csrReq
 
-    // 将从ID级传来的CSR相关信号传给CSR模块
-    io.out.csr_addr := io.in.csr_addr
-    io.out.csr_we := io.in.csr_we
-    io.out.csr_wmask := io.in.csr_wmask
-    io.out.csr_wvalue := io.in.csr_wvalue
-
-    when(io.in.csr_re) {
-        io.out.result := io.in.csr_rvalue
-    }
+    io.out.ecall := io.in.ecall
+    io.out.mret := io.in.mret
 }
