@@ -19,6 +19,7 @@ class LSU extends Module {
             val inv = Input(Bool())
             val inst = Input(UInt(32.W))
             val pc = Input(UInt(32.W))
+            val dnpc = Input(UInt(32.W))
             val csrReq = Input(new CSRReq)
             val ecall = Input(Bool())
             val mret = Input(Bool())
@@ -38,6 +39,7 @@ class LSU extends Module {
             val inv = Output(Bool())
             val inst = Output(UInt(32.W))
             val pc = Output(UInt(32.W))
+            val dnpc = Output(UInt(32.W))
             val csrReq = Output(new CSRReq)
             val ecall = Output(Bool())
             val mret = Output(Bool())
@@ -61,6 +63,7 @@ class LSU extends Module {
 
     io.out.inst := io.in.inst
     io.out.pc := io.in.pc
+    io.out.dnpc := io.in.dnpc
     io.out.csrReq := io.in.csrReq
     io.out.ecall := io.in.ecall
     io.out.mret := io.in.mret

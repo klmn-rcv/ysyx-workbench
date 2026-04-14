@@ -39,12 +39,11 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
 }
 
 word_t isa_return_trap() {
-
+  cpu.priv = CSR_READ(cpu.mstatus, MSTATUS_MPP);
   word_t mpie = CSR_READ(cpu.mstatus, MSTATUS_MPIE);
   CSR_WRITE(cpu.mstatus, MSTATUS_MIE, mpie);
-  CSR_WRITE(cpu.mstatus, MSTATUS_MPIE, 1);
-  cpu.priv = CSR_READ(cpu.mstatus, MSTATUS_MPP);
-  CSR_WRITE(cpu.mstatus, MSTATUS_MPP, M_MODE);
+  CSR_WRITE(cpu.mstatus, MSTATUS_MPIE, 1);  // mret后，mstatus.MPIE需要设置为1
+  CSR_WRITE(cpu.mstatus, MSTATUS_MPP, U_MODE);  // mret后，mstatus.MPP需要设置为已经实现的最低优先级
 #ifdef CONFIG_ETRACE
   if (CONFIG_ETRACE_COND) {
     const char mode_str[] = "US?M";

@@ -7,7 +7,7 @@
 
 #ifdef CONFIG_FTRACE
 
-#define MAX_FUNC_NUM 1000
+#define MAX_FUNC_NUM 10000
 
 typedef struct {
     char name[128];

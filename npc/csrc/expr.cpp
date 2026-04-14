@@ -67,7 +67,13 @@ static struct rule {
   {"C", 'c'},
   {"D", 'd'},
   {"E", 'e'},
-  {"F", 'f'}
+  {"F", 'f'},
+  // for CSR name
+  {"m", 'm'},
+  {"v", 'v'},
+  {"h", 'h'},
+  {"i", 'i'},
+  {"u", 'u'}
 };
 
 #define NR_REGEX ARRLEN(rules)
@@ -211,6 +217,10 @@ static bool make_token(char *e) {
               tokens[nr_token - 1].str[num_index++] = rules[i].token_type;
               tokens[nr_token - 1].str[num_index] = '\0';
             }
+            else if(tokens[nr_token - 1].type == TK_REG) {
+              tokens[nr_token - 1].str[reg_index++] = rules[i].token_type;
+              tokens[nr_token - 1].str[reg_index] = '\0';
+            }
             else {
               printf("make_token error: invalid token '%c'\n", rules[i].token_type);
               return false;
@@ -225,6 +235,21 @@ static bool make_token(char *e) {
             else if(tokens[nr_token - 1].type == TK_NUMBER && num_index == 1 && tokens[nr_token - 1].str[0] == '0') {  // hex number
               tokens[nr_token - 1].str[num_index++] = 'x';
               tokens[nr_token - 1].str[num_index] = '\0';
+            }
+            break;
+
+          case 'm':
+          case 'v':
+          case 'h':
+          case 'i':
+          case 'u':
+            if(tokens[nr_token - 1].type == TK_REG) {
+              tokens[nr_token - 1].str[reg_index++] = rules[i].token_type;
+              tokens[nr_token - 1].str[reg_index] = '\0';
+            }
+            else {
+              printf("make_token error: invalid token '%c'\n", rules[i].token_type);
+              return false;
             }
             break;
           

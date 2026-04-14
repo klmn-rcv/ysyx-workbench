@@ -14,6 +14,7 @@ class WBU extends Module {
             val inv = Input(Bool())
             val inst = Input(UInt(32.W))
             val pc = Input(UInt(32.W))
+            val dnpc = Input(UInt(32.W))
             val csrReq = Input(new CSRReq)
             val csrResp = Input(new CSRResp)
             val ecall = Input(Bool()) // 注意：CSR读写指令的处理放在了EX，但ecall和mret放在了WB，这就导致在流水线中这里存在一个hazard，需要给ecall和mret打上标记来解决这个问题。
@@ -68,6 +69,7 @@ class WBU extends Module {
     itrace.clk := clock
     itrace.rst := reset
     itrace.valid := !reset_reg
-    itrace.pc := io.in.pc // TODO: connect with real pc
-    itrace.inst := io.in.inst // TODO: connect with real inst
+    itrace.pc := io.in.pc
+    itrace.inst := io.in.inst
+    itrace.dnpc := io.in.dnpc
 }

@@ -9,9 +9,13 @@
 #include "macro.h"
 #include "config.h"
 
+#include "itrace.h"  // 因为Inst s一直有用，所以无论CONFIG_ITRACE是否被定义都要包含这个头文件
+
 #ifdef CONFIG_ITRACE
-#include "itrace.h"
 #include "iringbuf.h"
+#endif
+
+#ifdef CONFIG_FTRACE
 #include "ftrace.h"
 #endif
 

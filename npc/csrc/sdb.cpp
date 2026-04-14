@@ -139,11 +139,11 @@ static int cmd_w(char *args) {
   int init_new_wp(char *s);
   int exit_status = init_new_wp(args);
   if(exit_status == 1) {
-    printf("w: invalid expression\n");
+    printf("w: too much watchpoints existing\n");
     return 0;
   }
   else if(exit_status == 2) {
-    printf("w: too much watchpoints existing\n");
+    printf("w: invalid expression\n");
     return 0;
   }
   return 0;
@@ -249,7 +249,7 @@ void sdb_set_batch_mode() {
 
 void sdb_mainloop() {
 
-  printf("DEBUG: sdb_mainloop(), is_batch_mode = %d, npc_state.state = %d\n", is_batch_mode, npc_state.state);
+  // printf("DEBUG: sdb_mainloop(), is_batch_mode = %d, npc_state.state = %d\n", is_batch_mode, npc_state.state);
 
   if (is_batch_mode) {
     cmd_c(NULL);

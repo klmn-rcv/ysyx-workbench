@@ -5,6 +5,9 @@
 #include "sim.h"
 #include "state.h"
 #include "debug.h"
+#ifdef CONFIG_DIFFTEST
+#include "difftest.h"
+#endif
 
 extern char pmem[];  // memory
 
@@ -68,6 +71,7 @@ extern "C" void pmem_write(uint32_t waddr, int wdata, uint8_t wmask) {
   if (wmask & 0x8) byte_mask |= 0xFF000000;
 
   if(waddr == 0x10000000) { // 串口
+    difftest_skip_ref();
     uint8_t uart_data = wdata & byte_mask & 0xFF;
     IFDEF(CONFIG_DTRACE, _Log("[dtrace] uart write: addr = " FMT_PADDR ", data = 0x%02x\n", waddr, uart_data));
     putchar(uart_data);
@@ -85,9 +89,10 @@ extern "C" void pmem_write(uint32_t waddr, int wdata, uint8_t wmask) {
 }
 
 // 没有定义CONFIG_ITRACE时，这个函数也会记录inst和pc，因为要维护s给difftest使用
-extern "C" void itrace(uint32_t pc, uint32_t inst) {
+extern "C" void itrace(uint32_t pc, uint32_t inst, uint32_t dnpc) {
   s.inst = inst;
   s.pc = pc;
+  s.dnpc = dnpc;
 }
 
 extern "C" void iringbuf_before_ifetch(uint32_t pc) {

@@ -16,7 +16,7 @@ class IFU extends Module {
         val out = new Bundle {
             val valid = Output(Bool())
             val pc = Output(UInt(32.W))
-            val next_pc = Output(UInt(32.W))
+            val dnpc = Output(UInt(32.W))
         }
     })
 
@@ -27,14 +27,14 @@ class IFU extends Module {
     val dnpc = Mux(io.in.ex_redirect_valid, io.in.ex_redirect_target,
                Mux(io.in.br_taken, io.in.br_target,
                Mux(io.in.jump_valid, io.in.jump_target, snpc)))
-    pc_reg := io.out.next_pc   // current pc
+    pc_reg := io.out.dnpc   // current pc
     io.out.pc := pc_reg
-    io.out.next_pc := dnpc  // next pc
+    io.out.dnpc := dnpc  // next pc
 
     val iringbuf = Module(new Iringbuf)
     iringbuf.clk := clock
     iringbuf.rst := reset
-    iringbuf.pc := io.out.next_pc
+    iringbuf.pc := io.out.dnpc
     iringbuf.inst := 0.U(32.W)
     iringbuf.before_ifetch := true.B
     iringbuf.after_ifetch := false.B

@@ -4,14 +4,6 @@ import chisel3._
 import chisel3.util._
 
 class Top extends Module {
-    // val io = IO(new Bundle {
-    //     val in = new Bundle {
-    //     }
-    //     val out = new Bundle {
-    //        val pc = Output(UInt(32.W))
-    //     }
-    // })
-
     val core = Module(new CPU)
     val mem = Module(new _root_.cpu.Mem)
 
@@ -28,5 +20,4 @@ class Top extends Module {
 
     core.io.in.rinst := mem.rinst
     core.io.in.rdata := mem.rdata
-    // io.out.pc := core.io.out.pc
 }

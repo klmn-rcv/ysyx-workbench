@@ -27,6 +27,8 @@ static const uint32_t img [] = {
 };
 
 static void restart() {
+  // printf(ANSI_BG_GREEN "DEBUG(NEMU): Restarting CPU ..." ANSI_NONE "\n");
+
   /* Set the initial program counter. */
   cpu.pc = RESET_VECTOR;
 
@@ -44,6 +46,7 @@ static void restart() {
 }
 
 void init_isa() {
+  // printf(ANSI_BG_GREEN "DEBUG(NEMU): Initializing ISA ..." ANSI_NONE "\n");
   /* Load built-in image. */
   memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
 

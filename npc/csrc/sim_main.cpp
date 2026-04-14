@@ -6,7 +6,7 @@
 #include "difftest.h"
 
 VTop* top = new VTop;
-#ifdef GEN_TRACE
+#ifdef CONFIG_GEN_WAVE
 vluint64_t sim_time = 0;
 VerilatedVcdC* tfp = new VerilatedVcdC;
 #endif
@@ -48,13 +48,13 @@ static void init_sim() {
   for (int i = 0; i < 2; i++) {
     top->clock = 0;
     top->eval();
-#ifdef GEN_TRACE
+#ifdef CONFIG_GEN_WAVE
     tfp->dump(sim_time++);
 #endif
 
     top->clock = 1;
     top->eval();
-#ifdef GEN_TRACE
+#ifdef CONFIG_GEN_WAVE
     tfp->dump(sim_time++);
 #endif
     npc_state.cycles++;
@@ -67,13 +67,13 @@ static void init_sim() {
   // first valid instruction address before interactive execution starts.
   top->clock = 0;
   top->eval();
-#ifdef GEN_TRACE
+#ifdef CONFIG_GEN_WAVE
   tfp->dump(sim_time++);
 #endif
 
   top->clock = 1;
   top->eval();
-#ifdef GEN_TRACE
+#ifdef CONFIG_GEN_WAVE
   tfp->dump(sim_time++);
 #endif
   npc_state.cycles++;
@@ -113,7 +113,7 @@ static void parse_args(int argc, char** argv) {
 
 int main(int argc, char** argv) {
   Verilated::commandArgs(argc, argv);
-#ifdef GEN_TRACE
+#ifdef CONFIG_GEN_WAVE
   Verilated::traceEverOn(true);
   top->trace(tfp, 99);
   tfp->open("wave.vcd");
@@ -146,7 +146,7 @@ int main(int argc, char** argv) {
                              ANSI_FMT("HIT BAD TRAP", ANSI_FG_RED),
         npc_state.cycles, npc_state.halt_ret);
 
-#ifdef GEN_TRACE
+#ifdef CONFIG_GEN_WAVE
   tfp->close();
   delete tfp;
 #endif

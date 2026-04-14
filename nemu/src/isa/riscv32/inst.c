@@ -113,7 +113,7 @@ static void ftrace(Decode *s) {
       case MTVEC:   csr = &cpu.mtvec;   break; \
       case MEPC:    csr = &cpu.mepc;    break; \
       case MCAUSE:  csr = &cpu.mcause;  break; \
-      default: assert(0); \
+      default: printf("Unhandled CSR access: %llu\n", BITS(s->isa.inst, 31, 20)); assert(0); \
     } \
   } while (0)
 
@@ -125,7 +125,7 @@ static void ftrace(Decode *s) {
       case U_MODE: NO = MCAUSE_ECALL_FROM_U; break; \
       case S_MODE: NO = MCAUSE_ECALL_FROM_S; break; \
       case M_MODE: NO = MCAUSE_ECALL_FROM_M; break; \
-      default: assert(0); \
+      default: printf("Unhandled privilege mode: %u\n", cpu.priv); assert(0); \
     } \
   } while (0)
 

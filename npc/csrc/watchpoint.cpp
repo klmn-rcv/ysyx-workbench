@@ -82,7 +82,7 @@ void free_wp(WP *wp) {
   }
 }
 
-int init_new_wp(char *s) { // 返回值：0表示正常退出，1表示表达式不合法，2表示没有空闲监视点
+int init_new_wp(char *s) { // 返回值：0表示正常退出，1表示没有空闲监视点，2表示表达式不合法
   WP *wp = new_wp();
   if(wp == NULL) {
     return 2;
@@ -110,18 +110,20 @@ bool delete_wp(int NO) {
   return true;
 }
 
-bool check_all_wp_no_change(int *NO, char **expr_str) {
+bool check_all_wp_no_change(int *NO, char **expr_str, uint32_t *old_value, uint32_t *new_value) {
   WP *current = head;
   while(current != NULL) {
     bool success = false;
-    uint32_t new_value = expr(current->expr, &success);
-    if(new_value != current->old_value) {    // hit watchpoint
+    uint32_t new_value_tmp = expr(current->expr, &success);
+    if(new_value_tmp != current->old_value) {    // hit watchpoint
       *NO = current->NO;
       *expr_str = current->expr;
-      current->old_value = new_value;
+      *old_value = current->old_value;
+      *new_value = new_value_tmp;
+      current->old_value = new_value_tmp;
       return false;
     }
-    current->old_value = new_value;
+    current->old_value = new_value_tmp;
     current = current->next;
   }
   return true;

@@ -34,6 +34,7 @@ class Itrace extends ExtModule {
     val valid = IO(Input(Bool()))
     val pc = IO(Input(UInt(32.W)))
     val inst = IO(Input(UInt(32.W)))
+    val dnpc = IO(Input(UInt(32.W)))
 
     addResource("/Itrace.sv")
 }

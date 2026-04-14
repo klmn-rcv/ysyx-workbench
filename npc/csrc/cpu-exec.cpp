@@ -28,15 +28,15 @@ static void trace_and_difftest() {
   log_write("%s\n", s.logbuf);
 #endif
   if (g_print_step && log_fp != stdout) { IFDEF(CONFIG_ITRACE, puts(s.logbuf)); }
-  IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc));
+  IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, s.dnpc));
 
 #ifdef CONFIG_WATCHPOINT
-  bool check_all_wp_no_change(int *NO, char **expr_str);
-  int NO;  char *expr_str;
-  bool no_change = check_all_wp_no_change(&NO, &expr_str);
+  bool check_all_wp_no_change(int *NO, char **expr_str, uint32_t *old_value, uint32_t *new_value);
+  int NO;  char *expr_str; uint32_t old_value, new_value;
+  bool no_change = check_all_wp_no_change(&NO, &expr_str, &old_value, &new_value);
   if(!no_change) {
     npc_state.state = NPC_STOP;
-    printf("Hit watchpoint %d: %s\n", NO, expr_str);
+    printf("Hit watchpoint %d: %s at pc = " FMT_PADDR "\nold value = 0x%x (%" PRIu32 ")\nnew value = 0x%x (%" PRIu32 ")\n", NO, expr_str, s.pc, old_value, old_value, new_value, new_value);
   }
 #endif
 }
@@ -44,13 +44,13 @@ static void trace_and_difftest() {
 static void cycle_once() {
   top->clock = 0;
   top->eval();
-#ifdef GEN_TRACE
+#ifdef CONFIG_GEN_WAVE
   tfp->dump(sim_time++);
 #endif
 
   top->clock = 1;
   top->eval();
-#ifdef GEN_TRACE
+#ifdef CONFIG_GEN_WAVE
   tfp->dump(sim_time++);
 #endif
 }

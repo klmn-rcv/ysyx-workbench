@@ -33,7 +33,7 @@ class CPU extends Module {
     io.out.inst_req_valid := true.B
     io.out.data_req_valid := lsu.io.out.mem_data_req_valid
     io.out.wen := lsu.io.out.mem_wen
-    io.out.pc := ifu.io.out.next_pc
+    io.out.pc := ifu.io.out.dnpc
     io.out.raddr := lsu.io.out.raddr
     io.out.waddr := lsu.io.out.waddr
     io.out.wdata := lsu.io.out.wdata
@@ -61,6 +61,7 @@ class CPU extends Module {
     idu.io.in.valid := ifu.io.out.valid
     idu.io.in.inst := io.in.rinst
     idu.io.in.pc := ifu.io.out.pc
+    idu.io.in.dnpc := ifu.io.out.dnpc
     idu.io.in.rdata1 := regfile.io.out.rdata1
     idu.io.in.rdata2 := regfile.io.out.rdata2
 
@@ -82,6 +83,7 @@ class CPU extends Module {
     exu.io.in.inv := idu.io.out.inv
     exu.io.in.inst := idu.io.out.inst
     exu.io.in.pc := idu.io.out.pc
+    exu.io.in.dnpc := idu.io.out.dnpc
     exu.io.in.csrReq := idu.io.out.csrReq
     exu.io.in.ecall := idu.io.out.ecall
     exu.io.in.mret := idu.io.out.mret
@@ -100,6 +102,7 @@ class CPU extends Module {
     lsu.io.in.inv := exu.io.out.inv
     lsu.io.in.inst := exu.io.out.inst
     lsu.io.in.pc := exu.io.out.pc
+    lsu.io.in.dnpc := exu.io.out.dnpc
     lsu.io.in.csrReq := exu.io.out.csrReq
     lsu.io.in.ecall := exu.io.out.ecall
     lsu.io.in.mret := exu.io.out.mret
@@ -113,6 +116,7 @@ class CPU extends Module {
     wbu.io.in.inv := lsu.io.out.inv
     wbu.io.in.inst := lsu.io.out.inst
     wbu.io.in.pc := lsu.io.out.pc
+    wbu.io.in.dnpc := lsu.io.out.dnpc
     wbu.io.in.csrReq := lsu.io.out.csrReq
     wbu.io.in.csrResp := csr.io.out.resp
     wbu.io.in.ecall := lsu.io.out.ecall

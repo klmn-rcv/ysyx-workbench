@@ -11,6 +11,7 @@ class IDU extends Module {
             val rdata1 = Input(UInt(32.W))
             val rdata2 = Input(UInt(32.W))
             val pc = Input(UInt(32.W))
+            val dnpc = Input(UInt(32.W))
         }
         val out = new Bundle {
             val alu_op = Output(ALUOp())
@@ -34,6 +35,7 @@ class IDU extends Module {
             val inv = Output(Bool())
             val inst = Output(UInt(32.W))
             val pc = Output(UInt(32.W))
+            val dnpc = Output(UInt(32.W))
             val csrReq = Output(new CSRReq)
             val ecall = Output(Bool())
             val mret = Output(Bool())
@@ -117,7 +119,7 @@ class IDU extends Module {
 
     io.out.inst := io.in.inst
     io.out.pc := io.in.pc
-
+    io.out.dnpc := io.in.dnpc
     // CSR指令相关译码信号
     io.out.csrReq.addr := 0.U
     io.out.csrReq.re := false.B
@@ -131,17 +133,17 @@ class IDU extends Module {
         io.out.csrReq.addr := io.in.inst(31, 20)
         io.out.csrReq.re := true.B
         switch(io.in.inst(13, 12)) {
-            is("b00".U) {
+            is("b01".U) {
                 io.out.csrReq.we := true.B
                 io.out.csrReq.wvalue := csr_src1
                 io.out.csrReq.wmask := "hffffffff".U
             }
-            is("b01".U) {
+            is("b10".U) {
                 io.out.csrReq.we := csr_sc_we
                 io.out.csrReq.wvalue := "hffffffff".U
                 io.out.csrReq.wmask := csr_src1
             }
-            is("b10".U) {
+            is("b11".U) {
                 io.out.csrReq.we := csr_sc_we
                 io.out.csrReq.wvalue := 0.U
                 io.out.csrReq.wmask := csr_src1

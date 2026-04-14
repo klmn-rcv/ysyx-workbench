@@ -6,13 +6,11 @@
 
 #include "VTop.h"
 
-#define GEN_TRACE
-
 #define MEM_SIZE 0x8000000
 
 extern VTop* top;
 
-#ifdef GEN_TRACE
+#ifdef CONFIG_GEN_WAVE
 extern vluint64_t sim_time;
 extern VerilatedVcdC* tfp;
 #endif
