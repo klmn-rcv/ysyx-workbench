@@ -6,13 +6,13 @@
 #include "cpu-exec.h"
 #include "debug.h"
 #include "dpi-c.h"
+#include "debugpoint.h"
 
 NPCState npc_state = { .state = NPC_STOP, .cycles = 0, .halt_pc = 0, .halt_ret = 0 };
 
 static bool is_batch_mode = false;
 
 void init_regex();
-void init_wp_pool();
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 static char* rl_gets() {
@@ -65,11 +65,12 @@ static int cmd_info(char *args) {
     printf("info: need an argument\n");
     return 0;
   }
-  void wp_display();
   if(strcmp(args, "r")==0 || strcmp(args, "register")==0){
     reg_display();
   }else if(strcmp(args, "w")==0 || strcmp(args, "watchpoint")==0){
-    wp_display();
+    display_pt(PT_WATCHPOINT);
+  }else if(strcmp(args, "b")==0 || strcmp(args, "breakpoint")==0){
+    display_pt(PT_BREAKPOINT);
   }
   else {
     printf("info: invalid option '%s'\n", args);
@@ -129,14 +130,13 @@ static int cmd_p(char *args) {
 }
 
 static int cmd_w(char *args) {
-#ifndef CONFIG_WATCHPOINT
-  printf("ATTENTION: watchpoint not activated\n");
+#ifndef CONFIG_DEBUGPOINT
+  printf("ATTENTION: debugpoint not activated\n");
 #endif
   if(args == NULL) {
     printf("w: need an argument\n");
     return 0;
   }
-  int init_new_wp(char *s);
   int exit_status = init_new_wp(args);
   if(exit_status == 1) {
     printf("w: too much watchpoints existing\n");
@@ -150,8 +150,8 @@ static int cmd_w(char *args) {
 }
 
 static int cmd_d(char *args) {
-#ifndef CONFIG_WATCHPOINT
-  printf("ATTENTION: watchpoint not activated\n");
+#ifndef CONFIG_DEBUGPOINT
+  printf("ATTENTION: debugpoint not activated\n");
 #endif
   if(args == NULL) {
     printf("d: need an argument\n");
@@ -163,10 +163,54 @@ static int cmd_d(char *args) {
     printf("d: invalid expression\n");
     return 0;
   }
-  bool delete_wp(int NO);
-  bool success2 = delete_wp(NO);
+  bool success2 = delete_pt(NO, PT_WATCHPOINT);
   if(success2 == false) {
     printf("d: watchpoint not found\n");
+    return 0;
+  }
+  return 0;
+}
+
+static int cmd_b(char *args) {
+#ifndef CONFIG_DEBUGPOINT
+  printf("ATTENTION: debugpoint not activated\n");
+#endif
+  if(args == NULL) {
+    printf("b: need an argument\n");
+    return 0;
+  }
+  bool success = false;
+  uint32_t addr = expr(args, &success);
+  if(success == false) {
+    printf("b: invalid address\n");
+    return 0;
+  }
+  int exit_status = init_new_bp(addr);
+  if(exit_status == 1) {
+    printf("b: too much breakpoints existing\n");
+    return 0;
+  }
+  
+  return 0;
+}
+
+static int cmd_db(char *args) {
+#ifndef CONFIG_DEBUGPOINT
+  printf("ATTENTION: debugpoint not activated\n");
+#endif
+  if(args == NULL) {
+    printf("db: need an argument\n");
+    return 0;
+  }
+  bool success = false;
+  uint32_t NO = expr(args, &success);
+  if(success == false) {
+    printf("db: invalid expression\n");
+    return 0;
+  }
+  bool success2 = delete_pt(NO, PT_BREAKPOINT);
+  if(success2 == false) {
+    printf("db: breakpoint not found\n");
     return 0;
   }
   return 0;
@@ -183,11 +227,13 @@ static struct {
   { "c", "Continue the execution of the program", cmd_c },
   { "q", "Exit NPC", cmd_q },
   { "si", "Single-step execution", cmd_si },
-  { "info", "Print register status and watchpoint information", cmd_info },
+  { "info", "Print register status and debugpoint information", cmd_info },
   { "x", "Output consecutive N 4 bytes in the address in hexadecimal", cmd_x },
   { "p", "Find the value of the expression EXPR", cmd_p },
   { "w", "Suspend program execution when the value of expression EXPR changes", cmd_w },
-  { "d", "Deletes the watchpoint with ID N", cmd_d }
+  { "d", "Deletes the watchpoint with ID N", cmd_d },
+  { "b", "Set a breakpoint at the specified address", cmd_b },
+  { "db", "Deletes the breakpoint with ID N", cmd_db }
 };
 
 #define NR_CMD ARRLEN(cmd_table)
@@ -297,6 +343,6 @@ void init_sdb() {
   /* Compile the regular expressions. */
   init_regex();
 
-  /* Initialize the watchpoint pool. */
-  init_wp_pool();
+  /* Initialize the debugpoint pool. */
+  init_pt_pool();
 }

@@ -7,7 +7,7 @@
 // #define CONFIG_DTRACE 1
 // #define CONFIG_FTRACE 1
 #define CONFIG_DIFFTEST 1
-#define CONFIG_WATCHPOINT 1
+#define CONFIG_DEBUGPOINT 1
 
 #define CONFIG_RV32 1
 #define CONFIG_RVE 1
