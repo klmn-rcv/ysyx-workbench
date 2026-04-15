@@ -74,7 +74,7 @@ extern "C" void pmem_write(uint32_t waddr, int wdata, uint8_t wmask) {
     difftest_skip_ref();
     uint8_t uart_data = wdata & byte_mask & 0xFF;
     IFDEF(CONFIG_DTRACE, _Log("[dtrace] uart write: addr = " FMT_PADDR ", data = 0x%02x\n", waddr, uart_data));
-    putchar(uart_data);
+    fputc(uart_data, stderr);
     return;
   }
 
