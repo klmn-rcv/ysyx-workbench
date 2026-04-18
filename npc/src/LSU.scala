@@ -5,66 +5,42 @@ import chisel3.util._
 
 class LSU extends Module {
     val io = IO(new Bundle {
-        val in = new Bundle {
-            val alu_data = Input(UInt(32.W))
-            val reg_data2 = Input(UInt(32.W))  // for store data
-            val wr_reg = Input(Bool())
-            val rd = Input(UInt(5.W))
-            val rd_mem = Input(Bool())
-            val wr_mem = Input(Bool())
-            val bit_width = Input(BitWidth())
-            val sign = Input(Sign())
-            val rdata = Input(UInt(32.W))  // for load data
-            val ebreak = Input(Bool())
-            val inv = Input(Bool())
-            val inst = Input(UInt(32.W))
-            val pc = Input(UInt(32.W))
-            val dnpc = Input(UInt(32.W))
-            val csrReq = Input(new CSRReq)
-            val ecall = Input(Bool())
-            val mret = Input(Bool())
-        }
-        val out = new Bundle {
-            val mem_data_req_valid = Output(Bool())
-            val mem_wen = Output(Bool())
+        val in = Flipped(Decoupled(new EXUOut))
+        val out = Decoupled(new LSUOut)
+        val mem = new Bundle {
+            val data_req_valid = Output(Bool())
+            val wen = Output(Bool())
             val raddr = Output(UInt(32.W))
             val waddr = Output(UInt(32.W))
             val wdata = Output(UInt(32.W))
             val wmask = Output(UInt(4.W))
-
-            val data = Output(UInt(32.W))
-            val wr_reg = Output(Bool())
-            val rd = Output(UInt(5.W))
-            val ebreak = Output(Bool())
-            val inv = Output(Bool())
-            val inst = Output(UInt(32.W))
-            val pc = Output(UInt(32.W))
-            val dnpc = Output(UInt(32.W))
-            val csrReq = Output(new CSRReq)
-            val ecall = Output(Bool())
-            val mret = Output(Bool())
+            val rdata = Input(UInt(32.W))  // for load data
         }
     })
 
-    io.out.mem_data_req_valid := io.in.rd_mem || io.in.wr_mem
-    io.out.mem_wen := io.in.wr_mem
-    io.out.raddr := io.in.alu_data
-    io.out.waddr := io.in.alu_data
-    io.out.wdata := io.in.reg_data2 << (io.out.waddr(1, 0) << 3) // 这里要左移来对齐到正确的字节位置
-    io.out.wmask := MaskGen(io.in.alu_data, io.in.bit_width)
+    val ready_go = true.B
+    io.in.ready := !reset.asBool && (!io.in.valid || ready_go && io.out.ready)
+    io.out.valid := io.in.valid && ready_go
 
-    val loadData = ExtractLoadData(io.in.rdata, io.out.raddr, io.in.bit_width, io.in.sign)
+    io.mem.data_req_valid := io.in.bits.rd_mem || io.in.bits.wr_mem
+    io.mem.wen := io.in.bits.wr_mem
+    io.mem.raddr := io.in.bits.result
+    io.mem.waddr := io.in.bits.result
+    io.mem.wdata := io.in.bits.reg_data2 << (io.mem.waddr(1, 0) << 3) // 这里要左移来对齐到正确的字节位置
+    io.mem.wmask := MaskGen(io.in.bits.result, io.in.bits.bit_width)
 
-    io.out.data := Mux(io.in.rd_mem, loadData, io.in.alu_data)
-    io.out.wr_reg := io.in.wr_reg
-    io.out.rd := io.in.rd
-    io.out.ebreak := io.in.ebreak
-    io.out.inv := io.in.inv
+    val loadData = ExtractLoadData(io.mem.rdata, io.mem.raddr, io.in.bits.bit_width, io.in.bits.sign)
 
-    io.out.inst := io.in.inst
-    io.out.pc := io.in.pc
-    io.out.dnpc := io.in.dnpc
-    io.out.csrReq := io.in.csrReq
-    io.out.ecall := io.in.ecall
-    io.out.mret := io.in.mret
+    io.out.bits.data := Mux(io.in.bits.rd_mem, loadData, io.in.bits.result)
+    io.out.bits.wr_reg := io.in.bits.wr_reg
+    io.out.bits.rd := io.in.bits.rd
+    io.out.bits.ebreak := io.in.bits.ebreak
+    io.out.bits.inv := io.in.bits.inv
+
+    io.out.bits.inst := io.in.bits.inst
+    io.out.bits.pc := io.in.bits.pc
+    io.out.bits.dnpc := io.in.bits.dnpc
+    io.out.bits.csrReq := io.in.bits.csrReq
+    io.out.bits.ecall := io.in.bits.ecall
+    io.out.bits.mret := io.in.bits.mret
 }

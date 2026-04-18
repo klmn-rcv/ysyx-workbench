@@ -3,6 +3,34 @@ package cpu
 import chisel3._
 import chisel3.util._
 
+object StageConnect {
+    def apply[T <: Data](left: DecoupledIO[T], right: DecoupledIO[T], arch: String = "pipeline"): Unit = {
+        arch match {
+            case "single" =>
+                right.bits  := left.bits
+                right.valid := left.valid
+                left.ready  := true.B
+
+            case "multi" =>
+                right.bits  := left.bits
+                right.valid := left.valid
+                left.ready  := right.ready
+
+            case "pipeline" =>
+                left.ready := right.ready
+
+                val validReg = RegEnable(left.valid, false.B, left.ready)
+                val bitsReg  = RegEnable(left.bits, 0.U.asTypeOf(chiselTypeOf(left.bits)), left.fire)
+
+                right.valid := validReg
+                right.bits  := bitsReg
+
+            case _ =>
+                throw new IllegalArgumentException(s"unknown arch: $arch")
+        }
+    }
+}
+
 class CPU extends Module {
     val io = IO(new Bundle {
         val in = new Bundle {
@@ -29,101 +57,56 @@ class CPU extends Module {
     val regfile = Module(new regfile)
     val csr = Module(new CSR)
 
+    val arch = "single"  // 单周期
+
     // CPU core's output
     io.out.inst_req_valid := true.B
-    io.out.data_req_valid := lsu.io.out.mem_data_req_valid
-    io.out.wen := lsu.io.out.mem_wen
-    io.out.pc := ifu.io.out.dnpc
-    io.out.raddr := lsu.io.out.raddr
-    io.out.waddr := lsu.io.out.waddr
-    io.out.wdata := lsu.io.out.wdata
-    io.out.wmask := lsu.io.out.wmask
+    io.out.data_req_valid := lsu.io.mem.data_req_valid
+    io.out.wen := lsu.io.mem.wen
+    io.out.pc := ifu.io.out.bits.dnpc
+    io.out.raddr := lsu.io.mem.raddr
+    io.out.waddr := lsu.io.mem.waddr
+    io.out.wdata := lsu.io.mem.wdata
+    io.out.wmask := lsu.io.mem.wmask
 
     // CSR's input
-    csr.io.in.req := wbu.io.out.csrReq
+    csr.io.in.req := wbu.io.csr.csrReq
 
     // regfile's input
-    regfile.io.in.raddr1 := idu.io.out.rs1     // truncate
-    regfile.io.in.raddr2 := idu.io.out.rs2     // truncate
-    regfile.io.in.we := wbu.io.out.wb_we
-    regfile.io.in.waddr := wbu.io.out.wb_addr  // truncate
-    regfile.io.in.wdata := wbu.io.out.wb_data
+    regfile.io.in.raddr1 := idu.io.rf.rs1
+    regfile.io.in.raddr2 := idu.io.rf.rs2
+    regfile.io.in.we := wbu.io.rf.wb_we
+    regfile.io.in.waddr := wbu.io.rf.wb_addr
+    regfile.io.in.wdata := wbu.io.rf.wb_data
 
     // IFU's input
-    ifu.io.in.ex_redirect_valid := csr.io.out.redirect_valid
-    ifu.io.in.ex_redirect_target := csr.io.out.redirect_target
-    ifu.io.in.jump_valid := idu.io.out.jump_valid
-    ifu.io.in.jump_target := idu.io.out.jump_target
-    ifu.io.in.br_taken := exu.io.out.br_taken
-    ifu.io.in.br_target := exu.io.out.br_target
+    ifu.io.ctrl.ex_redirect_valid := csr.io.out.redirect_valid
+    ifu.io.ctrl.ex_redirect_target := csr.io.out.redirect_target
+    ifu.io.ctrl.jump_valid := idu.io.ctrl.jump_valid
+    ifu.io.ctrl.jump_target := idu.io.ctrl.jump_target
+    ifu.io.ctrl.br_taken := exu.io.ctrl.br_taken
+    ifu.io.ctrl.br_target := exu.io.ctrl.br_target
 
     // IDU's input
-    idu.io.in.valid := ifu.io.out.valid
-    idu.io.in.inst := io.in.rinst
-    idu.io.in.pc := ifu.io.out.pc
-    idu.io.in.dnpc := ifu.io.out.dnpc
-    idu.io.in.rdata1 := regfile.io.out.rdata1
-    idu.io.in.rdata2 := regfile.io.out.rdata2
+    StageConnect(ifu.io.out, idu.io.in, arch)
+    idu.io.inst := io.in.rinst
+    idu.io.rf.rdata1 := regfile.io.out.rdata1
+    idu.io.rf.rdata2 := regfile.io.out.rdata2
 
     // EXU's input
-    exu.io.in.src1 := idu.io.out.src1
-    exu.io.in.src2 := idu.io.out.src2
-    exu.io.in.reg_data2 := idu.io.out.reg_data2
-    exu.io.in.alu_op := idu.io.out.alu_op
-    exu.io.in.wr_reg := idu.io.out.wr_reg
-    exu.io.in.rd := idu.io.out.rd
-    exu.io.in.rd_mem := idu.io.out.rd_mem
-    exu.io.in.wr_mem := idu.io.out.wr_mem
-    exu.io.in.bit_width := idu.io.out.bit_width
-    exu.io.in.sign := idu.io.out.sign
-    exu.io.in.br_valid := idu.io.out.br_valid
-    exu.io.in.br_expect_0 := idu.io.out.br_expect_0
-    exu.io.in.br_target := idu.io.out.br_target
-    exu.io.in.ebreak := idu.io.out.ebreak
-    exu.io.in.inv := idu.io.out.inv
-    exu.io.in.inst := idu.io.out.inst
-    exu.io.in.pc := idu.io.out.pc
-    exu.io.in.dnpc := idu.io.out.dnpc
-    exu.io.in.csrReq := idu.io.out.csrReq
-    exu.io.in.ecall := idu.io.out.ecall
-    exu.io.in.mret := idu.io.out.mret
+    StageConnect(idu.io.out, exu.io.in, arch)
 
     // LSU's input
-    lsu.io.in.alu_data := exu.io.out.result
-    lsu.io.in.reg_data2 := exu.io.out.reg_data2
-    lsu.io.in.wr_reg := exu.io.out.wr_reg
-    lsu.io.in.rd := exu.io.out.rd
-    lsu.io.in.rd_mem := exu.io.out.rd_mem
-    lsu.io.in.wr_mem := exu.io.out.wr_mem
-    lsu.io.in.bit_width := exu.io.out.bit_width
-    lsu.io.in.sign := exu.io.out.sign
-    lsu.io.in.rdata := io.in.rdata
-    lsu.io.in.ebreak := exu.io.out.ebreak
-    lsu.io.in.inv := exu.io.out.inv
-    lsu.io.in.inst := exu.io.out.inst
-    lsu.io.in.pc := exu.io.out.pc
-    lsu.io.in.dnpc := exu.io.out.dnpc
-    lsu.io.in.csrReq := exu.io.out.csrReq
-    lsu.io.in.ecall := exu.io.out.ecall
-    lsu.io.in.mret := exu.io.out.mret
+    StageConnect(exu.io.out, lsu.io.in, arch)
+    lsu.io.mem.rdata := io.in.rdata
 
     // WBU's input
-    wbu.io.in.priv := csr.io.out.priv
-    wbu.io.in.data := lsu.io.out.data
-    wbu.io.in.rd := lsu.io.out.rd
-    wbu.io.in.wr_reg := lsu.io.out.wr_reg
-    wbu.io.in.ebreak := lsu.io.out.ebreak
-    wbu.io.in.inv := lsu.io.out.inv
-    wbu.io.in.inst := lsu.io.out.inst
-    wbu.io.in.pc := lsu.io.out.pc
-    wbu.io.in.dnpc := lsu.io.out.dnpc
-    wbu.io.in.csrReq := lsu.io.out.csrReq
-    wbu.io.in.csrResp := csr.io.out.resp
-    wbu.io.in.ecall := lsu.io.out.ecall
-    wbu.io.in.mret := lsu.io.out.mret
+    StageConnect(lsu.io.out, wbu.io.in, arch)
+    wbu.io.csr.priv := csr.io.out.priv
+    wbu.io.csr.csrResp := csr.io.out.resp
 
-    csr.io.in.wb_ex := wbu.io.out.wb_ex
-    csr.io.in.wb_cause := wbu.io.out.wb_cause
-    csr.io.in.wb_pc := wbu.io.out.wb_pc
-    csr.io.in.mret := wbu.io.out.mret
+    csr.io.in.wb_ex := wbu.io.csr.wb_ex
+    csr.io.in.wb_cause := wbu.io.csr.wb_cause
+    csr.io.in.wb_pc := wbu.io.csr.wb_pc
+    csr.io.in.mret := wbu.io.csr.mret
 }

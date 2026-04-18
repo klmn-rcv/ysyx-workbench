@@ -217,4 +217,67 @@ package object cpu {
         val ecall_from_m = 11
     }
 
+    class IFUOut extends Bundle {
+        // val inst = UInt(32.W)  // 改为pipeline后取消注释
+        val pc = UInt(32.W)
+        val dnpc = UInt(32.W)
+    }
+
+    class IDUOut extends Bundle {
+        val alu_op = ALUOp()
+        val rd = UInt(5.W)
+        val src1 = UInt(32.W)
+        val src2 = UInt(32.W)
+        val reg_data2 = UInt(32.W)
+        val wr_reg = Bool()
+        val rd_mem = Bool()
+        val wr_mem = Bool()
+        val bit_width = BitWidth()
+        val sign = Sign()
+        val br_valid = Bool()
+        val br_expect_0 = Bool()
+        val br_target = UInt(32.W)
+        val ebreak = Bool()
+        val inv = Bool()
+        val inst = UInt(32.W)
+        val pc = UInt(32.W)
+        val dnpc = UInt(32.W)
+        val csrReq = new CSRReq
+        val ecall = Bool()
+        val mret = Bool()
+    }
+
+    class EXUOut extends Bundle {
+        val result = UInt(32.W)
+        val reg_data2 = UInt(32.W)
+        val wr_reg = Bool()
+        val rd = UInt(5.W)
+        val rd_mem = Bool()
+        val wr_mem = Bool()
+        val bit_width = BitWidth()
+        val sign = Sign()
+        val ebreak = Bool()
+        val inv = Bool()
+        val inst = UInt(32.W)
+        val pc = UInt(32.W)
+        val dnpc = UInt(32.W)
+        val csrReq = new CSRReq
+        val ecall = Bool()
+        val mret = Bool()
+    }
+
+    class LSUOut extends Bundle {
+        val data = UInt(32.W)
+        val wr_reg = Bool()
+        val rd = UInt(5.W)
+        val ebreak = Bool()
+        val inv = Bool()
+        val inst = UInt(32.W)
+        val pc = UInt(32.W)
+        val dnpc = UInt(32.W)
+        val csrReq = new CSRReq
+        val ecall = Bool()
+        val mret = Bool()
+    }
+
 }
