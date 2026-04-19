@@ -1,4 +1,5 @@
 BUILD_DIR = ./build
+YOSYS_STA_DIR ?= ../yosys-sta
 
 IMG ?=
 LIBCAPSTONE = tools/capstone/repo/libcapstone.so.5
@@ -14,6 +15,8 @@ CFLAGS += -I../tools/capstone/repo/include
 LDFLAGS += -lreadline
 LDFLAGS += -ldl
 ARGS ?=
+
+SYN_RTL_FILES = $(sort $(wildcard $(BUILD_DIR)/*.sv))
 
 test:
 	mill -i test
@@ -64,7 +67,13 @@ gdb: $(VERILOG_STAMP) $(LIBCAPSTONE)
 			-LDFLAGS "$(LDFLAGS)" \
 			--build -j 0 && gdb --args ./obj_dir/VTop $(ARGS) $(IMG)
 
+syn: $(VERILOG_STAMP)
+	$(MAKE) -C $(YOSYS_STA_DIR) sta \
+		DESIGN=Top \
+		CLK_PORT_NAME=clock \
+		RTL_FILES="$(abspath $(SYN_RTL_FILES))"
 
-.PHONY: test verilog help reformat checkformat clean sim
+
+.PHONY: test verilog syn help reformat checkformat clean sim
 
 -include ../Makefile

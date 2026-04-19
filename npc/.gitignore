@@ -11,6 +11,8 @@
 !.gitignore
 !.scalafmt.conf
 !README.md
+!resources/
+!resources/*.sv
 build/
 docs/
 
