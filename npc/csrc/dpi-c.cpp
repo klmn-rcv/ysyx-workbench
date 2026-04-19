@@ -28,14 +28,14 @@ extern "C" int pmem_read(uint32_t raddr, mem_read_t read_type) {
   // 总是读取地址为`raddr & ~0x3u`的4字节返回
   if (raddr == 0x10000004) { // 时钟低32位
     // difftest_skip_ref();
-    difftest_skip_next_ref(); // 因为pmem_read是组合逻辑调用的，会在上一条指令退休（进入trace_and_difftest）之前就被调用，所以这里跳过下一条指令的ref检查，以抵消这个影响
+    IFDEF(CONFIG_DIFFTEST, difftest_skip_next_ref()); // 因为pmem_read是组合逻辑调用的，会在上一条指令退休（进入trace_and_difftest）之前就被调用，所以这里跳过下一条指令的ref检查，以抵消这个影响
 
     IFDEF(CONFIG_DTRACE, _Log("[dtrace] rtc read: addr = " FMT_PADDR ", low 32 bits\n", raddr));
     return static_cast<uint32_t>(rtc_snapshot);
   }
   if (raddr == 0x10000008) { // 时钟高32位
     // difftest_skip_ref();
-    difftest_skip_next_ref(); // 原因同上
+    IFDEF(CONFIG_DIFFTEST, difftest_skip_next_ref()); // 原因同上
 
     IFDEF(CONFIG_DTRACE, _Log("[dtrace] rtc read: addr = " FMT_PADDR ", high 32 bits\n", raddr));
     auto now = std::chrono::steady_clock::now();
@@ -77,7 +77,7 @@ extern "C" void pmem_write(uint32_t waddr, int wdata, uint8_t wmask) {
   if (wmask & 0x8) byte_mask |= 0xFF000000;
 
   if(waddr == 0x10000000) { // 串口
-    difftest_skip_ref();
+    IFDEF(CONFIG_DIFFTEST, difftest_skip_ref()) ;
     uint8_t uart_data = wdata & byte_mask & 0xFF;
     IFDEF(CONFIG_DTRACE, _Log("[dtrace] uart write: addr = " FMT_PADDR ", data = 0x%02x\n", waddr, uart_data));
     fputc(uart_data, stderr);
