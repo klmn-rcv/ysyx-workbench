@@ -37,6 +37,7 @@ static const paddr_t RESET_VECTOR = 0x80000000;
 
 static bool is_skip_ref = false;
 static int skip_dut_nr_inst = 0;
+bool is_skip_ref_next = false; // 用于跳过下一条指令的ref检查，目的是为了抵消“pmem_read是组合逻辑调用的，会在上一条指令退休（进入trace_and_difftest）之前就被调用”的影响
 
 // this is used to let ref skip instructions which
 // can not produce consistent behavior with NEMU
@@ -64,6 +65,10 @@ void difftest_skip_dut(int nr_ref, int nr_dut) {
   while (nr_ref -- > 0) {
     ref_difftest_exec(1);
   }
+}
+
+void difftest_skip_next_ref() {
+  is_skip_ref_next = true;
 }
 
 void init_difftest(const char *ref_so_file, long img_size, int port) {

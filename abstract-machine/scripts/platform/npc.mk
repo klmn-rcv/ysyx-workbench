@@ -37,4 +37,7 @@ run: insert-arg
 debug: insert-arg
 	$(MAKE) -C $(NPC_HOME) sim IMG=$(IMAGE).bin ARGS="$(NPCARGS)"
 
-.PHONY: insert-arg image run debug
+gdb: insert-arg
+	$(MAKE) -C $(NPC_HOME) gdb IMG=$(IMAGE).bin ARGS="$(NPCARGS)"
+
+.PHONY: insert-arg image run debug gdb

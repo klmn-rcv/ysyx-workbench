@@ -55,6 +55,16 @@ sim: $(VERILOG_STAMP) $(LIBCAPSTONE)
 			-LDFLAGS "$(LDFLAGS)" \
 			--build -j 0 && ./obj_dir/VTop $(ARGS) $(IMG)
 
+
+gdb: $(VERILOG_STAMP) $(LIBCAPSTONE)
+	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
+	verilator -Wall -Wno-fatal --cc -f build/filelist.f -Ibuild \
+			--top-module Top --trace --exe $(CSRCS) \
+			-CFLAGS "$(CFLAGS) -g" \
+			-LDFLAGS "$(LDFLAGS)" \
+			--build -j 0 && gdb --args ./obj_dir/VTop $(ARGS) $(IMG)
+
+
 .PHONY: test verilog help reformat checkformat clean sim
 
 -include ../Makefile

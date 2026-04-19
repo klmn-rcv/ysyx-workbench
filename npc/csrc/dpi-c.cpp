@@ -27,10 +27,16 @@ extern "C" int pmem_read(uint32_t raddr, mem_read_t read_type) {
 #endif
   // 总是读取地址为`raddr & ~0x3u`的4字节返回
   if (raddr == 0x10000004) { // 时钟低32位
+    // difftest_skip_ref();
+    difftest_skip_next_ref(); // 因为pmem_read是组合逻辑调用的，会在上一条指令退休（进入trace_and_difftest）之前就被调用，所以这里跳过下一条指令的ref检查，以抵消这个影响
+
     IFDEF(CONFIG_DTRACE, _Log("[dtrace] rtc read: addr = " FMT_PADDR ", low 32 bits\n", raddr));
     return static_cast<uint32_t>(rtc_snapshot);
   }
   if (raddr == 0x10000008) { // 时钟高32位
+    // difftest_skip_ref();
+    difftest_skip_next_ref(); // 原因同上
+
     IFDEF(CONFIG_DTRACE, _Log("[dtrace] rtc read: addr = " FMT_PADDR ", high 32 bits\n", raddr));
     auto now = std::chrono::steady_clock::now();
     rtc_snapshot = std::chrono::duration_cast<std::chrono::microseconds>(now - boot_time).count();
