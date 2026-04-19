@@ -3,7 +3,6 @@ module Halt(
     input wire [31:0] exit_pc,
     input wire halt_valid
 );
-`ifndef SYNTHESIS
     import "DPI-C" function void sim_halt(input int exit_code, input int unsigned exit_pc);
     
     always @(halt_valid) begin
@@ -11,5 +10,4 @@ module Halt(
             sim_halt(exit_code, exit_pc);
         end
     end
-`endif
 endmodule

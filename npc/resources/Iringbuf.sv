@@ -6,7 +6,6 @@ module Iringbuf (
   input wire before_ifetch,
   input wire after_ifetch
 );
-`ifndef SYNTHESIS
   import "DPI-C" function void iringbuf_before_ifetch(input int unsigned pc);
   import "DPI-C" function void iringbuf_after_ifetch(input int unsigned pc, input int unsigned inst);
 
@@ -23,5 +22,4 @@ module Iringbuf (
       end
     end
   end
-`endif
 endmodule

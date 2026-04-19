@@ -14,7 +14,6 @@ module Ftrace(
   input wire is_jal,
   input wire is_jalr
 );
-`ifndef SYNTHESIS
   import "DPI-C" function void ftrace(input int unsigned pc, input int unsigned target_pc, input byte unsigned inst_type, input int rd, input int rs1, input int imm);
 
   always @(posedge clk) begin
@@ -30,6 +29,5 @@ module Ftrace(
       end
     end
   end
-`endif
 
 endmodule

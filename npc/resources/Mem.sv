@@ -1,3 +1,9 @@
+typedef enum logic [1:0] {
+    MEM_READ_INST  = 2'd0,
+    MEM_READ_DATA  = 2'd1,
+    MEM_READ_DEBUG = 2'd2
+} mem_read_e;
+
 module Mem(
     input wire clk,
     input wire rst,
@@ -10,49 +16,35 @@ module Mem(
     input wire [31:0] wdata,
     input wire [3:0] wmask,
     output reg [31:0] rinst,
-    output reg [31:0] rdata
+    output reg [31:0] rdata   // 暂时让rdata在当前周期就能返回，不然对于单周期CPU来说太麻烦
 );
-    localparam BASE_ADDR = 32'h8000_0000;
-    localparam MEM_DEPTH = 256;
-
-    reg [31:0] imem [0:MEM_DEPTH - 1];
-    reg [31:0] dmem [0:MEM_DEPTH - 1];
-    integer i;
-
-    wire [31:0] inst_off  = pc - BASE_ADDR;
-    wire [31:0] rdata_off = raddr - BASE_ADDR;
-    wire [31:0] wdata_off = waddr - BASE_ADDR;
-    wire [7:0] inst_idx  = inst_off[9:2];
-    wire [7:0] rdata_idx = rdata_off[9:2];
-    wire [7:0] wdata_idx = wdata_off[9:2];
+    import "DPI-C" function int pmem_read(input int unsigned raddr, input byte read_type);
+    import "DPI-C" function void pmem_write(input int unsigned waddr, input int wdata, input byte unsigned wmask);
+    // reg [31:0] rdata;
 
     always @(posedge clk) begin
         if(rst) begin
             rinst <= 0;
-            for (i = 0; i < MEM_DEPTH; i = i + 1) begin
-                imem[i] <= BASE_ADDR + (i << 2);
-                dmem[i] <= BASE_ADDR + (i << 2);
-            end
+            // rdata <= 0;
         end
         else begin
-            if(inst_req_valid) begin
-                rinst <= imem[inst_idx];
+            if(inst_req_valid) begin // 有读指令请求时
+                rinst <= pmem_read(pc, MEM_READ_INST); // 读指令时read_type为MEM_READ_INST
             end
-            if (data_req_valid && wen) begin
-                if (wmask[0]) dmem[wdata_idx][ 7: 0] <= wdata[ 7: 0];
-                if (wmask[1]) dmem[wdata_idx][15: 8] <= wdata[15: 8];
-                if (wmask[2]) dmem[wdata_idx][23:16] <= wdata[23:16];
-                if (wmask[3]) dmem[wdata_idx][31:24] <= wdata[31:24];
+            if (data_req_valid) begin // 有读写数据请求时
+                if (wen) begin // 有写请求时
+                    pmem_write(waddr, wdata, wmask);
+                end
             end
         end
     end
 
     always @(*) begin
         if(data_req_valid && !wen) begin
-            rdata = dmem[rdata_idx];
+            rdata = pmem_read(raddr, MEM_READ_DATA); // 读数据时read_type为MEM_READ_DATA
         end
         else begin
-            rdata = 0;
+            rdata = 0; // 没有数据请求时，rdata输出0，避免多余的DPI调用导致内存地址越界访问
         end
     end
 endmodule

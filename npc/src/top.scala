@@ -4,17 +4,17 @@ import chisel3._
 import chisel3.util._
 
 class Top extends Module {
-    val io = IO(new Bundle {
-        val pc = Output(UInt(32.W))
-        val raddr = Output(UInt(32.W))
-        val waddr = Output(UInt(32.W))
-        val wdata = Output(UInt(32.W))
-        val wmask = Output(UInt(4.W))
-        val data_req_valid = Output(Bool())
-        val wen = Output(Bool())
-        val rinst = Output(UInt(32.W))
-        val rdata = Output(UInt(32.W))
-    })
+    // val io = IO(new Bundle {
+    //     val pc = Output(UInt(32.W))
+    //     val raddr = Output(UInt(32.W))
+    //     val waddr = Output(UInt(32.W))
+    //     val wdata = Output(UInt(32.W))
+    //     val wmask = Output(UInt(4.W))
+    //     val data_req_valid = Output(Bool())
+    //     val wen = Output(Bool())
+    //     val rinst = Output(UInt(32.W))
+    //     val rdata = Output(UInt(32.W))
+    // })
 
     val core = Module(new CPU)
     val mem = Module(new _root_.cpu.Mem)
@@ -33,13 +33,13 @@ class Top extends Module {
     core.io.in.rinst := mem.rinst
     core.io.in.rdata := mem.rdata
 
-    io.pc := core.io.out.pc
-    io.raddr := core.io.out.raddr
-    io.waddr := core.io.out.waddr
-    io.wdata := core.io.out.wdata
-    io.wmask := core.io.out.wmask
-    io.data_req_valid := core.io.out.data_req_valid
-    io.wen := core.io.out.wen
-    io.rinst := mem.rinst
-    io.rdata := mem.rdata
+    // io.pc := core.io.out.pc
+    // io.raddr := core.io.out.raddr
+    // io.waddr := core.io.out.waddr
+    // io.wdata := core.io.out.wdata
+    // io.wmask := core.io.out.wmask
+    // io.data_req_valid := core.io.out.data_req_valid
+    // io.wen := core.io.out.wen
+    // io.rinst := mem.rinst
+    // io.rdata := mem.rdata
 }
