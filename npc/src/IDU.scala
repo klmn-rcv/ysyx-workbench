@@ -94,7 +94,7 @@ class IDU extends Module {
     io.out.bits.bit_width := bitWidth
     io.out.bits.sign := sign
 
-    io.ctrl.jump_valid := funcType === FuncType.jplk
+    io.ctrl.jump_valid := funcType === FuncType.jplk && io.in.valid
     io.ctrl.jump_target := Mux(
         instType === InstType.J,
         io.in.bits.pc + imm,

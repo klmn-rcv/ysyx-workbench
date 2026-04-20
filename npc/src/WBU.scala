@@ -30,8 +30,8 @@ class WBU extends Module {
     io.rf.wb_we := io.in.bits.wr_reg
     io.rf.wb_addr := io.in.bits.rd
     io.csr.csrReq := io.in.bits.csrReq
-    io.csr.mret := io.in.bits.mret
-    io.csr.wb_ex := false.B
+    io.csr.mret := io.in.bits.mret && io.in.valid
+    io.csr.wb_ex := false.B && io.in.valid
     io.csr.wb_cause := 0.U
     io.csr.wb_pc := 0.U
 
@@ -44,7 +44,7 @@ class WBU extends Module {
     }
 
     when(io.in.bits.ecall) {
-        io.csr.wb_ex := true.B
+        io.csr.wb_ex := io.in.valid
         io.csr.wb_cause := wb_cause
         io.csr.wb_pc := io.in.bits.pc
     }
