@@ -20,12 +20,11 @@ module Mem(
 );
     import "DPI-C" function int pmem_read(input int unsigned raddr, input byte read_type);
     import "DPI-C" function void pmem_write(input int unsigned waddr, input int wdata, input byte unsigned wmask);
-    // reg [31:0] rdata;
 
     always @(posedge clk) begin
         if(rst) begin
             rinst <= 0;
-            // rdata <= 0;
+            rdata <= 0;
         end
         else begin
             if(inst_req_valid) begin // 有读指令请求时
@@ -35,16 +34,19 @@ module Mem(
                 if (wen) begin // 有写请求时
                     pmem_write(waddr, wdata, wmask);
                 end
+                else begin // 有读请求时
+                    rdata <= pmem_read(raddr, MEM_READ_DATA); // 读数据时read_type为MEM_READ_DATA
+                end
             end
         end
     end
 
-    always @(*) begin
-        if(data_req_valid && !wen) begin
-            rdata = pmem_read(raddr, MEM_READ_DATA); // 读数据时read_type为MEM_READ_DATA
-        end
-        else begin
-            rdata = 0; // 没有数据请求时，rdata输出0，避免多余的DPI调用导致内存地址越界访问
-        end
-    end
+    // always @(*) begin
+    //     if(data_req_valid && !wen) begin
+    //         rdata = pmem_read(raddr, MEM_READ_DATA); // 读数据时read_type为MEM_READ_DATA
+    //     end
+    //     else begin
+    //         rdata = 0; // 没有数据请求时，rdata输出0，避免多余的DPI调用导致内存地址越界访问
+    //     end
+    // end
 endmodule

@@ -63,20 +63,20 @@ static void init_sim() {
   top->clock = 0;
   top->reset = 0;
 
-  // Run one cycle after releasing reset so the IFU updates PC to the
-  // first valid instruction address before interactive execution starts.
-  top->clock = 0;
-  top->eval();
-#ifdef CONFIG_GEN_WAVE
-  tfp->dump(sim_time++);
-#endif
+//   // Run one cycle after releasing reset so the IFU updates PC to the
+//   // first valid instruction address before interactive execution starts.
+//   top->clock = 0;
+//   top->eval();
+// #ifdef CONFIG_GEN_WAVE
+//   tfp->dump(sim_time++);
+// #endif
 
-  top->clock = 1;
-  top->eval();
-#ifdef CONFIG_GEN_WAVE
-  tfp->dump(sim_time++);
-#endif
-  npc_state.cycles++;
+//   top->clock = 1;
+//   top->eval();
+// #ifdef CONFIG_GEN_WAVE
+//   tfp->dump(sim_time++);
+// #endif
+//   npc_state.cycles++;
 }
 
 static void parse_args(int argc, char** argv) {

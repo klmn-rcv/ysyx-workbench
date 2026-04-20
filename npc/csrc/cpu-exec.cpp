@@ -18,9 +18,10 @@
  */
 #define MAX_INST_TO_PRINT 10
 
-uint64_t g_nr_inst = 0;
+static uint64_t g_nr_inst = 0;
 static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
+uint64_t g_nr_commit = 0;
 
 Inst s;
 
@@ -73,8 +74,15 @@ static void cycle_once() {
 
 static void exec_once() {
 
-  cycle_once();
-  npc_state.cycles++;
+  // cycle_once();
+  // npc_state.cycles++;
+
+  uint64_t commit_begin = g_nr_commit;
+
+  while (g_nr_commit == commit_begin && npc_state.state == NPC_RUNNING) {
+    cycle_once();
+    npc_state.cycles++;
+  }
 
 #ifdef CONFIG_ITRACE
   char *p = s.logbuf;

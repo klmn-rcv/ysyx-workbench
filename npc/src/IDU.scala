@@ -5,9 +5,9 @@ import chisel3.util._
 
 class IDU extends Module {
     val io = IO(new Bundle {
-        val in = Flipped(Decoupled(new IFUOut))
+        val in = Flipped(Decoupled(new IWUOut))
         val out = Decoupled(new IDUOut)
-        val inst = Input(UInt(32.W))   // 等到改为pipeline，这个inst信号就可以删掉了，直接从io.in.bits.inst里取
+        // val inst = Input(UInt(32.W))   // 等到改为pipeline，这个inst信号就可以删掉了，直接从io.in.bits.inst里取
         val rf = new Bundle {
             val rs1 = Output(UInt(5.W))
             val rs2 = Output(UInt(5.W))
@@ -18,14 +18,24 @@ class IDU extends Module {
             val jump_valid = Output(Bool())
             val jump_target = Output(UInt(32.W))
         }
+        val raw_info = new Bundle {
+            val needRs1 = Output(Bool())
+            val needRs2 = Output(Bool())
+            val isRAW = Input(Bool())
+        }
+        val flush = new Bundle {
+            val br_taken = Input(Bool())
+        }
     })
+    val br_flush = io.flush.br_taken
+    val flush = br_flush
 
-    val ready_go = true.B
+    val ready_go = !io.in.valid || !io.raw_info.isRAW
     io.in.ready := !reset.asBool && (!io.in.valid || ready_go && io.out.ready)
-    io.out.valid := io.in.valid && ready_go
+    io.out.valid := io.in.valid && ready_go && !flush
 
     val default = List(InstType.N, FuncType.inv, ALUOp.add, BitWidth.w32, Sign.signed)
-    val decoded = ListLookup(io.inst, default, RISCV32EInsts.table)
+    val decoded = ListLookup(io.in.bits.inst, default, RISCV32EInsts.table)
 
     val (instType, _)   = InstType.safe(decoded(0).asUInt)
     val (funcType, _)   = FuncType.safe(decoded(1).asUInt)
@@ -35,21 +45,23 @@ class IDU extends Module {
 
     val (needRs1, needRs2, needImm, needRd) = DecodePolicy.regUsage(instType)
 
-    // printf("inst: %x, needRs1: %b, needRs2: %b, needImm: %b, needRd: %b\n", io.inst, needRs1, needRs2, needImm, needRd)
+    // printf("inst: %x, needRs1: %b, needRs2: %b, needImm: %b, needRd: %b\n", io.in.bits.inst, needRs1, needRs2, needImm, needRd)
 
-    val rs1 = io.inst(19, 15)
-    val rs2 = io.inst(24, 20)
-    val rd = io.inst(11, 7)
+    val rs1 = io.in.bits.inst(19, 15)
+    val rs2 = io.in.bits.inst(24, 20)
+    val rd = io.in.bits.inst(11, 7)
 
-    val imm = DecodePolicy.immExtract(instType, io.inst)
+    val imm = DecodePolicy.immExtract(instType, io.in.bits.inst)
 
-    // io.inst_type := instType
+    // io.in.bits.inst_type := instType
     // io.func_type := funcType
     io.out.bits.alu_op := aluOp
 
     io.rf.rs1 := rs1
     io.rf.rs2 := rs2
     io.out.bits.rd := rd
+    io.raw_info.needRs1 := needRs1
+    io.raw_info.needRs2 := needRs2
 
     when(funcType === FuncType.ebreak) {
         io.rf.rs1 := 10.U
@@ -65,7 +77,7 @@ class IDU extends Module {
     
     io.out.bits.src1 := src1
     io.out.bits.src2 := src2
-    io.out.bits.reg_data2 := io.rf.rdata2
+    io.out.bits.rs2_data := io.rf.rdata2
     when(funcType === FuncType.jplk) {
         io.out.bits.src1 := io.in.bits.pc
         io.out.bits.src2 := 4.U
@@ -92,14 +104,14 @@ class IDU extends Module {
     io.out.bits.br_target := io.in.bits.pc + imm
     io.out.bits.br_valid := funcType === FuncType.br
     io.out.bits.br_expect_0 := (funcType === FuncType.br) &&
-        ((io.inst(14, 12) === "b000".U) || (io.inst(14, 12) === "b101".U) || (io.inst(14, 12) === "b111".U))
+        ((io.in.bits.inst(14, 12) === "b000".U) || (io.in.bits.inst(14, 12) === "b101".U) || (io.in.bits.inst(14, 12) === "b111".U))
 
     // printf("src1: %x, imm: %x, bj_valid: %b, bj_pc: %x\n", src1, imm, io.bj_valid, io.bj_pc)
 
     io.out.bits.ebreak := funcType === FuncType.ebreak
     io.out.bits.inv := io.in.valid && funcType === FuncType.inv
 
-    io.out.bits.inst := io.inst
+    io.out.bits.inst := io.in.bits.inst
     io.out.bits.pc := io.in.bits.pc
     io.out.bits.dnpc := io.in.bits.dnpc
     // CSR指令相关译码信号
@@ -108,13 +120,13 @@ class IDU extends Module {
     io.out.bits.csrReq.we := false.B
     io.out.bits.csrReq.wmask := 0.U
     io.out.bits.csrReq.wvalue := 0.U
-    val csr_src1 = Mux(io.inst(14) === 0.U, io.rf.rdata1, Cat(0.U(27.W), io.inst(19, 15)))  // io.inst(19, 15) is uimm, zero-extend to 32 bits
-    val csr_sc_we = Mux(io.inst(19, 15) === 0.U, false.B, true.B)
+    val csr_src1 = Mux(io.in.bits.inst(14) === 0.U, io.rf.rdata1, Cat(0.U(27.W), io.in.bits.inst(19, 15)))  // io.in.bits.inst(19, 15) is uimm, zero-extend to 32 bits
+    val csr_sc_we = Mux(io.in.bits.inst(19, 15) === 0.U, false.B, true.B)
 
     when(funcType === FuncType.csr) {
-        io.out.bits.csrReq.addr := io.inst(31, 20)
+        io.out.bits.csrReq.addr := io.in.bits.inst(31, 20)
         io.out.bits.csrReq.re := true.B
-        switch(io.inst(13, 12)) {
+        switch(io.in.bits.inst(13, 12)) {
             is("b01".U) {
                 io.out.bits.csrReq.we := true.B
                 io.out.bits.csrReq.wvalue := csr_src1
@@ -136,15 +148,7 @@ class IDU extends Module {
     io.out.bits.ecall := funcType === FuncType.ecall
     io.out.bits.mret := funcType === FuncType.mret
 
-    // trace
-    val iringbuf = Module(new Iringbuf)
-    iringbuf.clk := clock
-    iringbuf.rst := reset
-    iringbuf.pc := io.in.bits.pc
-    iringbuf.inst := io.inst
-    iringbuf.before_ifetch := false.B
-    iringbuf.after_ifetch := io.in.valid
-
+    // trace（TODO：由于流水线阻塞的存在，ftrace内现有函数可能会被多次调用，需要改！！）
     val ftrace = Module(new Ftrace)
     ftrace.clk := clock
     ftrace.rst := reset

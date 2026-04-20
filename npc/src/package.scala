@@ -218,7 +218,11 @@ package object cpu {
     }
 
     class IFUOut extends Bundle {
-        // val inst = UInt(32.W)  // 改为pipeline后取消注释
+        val dnpc = UInt(32.W)
+    }
+
+    class IWUOut extends Bundle {
+        val inst = UInt(32.W)
         val pc = UInt(32.W)
         val dnpc = UInt(32.W)
     }
@@ -228,7 +232,7 @@ package object cpu {
         val rd = UInt(5.W)
         val src1 = UInt(32.W)
         val src2 = UInt(32.W)
-        val reg_data2 = UInt(32.W)
+        val rs2_data = UInt(32.W)  // 对于store指令，IDU需要把rdata2的数据传给EXU，以便EXU计算出要写入内存的数据
         val wr_reg = Bool()
         val rd_mem = Bool()
         val wr_mem = Bool()
@@ -249,7 +253,7 @@ package object cpu {
 
     class EXUOut extends Bundle {
         val result = UInt(32.W)
-        val reg_data2 = UInt(32.W)
+        val rs2_data = UInt(32.W)
         val wr_reg = Bool()
         val rd = UInt(5.W)
         val rd_mem = Bool()
@@ -266,7 +270,26 @@ package object cpu {
         val mret = Bool()
     }
 
-    class LSUOut extends Bundle {
+    class LSAUOut extends Bundle {
+        // val wr_data = UInt(32.W)  // 对于store指令，LSAU需要把要写入内存的数据传给LSDU，LSDU再把它写入内存（等改为支持AXI总线的内存再取消注释）
+        val raddr = UInt(32.W)      // 为了LSDU提取load得到的数据
+        val bit_width = BitWidth()  // 为了LSDU提取load得到的数据
+        val sign = Sign()           // 为了LSDU提取load得到的数据
+        val rd_mem = Bool()         // 为了LSDU判断应该用什么数据（loadData还是ALU的结果）写回寄存器
+        val result = UInt(32.W)     // 如果不是访存指令，需要写回ALU的结果
+        val wr_reg = Bool()
+        val rd = UInt(5.W)
+        val ebreak = Bool()
+        val inv = Bool()
+        val inst = UInt(32.W)
+        val pc = UInt(32.W)
+        val dnpc = UInt(32.W)
+        val csrReq = new CSRReq
+        val ecall = Bool()
+        val mret = Bool()
+    }
+
+    class LSDUOut extends Bundle {
         val data = UInt(32.W)
         val wr_reg = Bool()
         val rd = UInt(5.W)
@@ -280,4 +303,59 @@ package object cpu {
         val mret = Bool()
     }
 
+    object AXI4Resp {
+        val OKAY = 0.U(2.W)     // 正常访问成功
+        val EXOKAY = 1.U(2.W)   // 独占访问成功（在AXI4Lite中不支持）
+        val SLVERR = 2.U(2.W)   // 从设备错误，表示从设备虽然正确接收了请求，但返回了一个错误状态
+        val DECERR = 3.U(2.W)   // 解码错误，表示主设备发出了一个没有从设备映射的非法地址
+    }
+
+    class AXI4Lite(awidth: Int, dwidth: Int) extends Bundle {  // Master interface
+        // AR
+        val araddr = Output(UInt(awidth.W))
+        val arvalid = Output(Bool())
+        val arready = Input(Bool())
+
+        // R
+        val rdata = Input(UInt(dwidth.W))
+        val rresp = Input(UInt(2.W))
+        val rvalid = Input(Bool())
+        val rready = Output(Bool())
+
+        // AW
+        val awaddr = Output(UInt(awidth.W))
+        val awvalid = Output(Bool())
+        val awready = Input(Bool())
+
+        // W
+        val wdata = Output(UInt(dwidth.W))
+        val wstrb = Output(UInt(4.W))
+        val wvalid = Output(Bool())
+        val wready = Input(Bool())
+
+        // B
+        val bresp = Input(UInt(2.W))
+        val bvalid = Input(Bool())
+        val bready = Output(Bool())
+    }
+
+    // pipeline RAW hazard
+    class RAWHazardInfo extends Bundle {
+        val valid  = Bool()
+        val wr_reg = Bool()
+        val rd     = UInt(5.W)
+    }
+
+    def RAWConflict(rs: UInt, rd: UInt): Bool = rs =/= 0.U && rd =/= 0.U && rs === rd
+
+    def RAWConflictWithStage(
+        rs1: UInt, useRs1: Bool,
+        rs2: UInt, useRs2: Bool,
+        stageHazardInfo: RAWHazardInfo
+    ): Bool = {
+        stageHazardInfo.valid && stageHazardInfo.wr_reg && (
+        (useRs1 && RAWConflict(rs1, stageHazardInfo.rd)) ||
+        (useRs2 && RAWConflict(rs2, stageHazardInfo.rd))
+        )
+    }
 }

@@ -27,7 +27,7 @@ class EXU extends Module {
     io.ctrl.br_target := io.in.bits.br_target
 
     io.out.bits.result := alu.io.out.result
-    io.out.bits.reg_data2 := io.in.bits.reg_data2
+    io.out.bits.rs2_data := io.in.bits.rs2_data
 
     io.out.bits.wr_reg := io.in.bits.wr_reg
     io.out.bits.rd := io.in.bits.rd

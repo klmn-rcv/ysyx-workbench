@@ -39,7 +39,7 @@ word_t get_gpr(int i) {
 }
 
 word_t get_pc() {
-  return (word_t)top->rootp->Top__DOT__core__DOT__ifu__DOT__pc_reg;
+  return (word_t)top->rootp->Top__DOT__core__DOT__ifu__DOT__io_out_bypass_pc_r;
 }
 
 word_t get_csr(int i) {

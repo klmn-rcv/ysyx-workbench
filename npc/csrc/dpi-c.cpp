@@ -1,6 +1,7 @@
 #include <chrono>
 #include <cstdint>
 #include "common.h"
+#include "cpu-exec.h"
 #include "dpi-c.h"
 #include "sim.h"
 #include "state.h"
@@ -99,6 +100,7 @@ extern "C" void itrace(uint32_t pc, uint32_t inst, uint32_t dnpc) {
   s.inst = inst;
   s.pc = pc;
   s.dnpc = dnpc;
+  g_nr_commit++;
 }
 
 extern "C" void iringbuf_before_ifetch(uint32_t pc) {

@@ -50,24 +50,28 @@ class CPU extends Module {
     })
 
     val ifu = Module(new IFU)
+    val iwu = Module(new IWU)
     val idu = Module(new IDU)
     val exu = Module(new EXU)
-    val lsu = Module(new LSU)
+    val lsau = Module(new LSAU)
+    val lsdu = Module(new LSDU)
     val wbu = Module(new WBU)
     val regfile = Module(new regfile)
     val csr = Module(new CSR)
 
-    val arch = "single"  // 单周期
+    val arch = "pipeline"  // 单周期
+    
+    val isRAW = Wire(Bool())
 
     // CPU core's output
-    io.out.inst_req_valid := true.B
-    io.out.data_req_valid := lsu.io.mem.data_req_valid
-    io.out.wen := lsu.io.mem.wen
+    io.out.inst_req_valid := ifu.io.mem.inst_req_valid
+    io.out.data_req_valid := lsau.io.mem.data_req_valid
+    io.out.wen := lsau.io.mem.wen
     io.out.pc := ifu.io.out.bits.dnpc
-    io.out.raddr := lsu.io.mem.raddr
-    io.out.waddr := lsu.io.mem.waddr
-    io.out.wdata := lsu.io.mem.wdata
-    io.out.wmask := lsu.io.mem.wmask
+    io.out.raddr := lsau.io.mem.raddr
+    io.out.waddr := lsau.io.mem.waddr
+    io.out.wdata := lsau.io.mem.wdata
+    io.out.wmask := lsau.io.mem.wmask
 
     // CSR's input
     csr.io.in.req := wbu.io.csr.csrReq
@@ -80,6 +84,7 @@ class CPU extends Module {
     regfile.io.in.wdata := wbu.io.rf.wb_data
 
     // IFU's input
+    // ifu.io.in.inst := io.in.rinst
     ifu.io.ctrl.ex_redirect_valid := csr.io.out.redirect_valid
     ifu.io.ctrl.ex_redirect_target := csr.io.out.redirect_target
     ifu.io.ctrl.jump_valid := idu.io.ctrl.jump_valid
@@ -87,21 +92,34 @@ class CPU extends Module {
     ifu.io.ctrl.br_taken := exu.io.ctrl.br_taken
     ifu.io.ctrl.br_target := exu.io.ctrl.br_target
 
+    // IWU's input
+    StageConnect(ifu.io.out, iwu.io.in, arch)
+    iwu.io.in_bypass.pc := ifu.io.out_bypass.pc
+    iwu.io.mem.rinst := io.in.rinst
+    iwu.io.flush.br_taken := exu.io.ctrl.br_taken
+    iwu.io.flush.jump_valid := idu.io.ctrl.jump_valid
+
     // IDU's input
-    StageConnect(ifu.io.out, idu.io.in, arch)
-    idu.io.inst := io.in.rinst
+    StageConnect(iwu.io.out, idu.io.in, arch)
+    // idu.io.inst := io.in.rinst
     idu.io.rf.rdata1 := regfile.io.out.rdata1
     idu.io.rf.rdata2 := regfile.io.out.rdata2
+    idu.io.raw_info.isRAW := isRAW
+    idu.io.flush.br_taken := exu.io.ctrl.br_taken
 
     // EXU's input
     StageConnect(idu.io.out, exu.io.in, arch)
 
-    // LSU's input
-    StageConnect(exu.io.out, lsu.io.in, arch)
-    lsu.io.mem.rdata := io.in.rdata
+    // LSAU's input
+    StageConnect(exu.io.out, lsau.io.in, arch)
+    // lsau.io.mem.rdata := io.in.rdata
+
+    // LSDU's input
+    StageConnect(lsau.io.out, lsdu.io.in, arch)
+    lsdu.io.mem.rdata := io.in.rdata
 
     // WBU's input
-    StageConnect(lsu.io.out, wbu.io.in, arch)
+    StageConnect(lsdu.io.out, wbu.io.in, arch)
     wbu.io.csr.priv := csr.io.out.priv
     wbu.io.csr.csrResp := csr.io.out.resp
 
@@ -109,4 +127,27 @@ class CPU extends Module {
     csr.io.in.wb_cause := wbu.io.csr.wb_cause
     csr.io.in.wb_pc := wbu.io.csr.wb_pc
     csr.io.in.mret := wbu.io.csr.mret
+
+
+    // pipeline RAW hazard
+    val exuHazardInfo = Wire(new RAWHazardInfo)
+    exuHazardInfo.valid := exu.io.in.valid
+    exuHazardInfo.wr_reg := exu.io.in.bits.wr_reg
+    exuHazardInfo.rd := exu.io.in.bits.rd
+    val lsauHazardInfo = Wire(new RAWHazardInfo)
+    lsauHazardInfo.valid := lsau.io.in.valid
+    lsauHazardInfo.wr_reg := lsau.io.in.bits.wr_reg
+    lsauHazardInfo.rd := lsau.io.in.bits.rd
+    val lsduHazardInfo = Wire(new RAWHazardInfo)
+    lsduHazardInfo.valid := lsdu.io.in.valid
+    lsduHazardInfo.wr_reg := lsdu.io.in.bits.wr_reg
+    lsduHazardInfo.rd := lsdu.io.in.bits.rd
+    val wbuHazardInfo = Wire(new RAWHazardInfo)
+    wbuHazardInfo.valid := wbu.io.in.valid
+    wbuHazardInfo.wr_reg := wbu.io.in.bits.wr_reg
+    wbuHazardInfo.rd := wbu.io.in.bits.rd
+    isRAW := RAWConflictWithStage(idu.io.rf.rs1, idu.io.raw_info.needRs1, idu.io.rf.rs2, idu.io.raw_info.needRs2, exuHazardInfo) ||
+             RAWConflictWithStage(idu.io.rf.rs1, idu.io.raw_info.needRs1, idu.io.rf.rs2, idu.io.raw_info.needRs2, lsauHazardInfo) ||
+             RAWConflictWithStage(idu.io.rf.rs1, idu.io.raw_info.needRs1, idu.io.rf.rs2, idu.io.raw_info.needRs2, lsduHazardInfo) ||
+             RAWConflictWithStage(idu.io.rf.rs1, idu.io.raw_info.needRs1, idu.io.rf.rs2, idu.io.raw_info.needRs2, wbuHazardInfo)
 }

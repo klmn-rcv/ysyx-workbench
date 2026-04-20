@@ -5,7 +5,7 @@ import chisel3.util._
 
 class WBU extends Module {
     val io = IO(new Bundle {
-        val in = Flipped(Decoupled(new LSUOut))
+        val in = Flipped(Decoupled(new LSDUOut))
         val csr = new Bundle {
             val priv = Input(UInt(2.W))
             val csrReq = Output(new CSRReq)
@@ -55,13 +55,13 @@ class WBU extends Module {
     halt.exit_pc := io.in.bits.pc
     halt.halt_valid := io.in.bits.ebreak || io.in.bits.inv
 
-    val reset_reg = RegInit(true.B)
-    reset_reg := reset
+    // val reset_reg = RegInit(true.B)
+    // reset_reg := reset
 
     val itrace = Module(new Itrace)
     itrace.clk := clock
     itrace.rst := reset
-    itrace.valid := !reset_reg
+    itrace.valid := io.in.valid
     itrace.pc := io.in.bits.pc
     itrace.inst := io.in.bits.inst
     itrace.dnpc := io.in.bits.dnpc
