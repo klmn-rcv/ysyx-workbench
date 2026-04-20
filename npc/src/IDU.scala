@@ -25,14 +25,17 @@ class IDU extends Module {
         }
         val flush = new Bundle {
             val br_taken = Input(Bool())
+            val flush = Output(Bool())
         }
     })
     val br_flush = io.flush.br_taken
     val flush = br_flush
+    io.flush.flush := flush
 
-    val ready_go = !io.in.valid || !io.raw_info.isRAW
-    io.in.ready := !reset.asBool && (!io.in.valid || ready_go && io.out.ready)
-    io.out.valid := io.in.valid && ready_go && !flush
+    val valid = io.in.valid && !flush   // 这里的flush也需要持久化
+    val ready_go = !valid || !io.raw_info.isRAW
+    io.in.ready := !reset.asBool && (!valid || ready_go && io.out.ready)
+    io.out.valid := valid && ready_go
 
     val default = List(InstType.N, FuncType.inv, ALUOp.add, BitWidth.w32, Sign.signed)
     val decoded = ListLookup(io.in.bits.inst, default, RISCV32EInsts.table)
@@ -94,7 +97,7 @@ class IDU extends Module {
     io.out.bits.bit_width := bitWidth
     io.out.bits.sign := sign
 
-    io.ctrl.jump_valid := funcType === FuncType.jplk && io.in.valid
+    io.ctrl.jump_valid := funcType === FuncType.jplk && valid
     io.ctrl.jump_target := Mux(
         instType === InstType.J,
         io.in.bits.pc + imm,
@@ -109,7 +112,7 @@ class IDU extends Module {
     // printf("src1: %x, imm: %x, bj_valid: %b, bj_pc: %x\n", src1, imm, io.bj_valid, io.bj_pc)
 
     io.out.bits.ebreak := funcType === FuncType.ebreak
-    io.out.bits.inv := io.in.valid && funcType === FuncType.inv
+    io.out.bits.inv := funcType === FuncType.inv // && io.in.valid
 
     io.out.bits.inst := io.in.bits.inst
     io.out.bits.pc := io.in.bits.pc

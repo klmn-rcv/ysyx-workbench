@@ -4,7 +4,7 @@ import chisel3._
 import chisel3.util._
 
 object StageConnect {
-    def apply[T <: Data](left: DecoupledIO[T], right: DecoupledIO[T], arch: String = "pipeline"): Unit = {
+    def apply[T <: Data](left: DecoupledIO[T], right: DecoupledIO[T], arch: String = "pipeline", flush: Bool = false.B): Unit = {
         arch match {
             case "single" =>
                 right.bits  := left.bits
@@ -19,8 +19,16 @@ object StageConnect {
             case "pipeline" =>
                 left.ready := right.ready
 
-                val validReg = RegEnable(left.valid, false.B, left.ready)
+                val flush_preserved = RegInit(false.B)
+                val validReg = RegInit(false.B)
                 val bitsReg  = RegEnable(left.bits, 0.U.asTypeOf(chiselTypeOf(left.bits)), left.fire)
+
+                val flush_preserved_nxt = Mux(left.fire, false.B, flush || flush_preserved)
+                flush_preserved := flush_preserved_nxt
+
+                when(left.ready) {
+                    validReg := left.valid && !flush_preserved_nxt
+                }
 
                 right.valid := validReg
                 right.bits  := bitsReg
@@ -93,14 +101,14 @@ class CPU extends Module {
     ifu.io.ctrl.br_target := exu.io.ctrl.br_target
 
     // IWU's input
-    StageConnect(ifu.io.out, iwu.io.in, arch)
+    StageConnect(ifu.io.out, iwu.io.in, arch, iwu.io.flush.flush)
     iwu.io.in_bypass.pc := ifu.io.out_bypass.pc
     iwu.io.mem.rinst := io.in.rinst
     iwu.io.flush.br_taken := exu.io.ctrl.br_taken
     iwu.io.flush.jump_valid := idu.io.ctrl.jump_valid
 
     // IDU's input
-    StageConnect(iwu.io.out, idu.io.in, arch)
+    StageConnect(iwu.io.out, idu.io.in, arch, idu.io.flush.flush)
     // idu.io.inst := io.in.rinst
     idu.io.rf.rdata1 := regfile.io.out.rdata1
     idu.io.rf.rdata2 := regfile.io.out.rdata2

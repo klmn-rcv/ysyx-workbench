@@ -16,6 +16,7 @@ class IWU extends Module {
         val flush = new Bundle {
             val br_taken = Input(Bool())
             val jump_valid = Input(Bool())
+            val flush = Output(Bool())
         }
     })
 
@@ -26,11 +27,13 @@ class IWU extends Module {
     val br_flush = io.flush.br_taken
     val jump_flush = io.flush.jump_valid && !io.flush.br_taken  // br_taken是EXU的输出，jump_valid是IDU的输出，所以如果两者同时为true，则EXU的分支指令优先级更高（因为它更老）
     val flush = br_flush || jump_flush
+    io.flush.flush := flush
 
-    // val ready_go = !io.in.valid || flush || ...
+    val valid = io.in.valid && !flush   // 这里的flush也需要持久化
+    // val ready_go = !valid || flush || ...
     val ready_go = true.B
-    io.in.ready := !reset.asBool && (!io.in.valid || ready_go && io.out.ready)
-    io.out.valid := io.in.valid && ready_go && !flush
+    io.in.ready := !reset.asBool && (!valid || ready_go && io.out.ready)
+    io.out.valid := valid && ready_go
 
     io.out.bits.inst := io.mem.rinst
     io.out.bits.pc := io.in_bypass.pc
@@ -43,5 +46,5 @@ class IWU extends Module {
     iringbuf.pc := io.in_bypass.pc
     iringbuf.inst := io.mem.rinst
     iringbuf.before_ifetch := false.B
-    iringbuf.after_ifetch := io.in.valid
+    iringbuf.after_ifetch := io.out.fire
 }
