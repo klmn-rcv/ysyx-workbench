@@ -18,9 +18,10 @@ class LSAU extends Module {
         }
     })
 
+    val valid = io.in.valid // && !flush   // 这里的flush也需要持久化
     val ready_go = true.B   // 目前的内存收到地址的下一周期就能返回数据，所以LSAU可以一直发地址请求
-    io.in.ready := !reset.asBool && (!io.in.valid || ready_go && io.out.ready)
-    io.out.valid := io.in.valid && ready_go
+    io.in.ready := !reset.asBool && (!valid || ready_go && io.out.ready)
+    io.out.valid := valid && ready_go
 
     io.mem.data_req_valid := io.in.bits.rd_mem || io.in.bits.wr_mem
     io.mem.wen := io.in.bits.wr_mem

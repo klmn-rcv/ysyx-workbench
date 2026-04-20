@@ -11,7 +11,7 @@ package object cpu {
     }
 
     object FuncType extends ChiselEnum {
-        val alu, ld, st, br, jump, jplk, auipc, ebreak, csr, ecall, mret, inv = Value     // jplk: jump and link
+        val alu, ld, st, br, jplk, auipc, ebreak, csr, ecall, mret, inv = Value     // jplk: jump and link
     }
 
     object BitWidth extends ChiselEnum {

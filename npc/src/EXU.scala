@@ -13,9 +13,10 @@ class EXU extends Module {
         }
     })
 
+    val valid = io.in.valid // && !flush   // 这里的flush也需要持久化
     val ready_go = true.B
-    io.in.ready := !reset.asBool && (!io.in.valid || ready_go && io.out.ready)
-    io.out.valid := io.in.valid && ready_go
+    io.in.ready := !reset.asBool && (!valid || ready_go && io.out.ready)
+    io.out.valid := valid && ready_go
 
     val alu = Module(new ALU)
     alu.io.in.src1 := io.in.bits.src1
@@ -23,7 +24,7 @@ class EXU extends Module {
     alu.io.in.op := io.in.bits.alu_op
 
     val br_alu_zero = alu.io.out.result === 0.U
-    io.ctrl.br_taken := io.in.bits.br_valid && (br_alu_zero === io.in.bits.br_expect_0) && io.in.valid
+    io.ctrl.br_taken := io.in.bits.br_valid && (br_alu_zero === io.in.bits.br_expect_0) && io.out.valid
     io.ctrl.br_target := io.in.bits.br_target
 
     io.out.bits.result := alu.io.out.result

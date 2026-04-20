@@ -14,9 +14,10 @@ class LSDU extends Module {
         }
     })
 
+    val valid = io.in.valid // && !flush   // 这里的flush也需要持久化
     val ready_go = true.B   // 目前的内存收到地址的下一周期就能返回数据，所以LSDU可以一直收到数据
-    io.in.ready := !reset.asBool && (!io.in.valid || ready_go && io.out.ready)
-    io.out.valid := io.in.valid && ready_go
+    io.in.ready := !reset.asBool && (!valid || ready_go && io.out.ready)
+    io.out.valid := valid && ready_go
 
     val loadData = ExtractLoadData(io.mem.rdata, io.in.bits.raddr, io.in.bits.bit_width, io.in.bits.sign)
     io.out.bits.data := Mux(io.in.bits.rd_mem, loadData, io.in.bits.result)

@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include "common.h"
+#include "sim.h"
 
 extern "C" void assert_fail_msg();
 
@@ -17,6 +18,7 @@ extern "C" void assert_fail_msg();
       extern FILE* log_fp; \
       fflush(log_fp); \
       assert_fail_msg(); \
+      end_wave(); \
       assert(cond); \
     } \
   } while (0)

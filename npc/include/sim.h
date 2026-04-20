@@ -13,6 +13,7 @@ extern VTop* top;
 #ifdef CONFIG_GEN_WAVE
 extern vluint64_t sim_time;
 extern VerilatedVcdC* tfp;
+void end_wave(void);
 #endif
 
 #endif

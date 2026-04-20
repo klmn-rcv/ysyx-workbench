@@ -47,16 +47,24 @@ extern "C" int pmem_read(uint32_t raddr, mem_read_t read_type) {
   const uint32_t mem_addr = static_cast<uint32_t>(raddr - start_pc) & ~0x3u;
 
   if(read_type == MEM_READ_INST || read_type == MEM_READ_DATA) {
-    Assert(mem_addr + 4 <= MEM_SIZE, "pmem_read out of bounds at address 0x%x", raddr);
+    Assert(mem_addr + 4 <= MEM_SIZE, "pmem_read out of bounds at address 0x%x, read type is %d", raddr, read_type);
+    // if(mem_addr + 4 > MEM_SIZE) {
+    //   printf("DEBUG: Here\n");
+    //   tfp->close();
+    //   delete tfp;
+    //   assert(false);
+    // }
   }
   else {
     if(read_type != MEM_READ_DEBUG) {
       printf(ANSI_FG_RED "pmem_read invalid read_type %d at address 0x%x" ANSI_NONE "\n", read_type, raddr);
+      end_wave();
       assert(false);
     }
     // assert(read_type == MEM_READ_DEBUG);
     if(mem_addr + 4 > MEM_SIZE){
-      printf(ANSI_FG_RED "pmem_read out of bounds at address 0x%x" ANSI_NONE "\n", raddr);
+      printf(ANSI_FG_RED "pmem_read out of bounds at address 0x%x, read type is %d" ANSI_NONE "\n", raddr, read_type);
+      end_wave();
       assert(false);
     }
   }

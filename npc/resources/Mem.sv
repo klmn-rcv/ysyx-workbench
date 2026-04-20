@@ -28,6 +28,7 @@ module Mem(
         end
         else begin
             if(inst_req_valid) begin // 有读指令请求时
+                // $write("Mem.sv: inst_req_valid=%b pc=%h\n", inst_req_valid, pc);
                 rinst <= pmem_read(pc, MEM_READ_INST); // 读指令时read_type为MEM_READ_INST
             end
             if (data_req_valid) begin // 有读写数据请求时

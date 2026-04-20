@@ -79,6 +79,13 @@ static void init_sim() {
 //   npc_state.cycles++;
 }
 
+void end_wave() {
+#ifdef CONFIG_GEN_WAVE
+  tfp->close();
+  delete tfp;
+#endif
+}
+
 static void parse_args(int argc, char** argv) {
   const char *prefix_log = "--log=";
   const char *prefix_elf = "--elf=";
@@ -147,8 +154,7 @@ int main(int argc, char** argv) {
         npc_state.cycles, npc_state.halt_ret);
 
 #ifdef CONFIG_GEN_WAVE
-  tfp->close();
-  delete tfp;
+  end_wave();
 #endif
   delete top;
   return 0;
