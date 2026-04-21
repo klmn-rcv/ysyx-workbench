@@ -32,13 +32,13 @@ static void trace_and_difftest() {
   if (g_print_step && log_fp != stdout) { IFDEF(CONFIG_ITRACE, puts(s.logbuf)); }
   IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, s.dnpc));
 
-#ifdef CONFIG_DIFFTEST
-  extern bool is_skip_ref_next;
-  if(is_skip_ref_next) {
-    difftest_skip_ref();
-    is_skip_ref_next = false;
-  }
-#endif
+// #ifdef CONFIG_DIFFTEST
+//   extern bool is_skip_ref_next;
+//   if(is_skip_ref_next) {
+//     difftest_skip_ref();
+//     is_skip_ref_next = false;
+//   }
+// #endif
 
 #ifdef CONFIG_DEBUGPOINT
   int NO;  char *expr_str; uint32_t old_value, new_value;

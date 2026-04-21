@@ -37,6 +37,7 @@ class LSAU extends Module {
     io.out.bits.bit_width := io.in.bits.bit_width  // 传给LSDU用来提取load得到的数据
     io.out.bits.sign := io.in.bits.sign            // 传给LSDU用来提取load得到的数据
     io.out.bits.rd_mem := io.in.bits.rd_mem        // 为了LSDU判断应该用什么数据（loadData还是ALU的结果）写回寄存器
+    io.out.bits.wr_mem := io.in.bits.wr_mem        // 为了LSDU判断是否要发写数据请求（之后支持握手才需要实现这一点）
     io.out.bits.result := io.in.bits.result        // 如果不是访存指令，需要写回ALU的结果
     io.out.bits.wr_reg := io.in.bits.wr_reg
     io.out.bits.rd := io.in.bits.rd

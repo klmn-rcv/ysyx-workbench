@@ -28,14 +28,17 @@ class IDU extends Module {
             val flush = Output(Bool())
         }
     })
-    val br_flush = io.flush.br_taken
-    val flush = br_flush
-    io.flush.flush := flush
+
+    val flush = Wire(Bool())
 
     val valid = io.in.valid && !flush   // 这里的flush也需要持久化
     val ready_go = !valid || !io.raw_info.isRAW
     io.in.ready := !reset.asBool && (!valid || ready_go && io.out.ready)
     io.out.valid := valid && ready_go
+
+    val br_flush = io.flush.br_taken
+    flush := br_flush
+    io.flush.flush := flush
 
     val default = List(InstType.N, FuncType.inv, ALUOp.add, BitWidth.w32, Sign.signed)
     val decoded = ListLookup(io.in.bits.inst, default, RISCV32EInsts.table)

@@ -19,11 +19,13 @@ class Mem extends ExtModule {
     val wen = IO(Input(Bool()))
     val pc = IO(Input(UInt(32.W)))
     val raddr = IO(Input(UInt(32.W)))
-    val rinst = IO(Output(UInt(32.W)))
-    val rdata = IO(Output(UInt(32.W)))
     val waddr = IO(Input(UInt(32.W)))
     val wdata = IO(Input(UInt(32.W)))
     val wmask = IO(Input(UInt(4.W)))
+    val inst_resp_valid = IO(Output(Bool()))
+    val data_resp_valid = IO(Output(Bool()))
+    val rinst = IO(Output(UInt(32.W)))
+    val rdata = IO(Output(UInt(32.W)))
 
     addResource("/Mem.sv")
 }

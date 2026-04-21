@@ -276,6 +276,7 @@ package object cpu {
         val bit_width = BitWidth()  // 为了LSDU提取load得到的数据
         val sign = Sign()           // 为了LSDU提取load得到的数据
         val rd_mem = Bool()         // 为了LSDU判断应该用什么数据（loadData还是ALU的结果）写回寄存器
+        val wr_mem = Bool()         // 为了LSDU判断是否要发写数据请求（之后支持握手才需要实现这一点）
         val result = UInt(32.W)     // 如果不是访存指令，需要写回ALU的结果
         val wr_reg = Bool()
         val rd = UInt(5.W)
@@ -357,5 +358,21 @@ package object cpu {
         (useRs1 && RAWConflict(rs1, stageHazardInfo.rd)) ||
         (useRs2 && RAWConflict(rs2, stageHazardInfo.rd))
         )
+    }
+
+    def valid_and_data_preserve(valid: Bool, data: UInt, clear: Bool, set: Bool): (Bool, UInt) = {
+        val valid_preserved = RegInit(false.B)
+        val data_preserved = Reg(UInt(32.W))
+
+        assert(!(clear && set), "clear and set should not be true at the same time")
+
+        when(clear) {
+            valid_preserved := false.B
+        }.elsewhen(set) {
+            valid_preserved := true.B
+            data_preserved := data
+        }
+
+        ( valid || valid_preserved, Mux(valid, data, data_preserved) )
     }
 }

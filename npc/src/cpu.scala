@@ -42,6 +42,8 @@ object StageConnect {
 class CPU extends Module {
     val io = IO(new Bundle {
         val in = new Bundle {
+            val inst_resp_valid = Input(Bool())
+            val data_resp_valid = Input(Bool())
             val rinst = Input(UInt(32.W))
             val rdata = Input(UInt(32.W))
         }
@@ -83,6 +85,10 @@ class CPU extends Module {
 
     // CSR's input
     csr.io.in.req := wbu.io.csr.csrReq
+    csr.io.in.wb_ex := wbu.io.csr.wb_ex
+    csr.io.in.wb_cause := wbu.io.csr.wb_cause
+    csr.io.in.wb_pc := wbu.io.csr.wb_pc
+    csr.io.in.mret := wbu.io.csr.mret
 
     // regfile's input
     regfile.io.in.raddr1 := idu.io.rf.rs1
@@ -92,7 +98,6 @@ class CPU extends Module {
     regfile.io.in.wdata := wbu.io.rf.wb_data
 
     // IFU's input
-    // ifu.io.in.inst := io.in.rinst
     ifu.io.ctrl.ex_redirect_valid := csr.io.out.redirect_valid
     ifu.io.ctrl.ex_redirect_target := csr.io.out.redirect_target
     ifu.io.ctrl.jump_valid := idu.io.ctrl.jump_valid
@@ -103,13 +108,13 @@ class CPU extends Module {
     // IWU's input
     StageConnect(ifu.io.out, iwu.io.in, arch, iwu.io.flush.flush)
     iwu.io.in_bypass.pc := ifu.io.out_bypass.pc
+    iwu.io.mem.inst_resp_valid := io.in.inst_resp_valid
     iwu.io.mem.rinst := io.in.rinst
     iwu.io.flush.br_taken := exu.io.ctrl.br_taken
     iwu.io.flush.jump_valid := idu.io.ctrl.jump_valid
 
     // IDU's input
     StageConnect(iwu.io.out, idu.io.in, arch, idu.io.flush.flush)
-    // idu.io.inst := io.in.rinst
     idu.io.rf.rdata1 := regfile.io.out.rdata1
     idu.io.rf.rdata2 := regfile.io.out.rdata2
     idu.io.raw_info.isRAW := isRAW
@@ -120,22 +125,16 @@ class CPU extends Module {
 
     // LSAU's input
     StageConnect(exu.io.out, lsau.io.in, arch)
-    // lsau.io.mem.rdata := io.in.rdata
 
     // LSDU's input
     StageConnect(lsau.io.out, lsdu.io.in, arch)
+    lsdu.io.mem.data_resp_valid := io.in.data_resp_valid
     lsdu.io.mem.rdata := io.in.rdata
 
     // WBU's input
     StageConnect(lsdu.io.out, wbu.io.in, arch)
     wbu.io.csr.priv := csr.io.out.priv
     wbu.io.csr.csrResp := csr.io.out.resp
-
-    csr.io.in.wb_ex := wbu.io.csr.wb_ex
-    csr.io.in.wb_cause := wbu.io.csr.wb_cause
-    csr.io.in.wb_pc := wbu.io.csr.wb_pc
-    csr.io.in.mret := wbu.io.csr.mret
-
 
     // pipeline RAW hazard
     val exuHazardInfo = Wire(new RAWHazardInfo)

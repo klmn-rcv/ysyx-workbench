@@ -30,6 +30,8 @@ class Top extends Module {
     mem.wdata := core.io.out.wdata
     mem.wmask := core.io.out.wmask
 
+    core.io.in.inst_resp_valid := mem.inst_resp_valid
+    core.io.in.data_resp_valid := mem.data_resp_valid
     core.io.in.rinst := mem.rinst
     core.io.in.rdata := mem.rdata
 

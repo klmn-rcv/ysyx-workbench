@@ -30,26 +30,23 @@ class IFU extends Module {
 
     val snpc = io.out_bypass.pc + 4.U
 
-    def redirect_preserve(valid: Bool, target: UInt): (Bool, UInt) = {
-        val valid_preserved = RegInit(false.B)
-        val target_preserved = Reg(UInt(32.W))
+    // def redirect_preserve(valid: Bool, target: UInt): (Bool, UInt) = {
+    //     val valid_preserved = RegInit(false.B)
+    //     val target_preserved = Reg(UInt(32.W))
 
-        when(io.out.fire) {
-            valid_preserved := false.B
-        }.elsewhen(valid) {
-            valid_preserved := true.B
-            target_preserved := target
-        }
+    //     when(io.out.fire) {
+    //         valid_preserved := false.B
+    //     }.elsewhen(valid) {
+    //         valid_preserved := true.B
+    //         target_preserved := target
+    //     }
 
-        ( valid || valid_preserved, Mux(valid, target, target_preserved) )
-    }
+    //     ( valid || valid_preserved, Mux(valid, target, target_preserved) )
+    // }
 
-    val (jump_valid_preserved, jump_target_preserved) =
-        redirect_preserve(io.ctrl.jump_valid, io.ctrl.jump_target)
-    val (br_taken_preserved, br_target_preserved) =
-        redirect_preserve(io.ctrl.br_taken, io.ctrl.br_target)
-    val (ex_redirect_valid_preserved, ex_redirect_target_preserved) =
-        redirect_preserve(io.ctrl.ex_redirect_valid, io.ctrl.ex_redirect_target)
+    val (jump_valid_preserved, jump_target_preserved)               = valid_and_data_preserve(io.ctrl.jump_valid, io.ctrl.jump_target, io.out.fire, io.ctrl.jump_valid && !io.out.fire)
+    val (br_taken_preserved, br_target_preserved)                   = valid_and_data_preserve(io.ctrl.br_taken, io.ctrl.br_target, io.out.fire, io.ctrl.br_taken && !io.out.fire)
+    val (ex_redirect_valid_preserved, ex_redirect_target_preserved) = valid_and_data_preserve(io.ctrl.ex_redirect_valid, io.ctrl.ex_redirect_target, io.out.fire, io.ctrl.ex_redirect_valid && !io.out.fire)
 
     val dnpc = Mux(ex_redirect_valid_preserved, ex_redirect_target_preserved,
                Mux(br_taken_preserved, br_target_preserved,

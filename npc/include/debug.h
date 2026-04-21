@@ -18,7 +18,7 @@ extern "C" void assert_fail_msg();
       extern FILE* log_fp; \
       fflush(log_fp); \
       assert_fail_msg(); \
-      end_wave(); \
+      IFDEF(CONFIG_GEN_WAVE, end_wave()); \
       assert(cond); \
     } \
   } while (0)

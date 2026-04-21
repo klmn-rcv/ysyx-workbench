@@ -8,19 +8,41 @@ class LSDU extends Module {
         val in = Flipped(Decoupled(new LSAUOut))
         val out = Decoupled(new LSDUOut)
         val mem = new Bundle {
+            val data_resp_valid = Input(Bool())
             // val wdata = Output(UInt(32.W))
             // val wmask = Output(UInt(4.W))
             val rdata = Input(UInt(32.W))  // for load data
         }
     })
 
+    val data_resp_valid_preserved = Wire(Bool())
+    val load_data_preserved = Wire(UInt(32.W))
+    
+    val mem_access = io.in.bits.rd_mem || io.in.bits.wr_mem
+
     val valid = io.in.valid // && !flush   // 这里的flush也需要持久化
-    val ready_go = true.B   // 目前的内存收到地址的下一周期就能返回数据，所以LSDU可以一直收到数据
+    val ready_go = !mem_access || data_resp_valid_preserved    // 后续需要改成握手成功
     io.in.ready := !reset.asBool && (!valid || ready_go && io.out.ready)
     io.out.valid := valid && ready_go
 
-    val loadData = ExtractLoadData(io.mem.rdata, io.in.bits.raddr, io.in.bits.bit_width, io.in.bits.sign)
-    io.out.bits.data := Mux(io.in.bits.rd_mem, loadData, io.in.bits.result)
+    val load_data = ExtractLoadData(io.mem.rdata, io.in.bits.raddr, io.in.bits.bit_width, io.in.bits.sign)
+
+    // when(valid && !io.out.fire && io.in.bits.rd_mem && io.mem.data_resp_valid) {
+    //     data_resp_valid_reg := true.B
+    //     load_data_reg := load_data
+    // }.elsewhen(io.out.fire) {
+    //     data_resp_valid_reg := false.B
+    //     load_data_reg := 0.U
+    // }
+    // data_resp_valid_preserved := io.mem.data_resp_valid || data_resp_valid_reg
+
+    val data_clear = io.out.fire
+    val data_set = valid && !io.out.fire && io.in.bits.rd_mem && io.mem.data_resp_valid
+    val preserved_tuple = valid_and_data_preserve(io.mem.data_resp_valid, load_data, data_clear, data_set)
+    data_resp_valid_preserved := preserved_tuple._1
+    load_data_preserved := preserved_tuple._2
+
+    io.out.bits.data := Mux(io.in.bits.rd_mem, load_data_preserved, io.in.bits.result)
 
     io.out.bits.wr_reg := io.in.bits.wr_reg
     io.out.bits.rd := io.in.bits.rd
