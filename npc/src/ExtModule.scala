@@ -32,6 +32,7 @@ class Mem extends ExtModule {
     val rdata = IO(Output(UInt(32.W)))
 
     addResource("/Mem.sv")
+    addResource("/LFSR.sv")
 }
 
 class Itrace extends ExtModule {

@@ -27,35 +27,198 @@ module Mem(
     import "DPI-C" function int pmem_read(input int unsigned raddr, input byte read_type);
     import "DPI-C" function void pmem_write(input int unsigned waddr, input int wdata, input byte unsigned wmask);
 
-    assign inst_req_ready = 1'b1;
-    assign data_req_ready = 1'b1;
+
+
+    localparam IDLE = 2'd0, WAIT = 2'd1, RESP = 2'd2;
+
+    reg [1:0] inst_current_state, inst_next_state;
+    reg [1:0] data_current_state, data_next_state;
+
+    wire [7:0] inst_rand;
+    wire [7:0] data_rand;
+    wire [3:0] inst_latency = {1'b0, inst_rand[2:0]} + 4'd1;
+    wire [3:0] data_latency = {1'b0, data_rand[2:0]} + 4'd1;
+    reg [3:0] inst_latency_cnt;
+    reg [3:0] data_latency_cnt;
+
+    reg [31:0] pc_latched;
+    reg        wen_latched;
+    reg [31:0] raddr_latched;
+    reg [31:0] waddr_latched;
+    reg [31:0] wdata_latched;
+    reg [3:0]  wmask_latched;
+
+
+    wire inst_req_fire  = inst_req_valid  && inst_req_ready;
+    wire data_req_fire  = data_req_valid  && data_req_ready;
+    wire inst_resp_fire = inst_resp_valid && inst_resp_ready;
+    wire data_resp_fire = data_resp_valid && data_resp_ready;
+
+    assign inst_req_ready = (inst_current_state == IDLE);
+    assign data_req_ready = (data_current_state == IDLE);
+
+    LFSR #(.SEED(8'h1)) inst_lfsr_u (
+        .clk(clk),
+        .rst(rst),
+        .step(inst_req_fire),
+        .out(inst_rand)
+    );
+
+    LFSR #(.SEED(8'h2)) data_lfsr_u (
+        .clk(clk),
+        .rst(rst),
+        .step(data_req_fire),
+        .out(data_rand)
+    );
+
+    always @(*) begin
+        case(inst_current_state)
+            IDLE: begin
+                if(inst_req_fire) begin
+                    if(inst_latency == 4'd1) inst_next_state = RESP;
+                    else inst_next_state = WAIT;
+                end
+                else inst_next_state = IDLE;
+            end
+            WAIT: begin
+                if(inst_latency_cnt == 4'd1) inst_next_state = RESP;
+                else inst_next_state = WAIT;
+            end
+            RESP: begin
+                if(inst_resp_fire) inst_next_state = IDLE;
+                else inst_next_state = RESP;
+            end
+            default: inst_next_state = IDLE;
+        endcase
+    end
+
+    always @(*) begin
+        case(data_current_state)
+            IDLE: begin
+                if(data_req_fire) begin
+                    if(data_latency == 4'd1) data_next_state = RESP;
+                    else data_next_state = WAIT;
+                end
+                else data_next_state = IDLE;
+            end
+            WAIT: begin
+                if(data_latency_cnt == 4'd1) data_next_state = RESP;
+                else data_next_state = WAIT;
+            end
+            RESP: begin
+                if(data_resp_fire) data_next_state = IDLE;
+                else data_next_state = RESP;
+            end
+            default: data_next_state = IDLE;
+        endcase
+    end
+
+    always @(posedge clk) begin
+        if(rst) inst_current_state <= 2'd0;
+        else inst_current_state <= inst_next_state;
+    end
+
+    always @(posedge clk) begin
+        if(rst) data_current_state <= 2'd0;
+        else data_current_state <= data_next_state;
+    end
+
 
     always @(posedge clk) begin
         if(rst) begin
-            inst_resp_valid <= 0;
-            data_resp_valid <= 0;
-            rinst <= 0;
-            rdata <= 0;
+            pc_latched <= 32'd0;
+            rinst <= 32'd0;
+            inst_latency_cnt <= 4'd0;
+            inst_resp_valid <= 1'b0;
         end
         else begin
-            if(inst_req_valid && inst_req_ready) begin // 有读指令请求且握手成功时
-                // $write("Mem.sv: inst_req_valid=%b pc=%h\n", inst_req_valid, pc);
-                rinst <= pmem_read(pc, MEM_READ_INST); // 读指令时read_type为MEM_READ_INST
-            end
-            if (data_req_valid && data_req_ready) begin // 有读写数据请求且握手成功时
-                // if (wen) begin // 有写请求时
-                //     pmem_write(waddr, wdata, wmask);
-                // end
-                // else begin // 有读请求时
-                //     rdata <= pmem_read(raddr, MEM_READ_DATA); // 读数据时read_type为MEM_READ_DATA
-                // end
-                rdata <= (!wen) ? pmem_read(raddr, MEM_READ_DATA) : 32'b0;
-                if (wen) begin
-                    pmem_write(waddr, wdata, wmask);
+            case(inst_current_state)
+                IDLE: begin
+                    if(inst_req_fire) begin
+                        pc_latched <= pc;
+                        if(inst_latency == 4'd1) begin
+                            inst_latency_cnt <= 4'd0;
+                            inst_resp_valid <= 1'b1;
+                            rinst <= pmem_read(pc, MEM_READ_INST);
+                        end
+                        else begin
+                            inst_latency_cnt <= inst_latency - 4'd1;
+                        end
+                    end
                 end
-            end
-            inst_resp_valid <= inst_req_valid;
-            data_resp_valid <= data_req_valid;
+                WAIT: begin
+                    if (inst_latency_cnt == 4'd1) begin
+                        inst_resp_valid <= 1'b1;
+                        rinst <= pmem_read(pc_latched, MEM_READ_INST);
+                    end
+                    else begin
+                        inst_latency_cnt <= inst_latency_cnt - 4'd1;
+                    end
+                end
+                RESP: begin
+                    if (inst_resp_fire) begin
+                        inst_resp_valid <= 1'b0;
+                    end
+                end
+            endcase        
+        end
+    end
+
+    always @(posedge clk) begin
+        if(rst) begin
+            wen_latched <= 1'd0;
+            raddr_latched <= 32'd0;
+            waddr_latched <= 32'd0;
+            wdata_latched <= 32'd0;
+            wmask_latched <= 4'd0;
+            rdata <= 32'd0;
+            data_latency_cnt <= 4'd0;
+            data_resp_valid <= 1'b0;
+        end
+        else begin
+            case(data_current_state)
+                IDLE: begin
+                    if(data_req_fire) begin
+                        wen_latched <= wen;
+                        raddr_latched <= raddr;
+                        waddr_latched <= waddr;
+                        wdata_latched <= wdata;
+                        wmask_latched <= wmask;
+                        if(data_latency == 4'd1) begin
+                            data_latency_cnt <= 4'd0;
+                            data_resp_valid <= 1'b1;
+                            if(wen) begin
+                                pmem_write(waddr, wdata, wmask);
+                            end
+                            else begin
+                                rdata <= pmem_read(raddr, MEM_READ_DATA);
+                            end
+                        end
+                        else begin
+                            data_latency_cnt <= data_latency - 4'd1;
+                        end
+                    end
+                end
+                WAIT: begin
+                    if (data_latency_cnt == 4'd1) begin
+                        data_resp_valid <= 1'b1;
+                        if(wen_latched) begin
+                            pmem_write(waddr_latched, wdata_latched, wmask_latched);
+                        end
+                        else begin
+                            rdata <= pmem_read(raddr_latched, MEM_READ_DATA);
+                        end
+                    end
+                    else begin
+                        data_latency_cnt <= data_latency_cnt - 4'd1;
+                    end
+                end
+                RESP: begin
+                    if (data_resp_fire) begin
+                        data_resp_valid <= 1'b0;
+                    end
+                end
+            endcase        
         end
     end
 endmodule

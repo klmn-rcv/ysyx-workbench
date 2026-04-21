@@ -79,6 +79,8 @@ class CPU extends Module {
     // CPU core's output
     io.out.inst_req_valid := ifu.io.mem.inst_req_valid
     io.out.data_req_valid := lsau.io.mem.data_req_valid
+    io.out.inst_resp_ready := iwu.io.mem.inst_resp_ready
+    io.out.data_resp_ready := lsdu.io.mem.data_resp_ready
     io.out.wen := lsau.io.mem.wen
     io.out.pc := ifu.io.out.bits.dnpc
     io.out.raddr := lsau.io.mem.raddr
@@ -107,6 +109,7 @@ class CPU extends Module {
     ifu.io.ctrl.jump_target := idu.io.ctrl.jump_target
     ifu.io.ctrl.br_taken := exu.io.ctrl.br_taken
     ifu.io.ctrl.br_target := exu.io.ctrl.br_target
+    ifu.io.mem.inst_req_ready := io.in.inst_req_ready
 
     // IWU's input
     StageConnect(ifu.io.out, iwu.io.in, arch, iwu.io.flush.flush)
@@ -128,6 +131,7 @@ class CPU extends Module {
 
     // LSAU's input
     StageConnect(exu.io.out, lsau.io.in, arch)
+    lsau.io.mem.data_req_ready := io.in.data_req_ready
 
     // LSDU's input
     StageConnect(lsau.io.out, lsdu.io.in, arch)

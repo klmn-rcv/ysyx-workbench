@@ -50,7 +50,7 @@ class IWU extends Module {
     val preserved_tuple = valid_and_data_preserve(inst_resp_fire, io.mem.rinst, io.out.fire, flush) // 在flush的时候立刻把inst_resp_fire_reg置为0（注意不是把inst_resp_fire_preserved置为0！），这里的立刻是异步的意思
     inst_resp_fire_preserved := preserved_tuple._1
     inst_preserved := preserved_tuple._2
-    val inst_resp_fire_after = inst_resp_fire_preserved && !inst_resp_fire  // 握手成功之后
+    val inst_resp_fire_after = preserved_tuple._3  // 握手成功之后
     io.mem.inst_resp_ready := !valid || !inst_resp_fire_after // 不考虑flush的话，这里的逻辑应该不用改进了（不考虑flush，不管在什么情况下io.out.fire，下一拍inst_resp_ready都为1，不会有性能损失）
                                                               // 在!valid的时候置inst_resp_ready为1是考虑如果有flush，IW无效，需要让内存以为能握手（不然内存会一直等），但实际上IW会把这条取到的指令丢掉
 

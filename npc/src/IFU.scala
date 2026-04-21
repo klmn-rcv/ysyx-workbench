@@ -34,9 +34,9 @@ class IFU extends Module {
     io.mem.inst_req_valid := valid && io.out.ready  // io.out.ready是暂时的权衡，这会导致IF在IW没收到指令之前不会发新请求，影响性能
                                                     // 不是io.out.fire是因为不发inst_req根本不可能fire
 
-    val (jump_valid_preserved, jump_target_preserved)               = valid_and_data_preserve(io.ctrl.jump_valid, io.ctrl.jump_target, io.out.fire, false.B)
-    val (br_taken_preserved, br_target_preserved)                   = valid_and_data_preserve(io.ctrl.br_taken, io.ctrl.br_target, io.out.fire, false.B)
-    val (ex_redirect_valid_preserved, ex_redirect_target_preserved) = valid_and_data_preserve(io.ctrl.ex_redirect_valid, io.ctrl.ex_redirect_target, io.out.fire, false.B)
+    val (jump_valid_preserved, jump_target_preserved, _, _)               = valid_and_data_preserve(io.ctrl.jump_valid, io.ctrl.jump_target, io.out.fire, false.B)
+    val (br_taken_preserved, br_target_preserved, _, _)                   = valid_and_data_preserve(io.ctrl.br_taken, io.ctrl.br_target, io.out.fire, false.B)
+    val (ex_redirect_valid_preserved, ex_redirect_target_preserved, _, _) = valid_and_data_preserve(io.ctrl.ex_redirect_valid, io.ctrl.ex_redirect_target, io.out.fire, false.B)
 
     val snpc = io.out_bypass.pc + 4.U
     val dnpc = Mux(ex_redirect_valid_preserved, ex_redirect_target_preserved,

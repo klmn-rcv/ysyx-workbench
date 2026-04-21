@@ -360,7 +360,8 @@ package object cpu {
         )
     }
 
-    def valid_and_data_preserve(valid: Bool, data: UInt, clear_next_cycle: Bool, clear_now: Bool): (Bool, UInt) = {
+    // 返回：(valid_preserved, data_preserved, valid_reg, data_reg)
+    def valid_and_data_preserve(valid: Bool, data: UInt, clear_next_cycle: Bool, clear_now: Bool): (Bool, UInt, Bool, UInt) = {
         val valid_reg = RegInit(false.B)
         val data_reg = Reg(UInt(32.W))
 
@@ -379,7 +380,7 @@ package object cpu {
             data_reg := data
         }
 
-        ( valid || (valid_reg && !clear_now), Mux(valid, data, data_reg) )
+        ( valid || (valid_reg && !clear_now), Mux(valid, data, data_reg),  valid_reg, data_reg )
     }
 
     def bool_preserve(signal: Bool, clear: Bool): Bool = {
