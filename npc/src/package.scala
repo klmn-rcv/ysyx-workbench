@@ -360,19 +360,42 @@ package object cpu {
         )
     }
 
-    def valid_and_data_preserve(valid: Bool, data: UInt, clear: Bool, set: Bool): (Bool, UInt) = {
-        val valid_preserved = RegInit(false.B)
-        val data_preserved = Reg(UInt(32.W))
+    def valid_and_data_preserve(valid: Bool, data: UInt, clear_next_cycle: Bool, clear_now: Bool): (Bool, UInt) = {
+        val valid_reg = RegInit(false.B)
+        val data_reg = Reg(UInt(32.W))
 
-        assert(!(clear && set), "clear and set should not be true at the same time")
+        // assert(!(clear && set), "clear and set should not be true at the same time")
 
-        when(clear) {
-            valid_preserved := false.B
-        }.elsewhen(set) {
-            valid_preserved := true.B
-            data_preserved := data
+        // when(set) {
+        //     valid_reg := true.B
+        //     data_reg := data
+        // }.elsewhen(clear) {
+        //     valid_reg := false.B
+        // }
+        when(clear_now || clear_next_cycle) {
+            valid_reg := false.B
+        }.elsewhen(valid) {
+            valid_reg := true.B
+            data_reg := data
         }
 
-        ( valid || valid_preserved, Mux(valid, data, data_preserved) )
+        ( valid || (valid_reg && !clear_now), Mux(valid, data, data_reg) )
+    }
+
+    def bool_preserve(signal: Bool, clear: Bool): Bool = {
+        val signal_reg = RegInit(false.B)
+
+        // when(set) {
+        //     signal_reg := signal
+        // }.elsewhen(clear) {
+        //     signal_reg := false.B
+        // }
+        when(clear) {
+            signal_reg := false.B
+        }.elsewhen(signal) {
+            signal_reg := true.B
+        }
+
+        signal || signal_reg
     }
 }

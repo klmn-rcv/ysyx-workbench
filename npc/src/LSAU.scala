@@ -9,6 +9,7 @@ class LSAU extends Module {
         val out = Decoupled(new LSAUOut)
         val mem = new Bundle {
             val data_req_valid = Output(Bool())
+            val data_req_ready = Input(Bool())
             val wen = Output(Bool())
             val raddr = Output(UInt(32.W))
             val waddr = Output(UInt(32.W))
@@ -18,12 +19,17 @@ class LSAU extends Module {
         }
     })
 
-    val valid = io.in.valid // && !flush   // 这里的flush也需要持久化
-    val ready_go = true.B   // 目前的内存收到地址的下一周期就能返回数据，所以LSAU可以一直发地址请求
+    val flush = false.B  // 这里需要实现！异常会冲刷！
+    val mem_access = io.in.bits.rd_mem || io.in.bits.wr_mem
+    val data_req_fire = io.mem.data_req_valid && io.mem.data_req_ready
+    val data_req_fire_preserved = bool_preserve(data_req_fire, io.out.fire)
+
+    val valid = io.in.valid && !flush   // 这里的flush也需要持久化
+    val ready_go = !mem_access || data_req_fire_preserved
     io.in.ready := !reset.asBool && (!valid || ready_go && io.out.ready)
     io.out.valid := valid && ready_go
-
-    io.mem.data_req_valid := io.in.bits.rd_mem || io.in.bits.wr_mem
+    
+    io.mem.data_req_valid := mem_access && valid && io.out.ready  // 这里的io.out.ready也是暂时的权衡，这会导致LSA在LSD没收到数据之前不会发新请求，影响性能
     io.mem.wen := io.in.bits.wr_mem
     io.mem.raddr := io.in.bits.result
     io.mem.waddr := io.in.bits.result

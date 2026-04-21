@@ -31,7 +31,7 @@ class IDU extends Module {
 
     val flush = Wire(Bool())
 
-    val valid = io.in.valid && !flush   // 这里的flush也需要持久化
+    val valid = io.in.valid && !flush
     val ready_go = !valid || !io.raw_info.isRAW
     io.in.ready := !reset.asBool && (!valid || ready_go && io.out.ready)
     io.out.valid := valid && ready_go

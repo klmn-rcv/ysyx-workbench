@@ -19,35 +19,26 @@ class IFU extends Module {
         }
         val mem = new Bundle {
             val inst_req_valid = Output(Bool())
+            val inst_req_ready = Input(Bool())
             // val inst_req_addr = Output(UInt(32.W))
         }
     })
 
-    val ready_go = true.B  // 目前的内存收到地址的下一周期就能返回指令，所以IF可以一直给它发地址
-    io.out.valid := !reset.asBool && ready_go
+    val inst_req_fire = io.mem.inst_req_valid && io.mem.inst_req_ready
+    val inst_req_fire_preserved = bool_preserve(inst_req_fire, io.out.fire)
 
-    io.mem.inst_req_valid := io.out.fire
+    val valid = !reset.asBool
+    val ready_go = inst_req_fire_preserved
+    io.out.valid := valid && ready_go
+
+    io.mem.inst_req_valid := valid && io.out.ready  // io.out.ready是暂时的权衡，这会导致IF在IW没收到指令之前不会发新请求，影响性能
+                                                    // 不是io.out.fire是因为不发inst_req根本不可能fire
+
+    val (jump_valid_preserved, jump_target_preserved)               = valid_and_data_preserve(io.ctrl.jump_valid, io.ctrl.jump_target, io.out.fire, false.B)
+    val (br_taken_preserved, br_target_preserved)                   = valid_and_data_preserve(io.ctrl.br_taken, io.ctrl.br_target, io.out.fire, false.B)
+    val (ex_redirect_valid_preserved, ex_redirect_target_preserved) = valid_and_data_preserve(io.ctrl.ex_redirect_valid, io.ctrl.ex_redirect_target, io.out.fire, false.B)
 
     val snpc = io.out_bypass.pc + 4.U
-
-    // def redirect_preserve(valid: Bool, target: UInt): (Bool, UInt) = {
-    //     val valid_preserved = RegInit(false.B)
-    //     val target_preserved = Reg(UInt(32.W))
-
-    //     when(io.out.fire) {
-    //         valid_preserved := false.B
-    //     }.elsewhen(valid) {
-    //         valid_preserved := true.B
-    //         target_preserved := target
-    //     }
-
-    //     ( valid || valid_preserved, Mux(valid, target, target_preserved) )
-    // }
-
-    val (jump_valid_preserved, jump_target_preserved)               = valid_and_data_preserve(io.ctrl.jump_valid, io.ctrl.jump_target, io.out.fire, io.ctrl.jump_valid && !io.out.fire)
-    val (br_taken_preserved, br_target_preserved)                   = valid_and_data_preserve(io.ctrl.br_taken, io.ctrl.br_target, io.out.fire, io.ctrl.br_taken && !io.out.fire)
-    val (ex_redirect_valid_preserved, ex_redirect_target_preserved) = valid_and_data_preserve(io.ctrl.ex_redirect_valid, io.ctrl.ex_redirect_target, io.out.fire, io.ctrl.ex_redirect_valid && !io.out.fire)
-
     val dnpc = Mux(ex_redirect_valid_preserved, ex_redirect_target_preserved,
                Mux(br_taken_preserved, br_target_preserved,
                Mux(jump_valid_preserved, jump_target_preserved, snpc)))

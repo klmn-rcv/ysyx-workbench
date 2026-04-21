@@ -23,6 +23,8 @@ class Top extends Module {
     mem.rst := reset.asBool
     mem.inst_req_valid := core.io.out.inst_req_valid
     mem.data_req_valid := core.io.out.data_req_valid
+    mem.inst_resp_ready := core.io.out.inst_resp_ready
+    mem.data_resp_ready := core.io.out.data_resp_ready
     mem.wen := core.io.out.wen
     mem.pc := core.io.out.pc
     mem.raddr := core.io.out.raddr
@@ -30,6 +32,8 @@ class Top extends Module {
     mem.wdata := core.io.out.wdata
     mem.wmask := core.io.out.wmask
 
+    core.io.in.inst_req_ready := mem.inst_req_ready
+    core.io.in.data_req_ready := mem.data_req_ready
     core.io.in.inst_resp_valid := mem.inst_resp_valid
     core.io.in.data_resp_valid := mem.data_resp_valid
     core.io.in.rinst := mem.rinst

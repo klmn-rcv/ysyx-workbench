@@ -19,15 +19,14 @@ object StageConnect {
             case "pipeline" =>
                 left.ready := right.ready
 
-                val flush_preserved = RegInit(false.B)
                 val validReg = RegInit(false.B)
                 val bitsReg  = RegEnable(left.bits, 0.U.asTypeOf(chiselTypeOf(left.bits)), left.fire)
 
-                val flush_preserved_nxt = Mux(left.fire, false.B, flush || flush_preserved)
-                flush_preserved := flush_preserved_nxt
+                val flush_preserved = bool_preserve(flush, left.fire)
+                val flush_next_cycle = flush_preserved && !left.fire
 
                 when(left.ready) {
-                    validReg := left.valid && !flush_preserved_nxt
+                    validReg := left.valid && !flush_next_cycle
                 }
 
                 right.valid := validReg
@@ -42,6 +41,8 @@ object StageConnect {
 class CPU extends Module {
     val io = IO(new Bundle {
         val in = new Bundle {
+            val inst_req_ready = Input(Bool())
+            val data_req_ready = Input(Bool())
             val inst_resp_valid = Input(Bool())
             val data_resp_valid = Input(Bool())
             val rinst = Input(UInt(32.W))
@@ -50,6 +51,8 @@ class CPU extends Module {
         val out = new Bundle {
             val inst_req_valid = Output(Bool())
             val data_req_valid = Output(Bool())
+            val inst_resp_ready = Output(Bool())
+            val data_resp_ready = Output(Bool())
             val wen = Output(Bool())
             val pc = Output(UInt(32.W))
             val raddr = Output(UInt(32.W))

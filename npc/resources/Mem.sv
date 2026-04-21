@@ -9,12 +9,16 @@ module Mem(
     input wire rst,
     input wire inst_req_valid,
     input wire data_req_valid,
+    input wire inst_resp_ready,
+    input wire data_resp_ready,
     input wire wen,
     input wire [31:0] pc,
     input wire [31:0] raddr,
     input wire [31:0] waddr,
     input wire [31:0] wdata,
     input wire [3:0] wmask,
+    output inst_req_ready,
+    output data_req_ready,
     output reg inst_resp_valid,
     output reg data_resp_valid,
     output reg [31:0] rinst,
@@ -22,6 +26,9 @@ module Mem(
 );
     import "DPI-C" function int pmem_read(input int unsigned raddr, input byte read_type);
     import "DPI-C" function void pmem_write(input int unsigned waddr, input int wdata, input byte unsigned wmask);
+
+    assign inst_req_ready = 1'b1;
+    assign data_req_ready = 1'b1;
 
     always @(posedge clk) begin
         if(rst) begin
@@ -31,11 +38,11 @@ module Mem(
             rdata <= 0;
         end
         else begin
-            if(inst_req_valid) begin // 有读指令请求时
+            if(inst_req_valid && inst_req_ready) begin // 有读指令请求且握手成功时
                 // $write("Mem.sv: inst_req_valid=%b pc=%h\n", inst_req_valid, pc);
                 rinst <= pmem_read(pc, MEM_READ_INST); // 读指令时read_type为MEM_READ_INST
             end
-            if (data_req_valid) begin // 有读写数据请求时
+            if (data_req_valid && data_req_ready) begin // 有读写数据请求且握手成功时
                 // if (wen) begin // 有写请求时
                 //     pmem_write(waddr, wdata, wmask);
                 // end
