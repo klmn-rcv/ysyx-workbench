@@ -16,8 +16,8 @@ class CSR extends Module {
     val out = new Bundle {
       val resp = Output(new CSRResp)
       val priv = Output(UInt(2.W))
-      val redirect_valid = Output(Bool())
-      val redirect_target = Output(UInt(32.W))
+      val mtvec = Output(UInt(32.W))
+      val mepc = Output(UInt(32.W))
     }
   })
 
@@ -62,6 +62,9 @@ class CSR extends Module {
   val mvendorid = RegInit("h79737978".U(32.W))  // "ysyx"的ASCII码
   val marchid = RegInit("hC0F18E2".U(32.W))  // 202316002，是我学号的一部分（2023K8009916002）
 
+  io.out.mtvec := mtvec
+  io.out.mepc := mepc
+
   val csrTable = Seq(
     CSRAddr.mstatus.U(12.W) -> mstatus,
     CSRAddr.mtvec.U(12.W)   -> mtvec,
@@ -75,8 +78,6 @@ class CSR extends Module {
 
   val hits = csrTable.map { case (addr, _) => io.in.req.addr === addr }
   io.out.resp.rvalue := Mux1H(hits, csrTable.map(_._2))
-  io.out.redirect_valid := io.in.wb_ex || io.in.mret
-  io.out.redirect_target := Mux(io.in.wb_ex, mtvec & "hfffffffc".U(32.W), mepc)
 
   for(((_, reg), hit) <- csrTable.zip(hits)) {
     when(io.in.req.we && hit) {

@@ -15,6 +15,17 @@ typedef struct {
 
 static iringbuf_t iringbuf = {.push_pos = 0, .refill_pos = 0, .count = 0};
 
+static void check_pc_between_strings(char *str1, char *str2) {
+  const int pc_str_len = 10;
+  for(int i = 0; i < pc_str_len && str2[i] != ':'; i++) {
+    assert(str2[i] != '\0');
+    if(str1[i] != str2[i]) {
+      printf(ANSI_FG_RED "[iringbuf] check_pc_between_strings: pc not equal:\nstr 1: %s\nstr2: %s" ANSI_NONE "\n", str1, str2);
+      assert(false);
+    }
+  }
+}
+
 static void iringbuf_push(const char *str) {
   assert(iringbuf.push_pos >= 0 && iringbuf.push_pos < IRINGBUF_NR);
   assert(iringbuf.count >= 0 && iringbuf.count <= IRINGBUF_NR);
@@ -31,6 +42,7 @@ static void iringbuf_push(const char *str) {
 static void iringbuf_refill(const char *str) {
   assert(iringbuf.refill_pos >= 0 && iringbuf.refill_pos < IRINGBUF_NR);
   assert(iringbuf.count > 0 && iringbuf.count <= IRINGBUF_NR);
+  check_pc_between_strings(iringbuf.buf[iringbuf.refill_pos], const_cast<char*>(str));
 
   size_t n = strnlen(str, sizeof(iringbuf.buf[0]) - 1);
   memcpy(iringbuf.buf[iringbuf.refill_pos], str, n);
@@ -74,6 +86,19 @@ void iringbuf_backfill_inst(uint32_t pc, uint32_t inst) {
   int nl = snprintf(line, sizeof(line), FMT_WORD ": %-32s %s", pc, asm_buf, bytes_buf);
   assert(nl >= 0 && nl < (int)sizeof(line));
   iringbuf_refill(line);
+}
+
+void iringbuf_flush_refill_pos(uint32_t pc) {
+  char temp_buf[11];
+  int n = snprintf(temp_buf, sizeof(temp_buf), FMT_WORD, pc);
+  check_pc_between_strings(iringbuf.buf[iringbuf.refill_pos], temp_buf);
+  for(int i = iringbuf.refill_pos; (i + 1) % IRINGBUF_NR != iringbuf.push_pos; i = (i + 1) % IRINGBUF_NR) {
+    // iringbuf.buf[i] = iringbuf.buf[(i + 1) % IRINGBUF_NR];
+    size_t n = strnlen(iringbuf.buf[(i + 1) % IRINGBUF_NR], sizeof(iringbuf.buf[0]) - 1);
+    memcpy(iringbuf.buf[i], iringbuf.buf[(i + 1) % IRINGBUF_NR], n);
+    iringbuf.buf[i][n] = '\0';
+  }
+  iringbuf.push_pos = (iringbuf.push_pos + IRINGBUF_NR - 1) % IRINGBUF_NR;
 }
 
 #endif

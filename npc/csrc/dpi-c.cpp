@@ -48,12 +48,6 @@ extern "C" int pmem_read(uint32_t raddr, mem_read_t read_type) {
 
   if(read_type == MEM_READ_INST || read_type == MEM_READ_DATA) {
     Assert(mem_addr + 4 <= MEM_SIZE, "pmem_read out of bounds at address 0x%x, read type is %d", raddr, read_type);
-    // if(mem_addr + 4 > MEM_SIZE) {
-    //   printf("DEBUG: Here\n");
-    //   tfp->close();
-    //   delete tfp;
-    //   assert(false);
-    // }
   }
   else {
     if(read_type != MEM_READ_DEBUG) {
@@ -113,13 +107,22 @@ extern "C" void itrace(uint32_t pc, uint32_t inst, uint32_t dnpc) {
 
 extern "C" void iringbuf_before_ifetch(uint32_t pc) {
 #ifdef CONFIG_ITRACE
+  // printf("DEBUG: iringbuf_push_pc called with pc = 0x%08x\n", pc);
   iringbuf_push_pc(pc);
 #endif
 }
 
 extern "C" void iringbuf_after_ifetch(uint32_t pc, uint32_t inst) {
 #ifdef CONFIG_ITRACE
+  // printf("DEBUG: iringbuf_backfill_inst called with pc = 0x%08x, inst = 0x%08x\n", pc, inst);
   iringbuf_backfill_inst(pc, inst);
+#endif
+}
+
+extern "C" void iringbuf_flush_after_ifetch(uint32_t pc) {
+#ifdef CONFIG_ITRACE
+  // printf("DEBUG: iringbuf_flush_refill_pos called with pc = 0x%08x\n", pc);
+  iringbuf_flush_refill_pos(pc);
 #endif
 }
 

@@ -22,12 +22,10 @@ module Mem(
     output reg inst_resp_valid,
     output reg data_resp_valid,
     output reg [31:0] rinst,
-    output reg [31:0] rdata   // 暂时让rdata在当前周期就能返回，不然对于单周期CPU来说太麻烦
+    output reg [31:0] rdata
 );
     import "DPI-C" function int pmem_read(input int unsigned raddr, input byte read_type);
     import "DPI-C" function void pmem_write(input int unsigned waddr, input int wdata, input byte unsigned wmask);
-
-
 
     localparam IDLE = 2'd0, WAIT = 2'd1, RESP = 2'd2;
 

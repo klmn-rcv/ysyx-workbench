@@ -103,8 +103,8 @@ class CPU extends Module {
     regfile.io.in.wdata := wbu.io.rf.wb_data
 
     // IFU's input
-    ifu.io.ctrl.ex_redirect_valid := csr.io.out.redirect_valid
-    ifu.io.ctrl.ex_redirect_target := csr.io.out.redirect_target
+    ifu.io.ctrl.ex_redirect_valid := wbu.io.ctrl.ex_redirect_valid
+    ifu.io.ctrl.ex_redirect_target := wbu.io.ctrl.ex_redirect_target
     ifu.io.ctrl.jump_valid := idu.io.ctrl.jump_valid
     ifu.io.ctrl.jump_target := idu.io.ctrl.jump_target
     ifu.io.ctrl.br_taken := exu.io.ctrl.br_taken
@@ -142,6 +142,8 @@ class CPU extends Module {
     StageConnect(lsdu.io.out, wbu.io.in, arch)
     wbu.io.csr.priv := csr.io.out.priv
     wbu.io.csr.csrResp := csr.io.out.resp
+    wbu.io.csr.mtvec := csr.io.out.mtvec
+    wbu.io.csr.mepc := csr.io.out.mepc
 
     // pipeline RAW hazard
     val exuHazardInfo = Wire(new RAWHazardInfo)

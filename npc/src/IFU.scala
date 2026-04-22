@@ -53,4 +53,5 @@ class IFU extends Module {
     iringbuf.inst := 0.U(32.W)
     iringbuf.before_ifetch := io.out.fire
     iringbuf.after_ifetch := false.B
+    iringbuf.flush_after_ifetch := false.B
 }

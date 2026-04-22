@@ -100,7 +100,8 @@ class IDU extends Module {
     io.out.bits.bit_width := bitWidth
     io.out.bits.sign := sign
 
-    io.ctrl.jump_valid := funcType === FuncType.jplk && io.out.valid // 在本流水级处理完时才发跳转信号。如果这里只与一个valid，那isRAW为高时也会发跳转信号，此时jump_target还没拿到，会导致IF拿到错误的jump_target。
+    io.ctrl.jump_valid := funcType === FuncType.jplk && io.out.fire // 在本流水级处理完时才发跳转信号。如果这里只与一个valid，那isRAW为高时也会发跳转信号，此时jump_target还没拿到，会导致IF拿到错误的jump_target。
+                                                                    // 之前这里与上的是io.out.valid，这是错的，因为这样flush可能持续多拍，而因为IW被flush掉了，IF里的跳转后的指令可以流到IW，此时如果flush还为高，IW里这条跳转后的指令也会被flush，导致多flush了一些指令。
     io.ctrl.jump_target := Mux(
         instType === InstType.J,
         io.in.bits.pc + imm,

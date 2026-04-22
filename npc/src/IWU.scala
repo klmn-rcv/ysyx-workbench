@@ -66,4 +66,5 @@ class IWU extends Module {
     iringbuf.inst := io.mem.rinst
     iringbuf.before_ifetch := false.B
     iringbuf.after_ifetch := io.out.fire
+    iringbuf.flush_after_ifetch := io.in.valid && flush
 }

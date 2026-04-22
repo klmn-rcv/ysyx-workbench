@@ -10,6 +10,8 @@ class WBU extends Module {
             val priv = Input(UInt(2.W))
             val csrReq = Output(new CSRReq)
             val csrResp = Input(new CSRResp)
+            val mtvec = Input(UInt(32.W))
+            val mepc = Input(UInt(32.W))
             val wb_ex = Output(Bool())
             val wb_cause = Output(UInt(32.W))
             val wb_pc = Output(UInt(32.W))
@@ -20,10 +22,17 @@ class WBU extends Module {
             val wb_we = Output(Bool())
             val wb_addr = Output(UInt(5.W))
         }
+        val ctrl = new Bundle {
+            val ex_redirect_valid = Output(Bool())
+            val ex_redirect_target = Output(UInt(32.W))
+        }
     })
 
     val ready_go = true.B
     io.in.ready := !reset.asBool && (!io.in.valid || ready_go)
+
+    io.ctrl.ex_redirect_valid := io.csr.wb_ex || io.csr.mret  // 可以保证只持续一拍
+    io.ctrl.ex_redirect_target := Mux(io.csr.wb_ex, io.csr.mtvec & "hfffffffc".U(32.W), io.csr.mepc)
 
     // jump writes link value (pc+4); arithmetic writes ALU result.
     io.rf.wb_data := Mux(io.in.bits.csrReq.re, io.csr.csrResp.rvalue, io.in.bits.data)

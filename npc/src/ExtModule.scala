@@ -53,6 +53,7 @@ class Iringbuf extends ExtModule {
     val inst = IO(Input(UInt(32.W)))
     val before_ifetch = IO(Input(Bool()))
     val after_ifetch = IO(Input(Bool()))
+    val flush_after_ifetch = IO(Input(Bool()))
 
     addResource("/Iringbuf.sv")
 }

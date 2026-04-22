@@ -24,7 +24,7 @@ class EXU extends Module {
     alu.io.in.op := io.in.bits.alu_op
 
     val br_alu_zero = alu.io.out.result === 0.U
-    io.ctrl.br_taken := io.in.bits.br_valid && (br_alu_zero === io.in.bits.br_expect_0) && io.out.valid
+    io.ctrl.br_taken := io.in.bits.br_valid && (br_alu_zero === io.in.bits.br_expect_0) && io.out.fire
     io.ctrl.br_target := io.in.bits.br_target
 
     io.out.bits.result := alu.io.out.result
