@@ -23,14 +23,20 @@ static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 uint64_t g_nr_commit = 0;
 
-Inst s;
+Inst submit;
 
 static void trace_and_difftest() {
+  // printf("DEBUG: trace_and_difftest(), npc_state.state = %d\n", npc_state.state);
 #ifdef CONFIG_ITRACE
-  log_write("%s\n", s.logbuf);
+  log_write("%s\n", submit.logbuf);
 #endif
-  if (g_print_step && log_fp != stdout) { IFDEF(CONFIG_ITRACE, puts(s.logbuf)); }
-  IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, s.dnpc));
+  if (g_print_step && log_fp != stdout) { IFDEF(CONFIG_ITRACE, puts(submit.logbuf)); }
+
+  // printf("DEBUG: before entering difftest_step, submit.pc is 0x%08" PRIx32 ", submit.dnpc is 0x%08" PRIx32 "\n", submit.pc, submit.dnpc);
+
+  IFDEF(CONFIG_DIFFTEST, difftest_step(submit.pc, submit.dnpc));
+
+  // printf("DEBUG: after difftest_step\n");
 
 // #ifdef CONFIG_DIFFTEST
 //   extern bool is_skip_ref_next;
@@ -45,15 +51,15 @@ static void trace_and_difftest() {
   bool no_change = check_all_wp_no_change(&NO, &expr_str, &old_value, &new_value);
   if(!no_change) {
     npc_state.state = NPC_STOP;
-    printf("Hit watchpoint %d: %s at pc = " FMT_PADDR "\nold value = 0x%x (%" PRIu32 ")\nnew value = 0x%x (%" PRIu32 ")\n", NO, expr_str, s.pc, old_value, old_value, new_value, new_value);
+    // printf("Hit watchpoint %d: %s at pc = " FMT_PADDR "\nold value = 0x%x (%" PRIu32 ")\nnew value = 0x%x (%" PRIu32 ")\n", NO, expr_str, submit.pc, old_value, old_value, new_value, new_value);
     return;
   }
 
   uint32_t addr;
-  bool bp_hit = check_bp_hit(s.dnpc, &NO, &addr);
+  bool bp_hit = check_bp_hit(submit.dnpc, &NO, &addr);
   if(bp_hit) {
     npc_state.state = NPC_STOP;
-    printf("Hit breakpoint %d at pc = " FMT_PADDR "\n", NO, addr);
+    // printf("Hit breakpoint %d at pc = " FMT_PADDR "\n", NO, addr);
   }
 #endif
 }
@@ -85,11 +91,11 @@ static void exec_once() {
   }
 
 #ifdef CONFIG_ITRACE
-  char *p = s.logbuf;
-  p += snprintf(p, sizeof(s.logbuf), FMT_WORD ":", s.pc);
+  char *p = submit.logbuf;
+  p += snprintf(p, sizeof(submit.logbuf), FMT_WORD ":", submit.pc);
 
   int i;
-  uint8_t *inst = reinterpret_cast<uint8_t*>(&s.inst);
+  uint8_t *inst = reinterpret_cast<uint8_t*>(&submit.inst);
   for (i = 3; i >= 0; i --) {
     p += snprintf(p, 4, " %02x", inst[i]);
   }
@@ -97,12 +103,13 @@ static void exec_once() {
   p += 1;
 
   void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
-  disassemble(p, s.logbuf + sizeof(s.logbuf) - p,
-      s.pc, reinterpret_cast<uint8_t*>(&s.inst), 4);
+  disassemble(p, submit.logbuf + sizeof(submit.logbuf) - p,
+      submit.pc, reinterpret_cast<uint8_t*>(&submit.inst), 4);
 #endif
 }
 
 static void execute(uint64_t n) {
+  printf("DEBUG: execute(%" PRIu64 ")\n", n);
   for (;n > 0; n --) {
     exec_once();
     g_nr_inst++;

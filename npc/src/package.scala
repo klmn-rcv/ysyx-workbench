@@ -218,7 +218,6 @@ package object cpu {
     }
 
     class IFUOut extends Bundle {
-        val dnpc = UInt(32.W)
     }
 
     class IWUOut extends Bundle {
@@ -365,14 +364,6 @@ package object cpu {
         val valid_reg = RegInit(false.B)
         val data_reg = Reg(UInt(32.W))
 
-        // assert(!(clear && set), "clear and set should not be true at the same time")
-
-        // when(set) {
-        //     valid_reg := true.B
-        //     data_reg := data
-        // }.elsewhen(clear) {
-        //     valid_reg := false.B
-        // }
         when(clear_now || clear_next_cycle) {
             valid_reg := false.B
         }.elsewhen(valid) {
@@ -386,11 +377,6 @@ package object cpu {
     def bool_preserve(signal: Bool, clear: Bool): Bool = {
         val signal_reg = RegInit(false.B)
 
-        // when(set) {
-        //     signal_reg := signal
-        // }.elsewhen(clear) {
-        //     signal_reg := false.B
-        // }
         when(clear) {
             signal_reg := false.B
         }.elsewhen(signal) {

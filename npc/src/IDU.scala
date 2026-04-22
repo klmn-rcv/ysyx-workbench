@@ -120,7 +120,7 @@ class IDU extends Module {
 
     io.out.bits.inst := io.in.bits.inst
     io.out.bits.pc := io.in.bits.pc
-    io.out.bits.dnpc := io.in.bits.dnpc
+    io.out.bits.dnpc := Mux(io.ctrl.jump_valid, io.ctrl.jump_target, io.in.bits.dnpc)
     // CSR指令相关译码信号
     io.out.bits.csrReq.addr := 0.U
     io.out.bits.csrReq.re := false.B

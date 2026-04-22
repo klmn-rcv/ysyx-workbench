@@ -134,9 +134,7 @@ int main(int argc, char** argv) {
 
   long img_size = load_image(img_file);
 
-#ifdef CONFIG_FTRACE
-  init_ftrace(elf_file);
-#endif
+  IFDEF(CONFIG_FTRACE, init_ftrace(elf_file));
 
   init_sim();
 
@@ -153,9 +151,7 @@ int main(int argc, char** argv) {
                              ANSI_FMT("HIT BAD TRAP", ANSI_FG_RED),
         npc_state.cycles, npc_state.halt_ret);
 
-#ifdef CONFIG_GEN_WAVE
-  end_wave();
-#endif
+  IFDEF(CONFIG_GEN_WAVE, end_wave());
   delete top;
   return 0;
 }

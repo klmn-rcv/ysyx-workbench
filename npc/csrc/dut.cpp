@@ -103,6 +103,8 @@ void init_difftest(const char *ref_so_file, long img_size, int port) {
 
   CPU_state cpu;
   update_cpu_state(&cpu);
+  cpu.pc = RESET_VECTOR;
+  // printf("DEBUG: before ref_difftest_regcpy, cpu.pc = 0x%08" PRIx32 "\n", cpu.pc);
   ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
 }
 
@@ -155,9 +157,12 @@ static void checkregs(CPU_state *ref, vaddr_t pc) {
 }
 
 void difftest_step(vaddr_t pc, vaddr_t npc) {
+  // printf("DEBUG: difftest_step begin, pc = 0x%08" PRIx32 ", npc = 0x%08" PRIx32 "\n", pc, npc);
+
   CPU_state ref_r;
 
   if (skip_dut_nr_inst > 0) {
+    // printf("DEBUG: skip_dut_nr_inst != 0\n");
     ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
     if (ref_r.pc == npc) {
       skip_dut_nr_inst = 0;
@@ -171,6 +176,7 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
   }
 
   if (is_skip_ref) {
+    // printf("DEBUG: is_skip_ref is true\n");
     // to skip the checking of an instruction, just copy the reg state to reference design
     CPU_state cpu;
     update_cpu_state(&cpu);

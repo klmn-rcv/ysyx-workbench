@@ -61,6 +61,7 @@ __EXPORT void difftest_regcpy(void *dut, bool direction) {
 
 // 让REF执行`n`条指令
 __EXPORT void difftest_exec(uint64_t n) {
+  // printf("DEBUG(nemu): difftest_exec called with n = %" PRIu64 ", cpu.pc = 0x%08" PRIx32 "\n", n, cpu.pc);
   cpu_exec(n);
 }
 

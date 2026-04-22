@@ -10,6 +10,6 @@ typedef struct {
   char logbuf[128];
 } Inst;
 
-extern Inst s;
+extern Inst submit;
 
 #endif

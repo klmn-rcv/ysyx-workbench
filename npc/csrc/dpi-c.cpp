@@ -99,9 +99,10 @@ extern "C" void pmem_write(uint32_t waddr, int wdata, uint8_t wmask) {
 
 // 没有定义CONFIG_ITRACE时，这个函数也会记录inst和pc，因为要维护s给difftest使用
 extern "C" void itrace(uint32_t pc, uint32_t inst, uint32_t dnpc) {
-  s.inst = inst;
-  s.pc = pc;
-  s.dnpc = dnpc;
+  // printf("[itrace] DEBUG: submit pc = 0x%08x, now g_nr_commit is %" PRIu64 "\n", pc, g_nr_commit + 1);
+  submit.inst = inst;
+  submit.pc = pc;
+  submit.dnpc = dnpc;
   g_nr_commit++;
 }
 

@@ -44,7 +44,7 @@ class EXU extends Module {
 
     io.out.bits.inst := io.in.bits.inst
     io.out.bits.pc := io.in.bits.pc
-    io.out.bits.dnpc := io.in.bits.dnpc
+    io.out.bits.dnpc := Mux(io.ctrl.br_taken, io.ctrl.br_target, io.in.bits.dnpc)
     io.out.bits.csrReq := io.in.bits.csrReq
 
     io.out.bits.ecall := io.in.bits.ecall

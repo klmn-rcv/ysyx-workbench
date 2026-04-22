@@ -72,7 +72,7 @@ class CPU extends Module {
     val regfile = Module(new regfile)
     val csr = Module(new CSR)
 
-    val arch = "pipeline"  // 单周期
+    val arch = "pipeline"  // 流水线
     
     val isRAW = Wire(Bool())
 
@@ -82,7 +82,7 @@ class CPU extends Module {
     io.out.inst_resp_ready := iwu.io.mem.inst_resp_ready
     io.out.data_resp_ready := lsdu.io.mem.data_resp_ready
     io.out.wen := lsau.io.mem.wen
-    io.out.pc := ifu.io.out.bits.dnpc
+    io.out.pc := ifu.io.out_bypass.dnpc
     io.out.raddr := lsau.io.mem.raddr
     io.out.waddr := lsau.io.mem.waddr
     io.out.wdata := lsau.io.mem.wdata
@@ -114,6 +114,7 @@ class CPU extends Module {
     // IWU's input
     StageConnect(ifu.io.out, iwu.io.in, arch, iwu.io.flush.flush)
     iwu.io.in_bypass.pc := ifu.io.out_bypass.pc
+    iwu.io.in_bypass.dnpc := ifu.io.out_bypass.dnpc
     iwu.io.mem.inst_resp_valid := io.in.inst_resp_valid
     iwu.io.mem.rinst := io.in.rinst
     iwu.io.flush.br_taken := exu.io.ctrl.br_taken

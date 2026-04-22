@@ -8,6 +8,7 @@ class IFU extends Module {
         val out = Decoupled(new IFUOut)
         val out_bypass = new Bundle {
             val pc = Output(UInt(32.W)) // 由于pc（实际上是此时IW流水级中的指令的pc）需要在IFU中使用，所以不能直接放在IFUOut中
+            val dnpc = Output(UInt(32.W))
         }
         val ctrl = new Bundle {
             val ex_redirect_valid = Input(Bool())
@@ -43,13 +44,13 @@ class IFU extends Module {
                Mux(br_taken_preserved, br_target_preserved,
                Mux(jump_valid_preserved, jump_target_preserved, snpc)))
     io.out_bypass.pc := RegEnable(dnpc, "h7ffffffc".U(32.W), io.out.fire)
-    io.out.bits.dnpc := dnpc    // 取指访存发送给内存的地址
+    io.out_bypass.dnpc := dnpc    // 取指访存发送给内存的地址
 
     // trace（TODO：由于流水线阻塞的存在，iringbuf内现有函数可能会被多次调用，需要改！！）
     val iringbuf = Module(new Iringbuf)
     iringbuf.clk := clock
     iringbuf.rst := reset
-    iringbuf.pc := io.out.bits.dnpc
+    iringbuf.pc := io.out_bypass.dnpc
     iringbuf.inst := 0.U(32.W)
     iringbuf.before_ifetch := io.out.fire
     iringbuf.after_ifetch := false.B

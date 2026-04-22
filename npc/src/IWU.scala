@@ -8,6 +8,7 @@ class IWU extends Module {
         val in = Flipped(Decoupled(new IFUOut))  // IFUOut暂时没信号
         val in_bypass = new Bundle {
             val pc = Input(UInt(32.W)) // 由于pc（实际上是此时IW流水级中的指令的pc）需要在IFU中使用，所以不能直接放在IFUOut中
+            val dnpc = Input(UInt(32.W))
         }
         val out = Decoupled(new IWUOut)
         val mem = new Bundle {
@@ -56,7 +57,7 @@ class IWU extends Module {
 
     io.out.bits.inst := inst_preserved
     io.out.bits.pc := io.in_bypass.pc
-    io.out.bits.dnpc := io.in.bits.dnpc
+    io.out.bits.dnpc := io.in_bypass.dnpc
 
     // trace（TODO：由于流水线阻塞的存在，iringbuf内现有函数可能会被多次调用，需要改！！）
     val iringbuf = Module(new Iringbuf)
