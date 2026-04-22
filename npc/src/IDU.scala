@@ -155,7 +155,7 @@ class IDU extends Module {
     io.out.bits.ecall := funcType === FuncType.ecall
     io.out.bits.mret := funcType === FuncType.mret
 
-    // trace（TODO：由于流水线阻塞的存在，ftrace内现有函数可能会被多次调用，需要改！！）
+    // ftrace（由于流水线阻塞的存在，ftrace内的DPI-C函数可能会被多次调用，所以给is_jal和is_jalr信号加上了io.out.fire）
     val ftrace = Module(new Ftrace)
     ftrace.clk := clock
     ftrace.rst := reset
@@ -164,6 +164,6 @@ class IDU extends Module {
     ftrace.rd := rd
     ftrace.rs1 := rs1
     ftrace.imm := imm
-    ftrace.is_jal := instType === InstType.J && funcType === FuncType.jplk
-    ftrace.is_jalr := instType === InstType.I && funcType === FuncType.jplk
+    ftrace.is_jal := instType === InstType.J && funcType === FuncType.jplk && io.out.fire
+    ftrace.is_jalr := instType === InstType.I && funcType === FuncType.jplk && io.out.fire
 }
