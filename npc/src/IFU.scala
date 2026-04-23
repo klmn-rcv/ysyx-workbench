@@ -17,6 +17,7 @@ class IFU extends Module {
             val jump_target = Input(UInt(32.W))
             val br_taken = Input(Bool())
             val br_target = Input(UInt(32.W))
+            val ex_found = Input(Bool()) // 来自IDU的信号，抑制IFU的取指
         }
         val mem = new Bundle {
             val inst_req_valid = Output(Bool())
@@ -25,15 +26,18 @@ class IFU extends Module {
         }
     })
 
+    val forbid_ifetch = bool_preserve(io.ctrl.ex_found, false.B, io.ctrl.ex_redirect_valid)
+
     val inst_req_fire = io.mem.inst_req_valid && io.mem.inst_req_ready
-    val inst_req_fire_preserved = bool_preserve(inst_req_fire, io.out.fire)
+    val inst_req_fire_preserved = bool_preserve(inst_req_fire, io.out.fire, false.B)
 
     val valid = !reset.asBool
     val ready_go = inst_req_fire_preserved
     io.out.valid := valid && ready_go
 
-    io.mem.inst_req_valid := valid && io.out.ready  // io.out.ready是暂时的权衡，这会导致IF在IW没收到指令之前不会发新请求，影响性能
+    io.mem.inst_req_valid := valid && io.out.ready && !forbid_ifetch  // io.out.ready是暂时的权衡，这会导致IF在IW没收到指令之前不会发新请求，影响性能
                                                     // 不是io.out.fire是因为不发inst_req根本不可能fire
+                                                    // forbid_ifetch：异常从被检测到，到WB阶段触发，期间禁止取指令
 
     val (jump_valid_preserved, jump_target_preserved, _, _)               = valid_and_data_preserve(io.ctrl.jump_valid, io.ctrl.jump_target, io.out.fire, false.B)
     val (br_taken_preserved, br_target_preserved, _, _)                   = valid_and_data_preserve(io.ctrl.br_taken, io.ctrl.br_target, io.out.fire, false.B)
@@ -46,7 +50,7 @@ class IFU extends Module {
     io.out_bypass.pc := RegEnable(dnpc, "h7ffffffc".U(32.W), io.out.fire)
     io.out_bypass.dnpc := dnpc    // 取指访存发送给内存的地址
 
-    // trace（TODO：由于流水线阻塞的存在，iringbuf内现有函数可能会被多次调用，需要改！！）
+    // itrace(iringbuf)
     val iringbuf = Module(new Iringbuf)
     iringbuf.clk := clock
     iringbuf.rst := reset

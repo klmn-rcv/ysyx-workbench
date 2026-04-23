@@ -28,11 +28,12 @@ class WBU extends Module {
         }
     })
 
-    val submit_dnpc = RegEnable(io.in.bits.dnpc, 0.U(32.W), io.in.valid)
+    io.in.ready := !reset.asBool
+
+    val dnpc = Mux(io.ctrl.ex_redirect_valid, io.ctrl.ex_redirect_target, io.in.bits.dnpc)
+    val submit_dnpc = RegEnable(dnpc, 0.U(32.W), io.in.valid)
 
     dontTouch(submit_dnpc)
-
-    io.in.ready := !reset.asBool
 
     io.ctrl.ex_redirect_valid := io.csr.wb_ex || io.csr.mret  // 可以保证只持续一拍
     io.ctrl.ex_redirect_target := Mux(io.csr.wb_ex, io.csr.mtvec & "hfffffffc".U(32.W), io.csr.mepc)
@@ -63,6 +64,8 @@ class WBU extends Module {
 
     // Black boxes
     val halt = Module(new Halt)
+    halt.clk := clock
+    halt.rst := reset
     halt.exit_code := Mux(io.in.bits.inv, 1.U, io.in.bits.data)
     halt.exit_pc := io.in.bits.pc
     halt.halt_valid := io.in.bits.ebreak || io.in.bits.inv
@@ -73,5 +76,5 @@ class WBU extends Module {
     itrace.valid := io.in.valid
     itrace.pc := io.in.bits.pc
     itrace.inst := io.in.bits.inst
-    itrace.dnpc := io.in.bits.dnpc
+    itrace.dnpc := dnpc
 }

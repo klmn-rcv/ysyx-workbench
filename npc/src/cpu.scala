@@ -22,7 +22,7 @@ object StageConnect {
                 val validReg = RegInit(false.B)
                 val bitsReg  = RegEnable(left.bits, 0.U.asTypeOf(chiselTypeOf(left.bits)), left.fire)
 
-                val flush_preserved = bool_preserve(flush, left.fire)
+                val flush_preserved = bool_preserve(flush, left.fire, false.B)
                 val flush_next_cycle = flush_preserved && !left.fire
 
                 when(left.ready) {
@@ -109,6 +109,7 @@ class CPU extends Module {
     ifu.io.ctrl.jump_target := idu.io.ctrl.jump_target
     ifu.io.ctrl.br_taken := exu.io.ctrl.br_taken
     ifu.io.ctrl.br_target := exu.io.ctrl.br_target
+    ifu.io.ctrl.ex_found := idu.io.ctrl.ex_found
     ifu.io.mem.inst_req_ready := io.in.inst_req_ready
 
     // IWU's input
@@ -119,7 +120,8 @@ class CPU extends Module {
     iwu.io.mem.rinst := io.in.rinst
     iwu.io.flush.br_taken := exu.io.ctrl.br_taken
     iwu.io.flush.jump_valid := idu.io.ctrl.jump_valid
-
+    iwu.io.flush.ex_found := idu.io.ctrl.ex_found
+    
     // IDU's input
     StageConnect(iwu.io.out, idu.io.in, arch, idu.io.flush.flush)
     idu.io.rf.rdata1 := regfile.io.out.rdata1

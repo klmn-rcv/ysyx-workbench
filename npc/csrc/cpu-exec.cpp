@@ -109,7 +109,7 @@ static void exec_once() {
 }
 
 static void execute(uint64_t n) {
-  printf("DEBUG: execute(%" PRIu64 ")\n", n);
+  // printf("DEBUG: execute(%" PRIu64 ")\n", n);
   for (;n > 0; n --) {
     exec_once();
     g_nr_inst++;

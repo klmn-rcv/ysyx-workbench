@@ -240,12 +240,12 @@ package object cpu {
         val br_valid = Bool()
         val br_expect_0 = Bool()
         val br_target = UInt(32.W)
-        val ebreak = Bool()
-        val inv = Bool()
         val inst = UInt(32.W)
         val pc = UInt(32.W)
         val dnpc = UInt(32.W)
         val csrReq = new CSRReq
+        val ebreak = Bool()
+        val inv = Bool()
         val ecall = Bool()
         val mret = Bool()
     }
@@ -259,12 +259,12 @@ package object cpu {
         val wr_mem = Bool()
         val bit_width = BitWidth()
         val sign = Sign()
-        val ebreak = Bool()
-        val inv = Bool()
         val inst = UInt(32.W)
         val pc = UInt(32.W)
         val dnpc = UInt(32.W)
         val csrReq = new CSRReq
+        val ebreak = Bool()
+        val inv = Bool()
         val ecall = Bool()
         val mret = Bool()
     }
@@ -279,12 +279,12 @@ package object cpu {
         val result = UInt(32.W)     // 如果不是访存指令，需要写回ALU的结果
         val wr_reg = Bool()
         val rd = UInt(5.W)
-        val ebreak = Bool()
-        val inv = Bool()
         val inst = UInt(32.W)
         val pc = UInt(32.W)
         val dnpc = UInt(32.W)
         val csrReq = new CSRReq
+        val ebreak = Bool()
+        val inv = Bool()
         val ecall = Bool()
         val mret = Bool()
     }
@@ -293,12 +293,12 @@ package object cpu {
         val data = UInt(32.W)
         val wr_reg = Bool()
         val rd = UInt(5.W)
-        val ebreak = Bool()
-        val inv = Bool()
         val inst = UInt(32.W)
         val pc = UInt(32.W)
         val dnpc = UInt(32.W)
         val csrReq = new CSRReq
+        val ebreak = Bool()
+        val inv = Bool()
         val ecall = Bool()
         val mret = Bool()
     }
@@ -360,6 +360,7 @@ package object cpu {
     }
 
     // 返回：(valid_preserved, data_preserved, valid_reg, data_reg)
+    // 注意：clear_now有效时，valid不一定返回0，因为clear_now只表示立刻清除寄存器valid_reg，但输入valid可能仍然为1，此时返回的valid是1
     def valid_and_data_preserve(valid: Bool, data: UInt, clear_next_cycle: Bool, clear_now: Bool): (Bool, UInt, Bool, UInt) = {
         val valid_reg = RegInit(false.B)
         val data_reg = Reg(UInt(32.W))
@@ -374,15 +375,16 @@ package object cpu {
         ( valid || (valid_reg && !clear_now), Mux(valid, data, data_reg),  valid_reg, data_reg )
     }
 
-    def bool_preserve(signal: Bool, clear: Bool): Bool = {
+    // 注意：clear_now有效时，函数不一定返回0，因为clear_now只表示立刻清除寄存器signal_reg，但输入signal可能仍然为1，此时返回的signal是1
+    def bool_preserve(signal: Bool, clear_next_cycle: Bool, clear_now: Bool): Bool = {
         val signal_reg = RegInit(false.B)
 
-        when(clear) {
+        when(clear_now || clear_next_cycle) {
             signal_reg := false.B
         }.elsewhen(signal) {
             signal_reg := true.B
         }
 
-        signal || signal_reg
+        signal || (signal_reg && !clear_now)
     }
 }

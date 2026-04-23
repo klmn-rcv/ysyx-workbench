@@ -22,7 +22,7 @@ class LSAU extends Module {
     val flush = false.B  // 这里需要实现！异常会冲刷！
     val mem_access = io.in.bits.rd_mem || io.in.bits.wr_mem
     val data_req_fire = io.mem.data_req_valid && io.mem.data_req_ready
-    val data_req_fire_preserved = bool_preserve(data_req_fire, io.out.fire)
+    val data_req_fire_preserved = bool_preserve(data_req_fire, io.out.fire, false.B)
 
     val valid = io.in.valid && !flush   // 这里的flush也需要持久化
     val ready_go = !mem_access || data_req_fire_preserved

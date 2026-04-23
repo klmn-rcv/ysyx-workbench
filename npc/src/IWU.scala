@@ -19,6 +19,7 @@ class IWU extends Module {
         val flush = new Bundle {
             val br_taken = Input(Bool())
             val jump_valid = Input(Bool())
+            val ex_found = Input(Bool())  // 来自IDU的信号，需要当作flush处理
             val flush = Output(Bool())
         }
     })
@@ -44,7 +45,8 @@ class IWU extends Module {
 
     val br_flush = io.flush.br_taken
     val jump_flush = io.flush.jump_valid && !io.flush.br_taken  // br_taken是EXU的输出，jump_valid是IDU的输出，所以如果两者同时为true，则EXU的分支指令优先级更高（因为它更老）
-    flush := br_flush || jump_flush
+    val ex_flush = io.flush.ex_found && !io.flush.br_taken  // br_taken是EXU的输出，ex_found是IDU的输出，所以如果两者同时为true，则EXU的分支指令优先级更高（因为它更老）
+    flush := br_flush || jump_flush || ex_flush
     io.flush.flush := flush
 
     inst_resp_fire := io.mem.inst_resp_valid && io.mem.inst_resp_ready && valid // 在内容无效（被flush掉）的时候不认为握手成功，以丢掉取到的指令，但要置inst_resp_ready为1，让内存以为握手成功
@@ -59,7 +61,7 @@ class IWU extends Module {
     io.out.bits.pc := io.in_bypass.pc
     io.out.bits.dnpc := io.in_bypass.dnpc
 
-    // trace（TODO：由于流水线阻塞的存在，iringbuf内现有函数可能会被多次调用，需要改！！）
+    // itrace(iringbuf)
     val iringbuf = Module(new Iringbuf)
     iringbuf.clk := clock
     iringbuf.rst := reset

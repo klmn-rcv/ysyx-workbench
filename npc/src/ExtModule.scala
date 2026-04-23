@@ -4,6 +4,8 @@ import chisel3._
 import chisel3.util._
 
 class Halt extends ExtModule {
+    val clk = IO(Input(Clock()))
+    val rst = IO(Input(Bool()))
     val exit_code = IO(Input(UInt(32.W)))
     val exit_pc = IO(Input(UInt(32.W)))
     val halt_valid = IO(Input(Bool()))
