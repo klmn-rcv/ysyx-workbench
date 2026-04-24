@@ -218,9 +218,13 @@ package object cpu {
     }
 
     class IFUOut extends Bundle {
+        val need_flush_in_IF = Bool()
+        val pc = UInt(32.W)
+        val dnpc = UInt(32.W)
     }
 
     class IWUOut extends Bundle {
+        val need_flush_in_IF_or_IW = Bool()
         val inst = UInt(32.W)
         val pc = UInt(32.W)
         val dnpc = UInt(32.W)
@@ -269,13 +273,13 @@ package object cpu {
         val mret = Bool()
     }
 
-    class LSAUOut extends Bundle {
-        // val wr_data = UInt(32.W)  // 对于store指令，LSAU需要把要写入内存的数据传给LSDU，LSDU再把它写入内存（等改为支持AXI总线的内存再取消注释）
-        val raddr = UInt(32.W)      // 为了LSDU提取load得到的数据
-        val bit_width = BitWidth()  // 为了LSDU提取load得到的数据
-        val sign = Sign()           // 为了LSDU提取load得到的数据
-        val rd_mem = Bool()         // 为了LSDU判断应该用什么数据（loadData还是ALU的结果）写回寄存器
-        val wr_mem = Bool()         // 为了LSDU判断是否要发写数据请求（之后支持握手才需要实现这一点）
+    class LSUOut extends Bundle {
+        val need_flush_in_LSU = Bool()
+        val raddr = UInt(32.W)      // 为了LSWU提取load得到的数据
+        val bit_width = BitWidth()  // 为了LSWU提取load得到的数据
+        val sign = Sign()           // 为了LSWU提取load得到的数据
+        val rd_mem = Bool()         // 为了LSWU判断应该用什么数据（loadData还是ALU的结果）写回寄存器
+        val wr_mem = Bool()         // 为了LSWU判断是否要发写数据请求（之后支持握手才需要实现这一点）
         val result = UInt(32.W)     // 如果不是访存指令，需要写回ALU的结果
         val wr_reg = Bool()
         val rd = UInt(5.W)
@@ -289,7 +293,8 @@ package object cpu {
         val mret = Bool()
     }
 
-    class LSDUOut extends Bundle {
+    class LSWUOut extends Bundle {
+        val need_flush_in_LSU_or_LSWU = Bool()
         val data = UInt(32.W)
         val wr_reg = Bool()
         val rd = UInt(5.W)
@@ -310,33 +315,45 @@ package object cpu {
         val DECERR = 3.U(2.W)   // 解码错误，表示主设备发出了一个没有从设备映射的非法地址
     }
 
-    class AXI4Lite(awidth: Int, dwidth: Int) extends Bundle {  // Master interface
-        // AR
+    // 以下AXI4Lite接口的方向都是master的方向
+    class AXI4LiteAR(awidth: Int) extends Bundle {
         val araddr = Output(UInt(awidth.W))
         val arvalid = Output(Bool())
         val arready = Input(Bool())
+    }
 
-        // R
+    class AXI4LiteR(dwidth: Int) extends Bundle {
         val rdata = Input(UInt(dwidth.W))
         val rresp = Input(UInt(2.W))
         val rvalid = Input(Bool())
         val rready = Output(Bool())
+    }
 
-        // AW
+    class AXI4LiteAW(awidth: Int) extends Bundle {
         val awaddr = Output(UInt(awidth.W))
         val awvalid = Output(Bool())
         val awready = Input(Bool())
+    }
 
-        // W
+    class AXI4LiteW(dwidth: Int) extends Bundle {
         val wdata = Output(UInt(dwidth.W))
-        val wstrb = Output(UInt(4.W))
+        val wstrb = Output(UInt((dwidth / 8).W))
         val wvalid = Output(Bool())
         val wready = Input(Bool())
+    }
 
-        // B
+    class AXI4LiteB extends Bundle {
         val bresp = Input(UInt(2.W))
         val bvalid = Input(Bool())
         val bready = Output(Bool())
+    }
+
+    class AXI4Lite(awidth: Int, dwidth: Int) extends Bundle {  // Master interface
+        val ar = new AXI4LiteAR(awidth)
+        val r = new AXI4LiteR(dwidth)
+        val aw = new AXI4LiteAW(awidth)
+        val w = new AXI4LiteW(dwidth)
+        val b = new AXI4LiteB
     }
 
     // pipeline RAW hazard
@@ -365,6 +382,8 @@ package object cpu {
         val valid_reg = RegInit(false.B)
         val data_reg = Reg(UInt(32.W))
 
+        // clear和valid的优先级：clear > valid
+        // 但不意味着clear有效时一定返回0，前面已经解释过了
         when(clear_now || clear_next_cycle) {
             valid_reg := false.B
         }.elsewhen(valid) {
@@ -372,19 +391,36 @@ package object cpu {
             data_reg := data
         }
 
-        ( valid || (valid_reg && !clear_now), Mux(valid, data, data_reg),  valid_reg, data_reg )
+        ( valid || (valid_reg && !clear_now), Mux(valid, data, data_reg),  (valid_reg && !clear_now), data_reg )
     }
 
+    // 返回：(signal_preserved, signal_reg)
     // 注意：clear_now有效时，函数不一定返回0，因为clear_now只表示立刻清除寄存器signal_reg，但输入signal可能仍然为1，此时返回的signal是1
-    def bool_preserve(signal: Bool, clear_next_cycle: Bool, clear_now: Bool): Bool = {
+    def bool_preserve(signal: Bool, clear_next_cycle: Bool, clear_now: Bool): (Bool, Bool) = {
         val signal_reg = RegInit(false.B)
 
+        // clear和valid的优先级：clear > valid
+        // 但不意味着clear有效时一定返回0，前面已经解释过了
         when(clear_now || clear_next_cycle) {
             signal_reg := false.B
         }.elsewhen(signal) {
             signal_reg := true.B
         }
 
-        signal || (signal_reg && !clear_now)
+        ( signal || (signal_reg && !clear_now), (signal_reg && !clear_now) )
+    }
+
+    def boolreg_set_clear(set: Bool, clear: Bool): Bool = {
+        val reg = RegInit(false.B)
+
+        assert(!(set && clear), "boolreg_set_clear: set and clear cannot be true at the same time")
+
+        when(clear) {
+            reg := false.B
+        }.elsewhen(set) {
+            reg := true.B
+        }
+
+        reg
     }
 }

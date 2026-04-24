@@ -6,21 +6,20 @@ import chisel3.util._
 class IWU extends Module {
     val io = IO(new Bundle {
         val in = Flipped(Decoupled(new IFUOut))  // IFUOut暂时没信号
-        val in_bypass = new Bundle {
-            val pc = Input(UInt(32.W)) // 由于pc（实际上是此时IW流水级中的指令的pc）需要在IFU中使用，所以不能直接放在IFUOut中
-            val dnpc = Input(UInt(32.W))
-        }
+        // val in_bypass = new Bundle {
+        //     val pc = Input(UInt(32.W)) // 由于pc（实际上是此时IW流水级中的指令的pc）需要在IFU中使用，所以不能直接放在IFUOut中
+        //     val dnpc = Input(UInt(32.W))
+        // }
         val out = Decoupled(new IWUOut)
         val mem = new Bundle {
-            val inst_resp_valid = Input(Bool())
-            val inst_resp_ready = Output(Bool())
-            val rinst = Input(UInt(32.W))
+            val r = new AXI4LiteR(32)
+            val b = new AXI4LiteB  // 输出全置0
         }
         val flush = new Bundle {
             val br_taken = Input(Bool())
             val jump_valid = Input(Bool())
             val ex_found = Input(Bool())  // 来自IDU的信号，需要当作flush处理
-            val flush = Output(Bool())
+            // val flush = Output(Bool())
         }
     })
 
@@ -28,46 +27,50 @@ class IWU extends Module {
     // 而内存也一直在返回指令给IWU，导致IWU接收到错位的指令！
     // 已通过在IFU里加上“io.mem.inst_req_valid := io.out.fire && ready_go”解决。
 
-    val flush = Wire(Bool())
-    // val inst_resp_valid_preserved = Wire(Bool())
-    val inst_resp_fire = Wire(Bool())
-    val inst_resp_fire_preserved = Wire(Bool())
-    val inst_preserved = Wire(UInt(32.W))
+    assert(!io.mem.r.rvalid || io.mem.r.rresp === AXI4Resp.OKAY)
 
-    val valid = io.in.valid && !flush
+    val r_fire = io.mem.r.rvalid && io.mem.r.rready // && !io.in.bits.need_flush_in_IF
+                // !io.in.bits.need_flush_in_IF不能写在这里，是因为这样会导致r_fire永远为0，从而ready_go也永远为0，让这条指令永远卡死在IWU。
+                // 至于为什么不把io.in.bits.need_flush_in_IF直接接给flush信号或valid信号，是因为这样会导致IWU内容提前无效，IFU的内容可能在IWU这条指令剩下的握手流程完成之前流过来，导致接收到错位指令。
+                // r_fire信号也不能接valid信号（虽然接不接不影响逻辑），因为现在不允许在内容无效的时候假握手了，原因是IFU随时可能流过来，导致错位
+    val (r_fire_preserved, inst_preserved, r_fire_after, _) = valid_and_data_preserve(r_fire, io.mem.r.rdata, io.out.fire, false.B)
+
+    val valid = io.in.valid // && !flush  // IW也不能直接flush，也必须要先完成握手。如果像之前那样，flush来了直接当成无效，在无效的时候rready始终拉高但丢掉取到的指令，是不行的，因为现在IF随时可能流到IW，如果IW无效但还没走完形式上的握手流程，IF就流过来了，这时就会接收到错位指令
+                                          // 解决方法是使用need_flush_in_or_before_IW接口，让在IF和IW本应当被flush掉的指令在进入ID的同时被真正flush
     // val ready_go = !valid || flush || ...，在现在的语义框架下是错误的，
     // 因为!valid和flush都是“没有有效指令”，既然没有有效指令，怎么会完成了本级任务呢？
     // 而且io.out.valid := valid && ready_go，也就是说无效的信号我们是不会让它流向下一级的，所以更不应该在!valid的时候把ready_go拉高了。
     // 还有一个细节：!valid || flush本身就是冗余的，等价于单独一个!valid，因为flush为1时，!valid必为1，所以只要一个!valid就能涵盖flush的情况了。
-    val ready_go = inst_resp_fire_preserved
+    val ready_go = r_fire_preserved
     io.in.ready := !reset.asBool && (!valid || ready_go && io.out.ready)
     io.out.valid := valid && ready_go
 
     val br_flush = io.flush.br_taken
     val jump_flush = io.flush.jump_valid && !io.flush.br_taken  // br_taken是EXU的输出，jump_valid是IDU的输出，所以如果两者同时为true，则EXU的分支指令优先级更高（因为它更老）
     val ex_flush = io.flush.ex_found && !io.flush.br_taken  // br_taken是EXU的输出，ex_found是IDU的输出，所以如果两者同时为true，则EXU的分支指令优先级更高（因为它更老）
-    flush := br_flush || jump_flush || ex_flush
-    io.flush.flush := flush
+    val need_flush_in_IW = br_flush || jump_flush || ex_flush
+    val need_flush_in_IW_preserved = bool_preserve(need_flush_in_IW, io.out.fire, false.B)._1
+    // io.flush.flush := false.B // 这里不能接need_flush_in_IW，否则io.in.valid就会在下一拍被无效掉，导致之前在val valid信号定义处那个注释提到的问题。因此这里io.flush.flush必须是false.B。
 
-    inst_resp_fire := io.mem.inst_resp_valid && io.mem.inst_resp_ready && valid // 在内容无效（被flush掉）的时候不认为握手成功，以丢掉取到的指令，但要置inst_resp_ready为1，让内存以为握手成功
-    val preserved_tuple = valid_and_data_preserve(inst_resp_fire, io.mem.rinst, io.out.fire, flush) // 在flush的时候立刻把inst_resp_fire_reg置为0（注意不是把inst_resp_fire_preserved置为0！），这里的立刻是异步的意思
-    inst_resp_fire_preserved := preserved_tuple._1
-    inst_preserved := preserved_tuple._2
-    val inst_resp_fire_after = preserved_tuple._3  // 握手成功之后
-    io.mem.inst_resp_ready := !valid || !inst_resp_fire_after // 不考虑flush的话，这里的逻辑应该不用改进了（不考虑flush，不管在什么情况下io.out.fire，下一拍inst_resp_ready都为1，不会有性能损失）
-                                                              // 在!valid的时候置inst_resp_ready为1是考虑如果有flush，IW无效，需要让内存以为能握手（不然内存会一直等），但实际上IW会把这条取到的指令丢掉
 
+    io.mem.r.rready := valid && !r_fire_after // 不管在什么情况下io.out.fire，下一拍inst_resp_ready都为1，不会有性能损失
+                                              // 之前在!valid的时候置rready为1，这在现在的设计中是不好的，因为既然现在IW不会真正flush指令，那valid为0只可能是IW流走，而IF还没流过来，此时如果IF的AR握手成功但继续卡在IF（虽然好像暂时不可能出现这种情况），就会导致IW假握手并丢掉这条实际上不该丢的指令
+
+    io.out.bits.need_flush_in_IF_or_IW := io.in.bits.need_flush_in_IF || need_flush_in_IW_preserved // 这条在IF/IW就应当被flush掉的指令，为了完成握手，必须等到进入ID的同时flush
     io.out.bits.inst := inst_preserved
-    io.out.bits.pc := io.in_bypass.pc
-    io.out.bits.dnpc := io.in_bypass.dnpc
+    io.out.bits.pc := io.in.bits.pc
+    io.out.bits.dnpc := io.in.bits.dnpc
+
+    // B通道输出全置0
+    io.mem.b.bready := false.B
 
     // itrace(iringbuf)
     val iringbuf = Module(new Iringbuf)
     iringbuf.clk := clock
     iringbuf.rst := reset
-    iringbuf.pc := io.in_bypass.pc
-    iringbuf.inst := io.mem.rinst
+    iringbuf.pc := io.in.bits.pc
+    iringbuf.inst := io.mem.r.rdata
     iringbuf.before_ifetch := false.B
     iringbuf.after_ifetch := io.out.fire
-    iringbuf.flush_after_ifetch := io.in.valid && flush
+    iringbuf.flush_after_ifetch := io.in.valid && need_flush_in_IW  // TODO: 这里需要考虑need_flush_in_IF吗？
 }

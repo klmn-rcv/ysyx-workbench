@@ -11,12 +11,17 @@ class EXU extends Module {
             val br_taken = Output(Bool())
             val br_target = Output(UInt(32.W))
         }
+        val flush = new Bundle {
+            val flush = Output(Bool())
+        }
     })
 
     val valid = io.in.valid // && !flush   // 这里的flush也需要持久化
     val ready_go = true.B
     io.in.ready := !reset.asBool && (!valid || ready_go && io.out.ready)
     io.out.valid := valid && ready_go
+
+    io.flush.flush := false.B
 
     val alu = Module(new ALU)
     alu.io.in.src1 := io.in.bits.src1

@@ -38,7 +38,7 @@ class IDU extends Module {
     io.out.valid := valid && ready_go
 
     val br_flush = io.flush.br_taken
-    flush := br_flush
+    flush := br_flush || io.in.bits.need_flush_in_IF_or_IW // need_flush_in_IF_or_IW如果有效，立刻让当前指令无效
     io.flush.flush := flush
 
     val default = List(InstType.N, FuncType.inv, ALUOp.add, BitWidth.w32, Sign.signed)
