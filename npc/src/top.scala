@@ -17,35 +17,16 @@ class Top extends Module {
     // })
 
     val core = Module(new CPU)
-    val mem = Module(new _root_.cpu.Mem)
+    val inst_mem = Module(new _root_.cpu.Mem)
+    val data_mem = Module(new _root_.cpu.Mem)
 
-    mem.clk := clock
-    mem.rst := reset.asBool
-    mem.inst_req_valid := core.io.out.inst_req_valid
-    mem.data_req_valid := core.io.out.data_req_valid
-    mem.inst_resp_ready := core.io.out.inst_resp_ready
-    mem.data_resp_ready := core.io.out.data_resp_ready
-    mem.wen := core.io.out.wen
-    mem.pc := core.io.out.pc
-    mem.raddr := core.io.out.raddr
-    mem.waddr := core.io.out.waddr
-    mem.wdata := core.io.out.wdata
-    mem.wmask := core.io.out.wmask
+    inst_mem.clk := clock
+    inst_mem.rst := reset.asBool
+    inst_mem.is_inst := true.B
+    inst_mem.axi <> core.io.inst_mem_axi
 
-    core.io.in.inst_req_ready := mem.inst_req_ready
-    core.io.in.data_req_ready := mem.data_req_ready
-    core.io.in.inst_resp_valid := mem.inst_resp_valid
-    core.io.in.data_resp_valid := mem.data_resp_valid
-    core.io.in.rinst := mem.rinst
-    core.io.in.rdata := mem.rdata
-
-    // io.pc := core.io.out.pc
-    // io.raddr := core.io.out.raddr
-    // io.waddr := core.io.out.waddr
-    // io.wdata := core.io.out.wdata
-    // io.wmask := core.io.out.wmask
-    // io.data_req_valid := core.io.out.data_req_valid
-    // io.wen := core.io.out.wen
-    // io.rinst := mem.rinst
-    // io.rdata := mem.rdata
+    data_mem.clk := clock
+    data_mem.rst := reset.asBool
+    data_mem.is_inst := false.B
+    data_mem.axi <> core.io.data_mem_axi
 }

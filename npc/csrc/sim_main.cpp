@@ -146,12 +146,22 @@ int main(int argc, char** argv) {
 
   sdb_mainloop();
 
-  printf("[sim] %s at cycle=%lu, exit_code=%d\n", 
-        npc_state.halt_ret == 0 ? ANSI_FMT("HIT GOOD TRAP", ANSI_FG_GREEN) :
-                             ANSI_FMT("HIT BAD TRAP", ANSI_FG_RED),
-        npc_state.cycles, npc_state.halt_ret);
-
   IFDEF(CONFIG_GEN_WAVE, end_wave());
   delete top;
-  return 0;
+
+  if (npc_state.state == NPC_END) {
+    printf("[sim] exit_code = %d\n", npc_state.halt_ret);
+  }
+
+  // main函数的返回值不能直接return 0，不然什么情况下跑测试都会输出PASS
+  switch (npc_state.state) {
+    case NPC_END:
+      return npc_state.halt_ret == 0 ? 0 : 1;
+    case NPC_ABORT:
+      return 1;
+    case NPC_QUIT:
+      return 0;
+    default:
+      assert(false && "should not reach here");
+  }
 }

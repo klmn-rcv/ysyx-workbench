@@ -48,7 +48,7 @@ class IWU extends Module {
     val br_flush = io.flush.br_taken
     val jump_flush = io.flush.jump_valid && !io.flush.br_taken  // br_taken是EXU的输出，jump_valid是IDU的输出，所以如果两者同时为true，则EXU的分支指令优先级更高（因为它更老）
     val ex_flush = io.flush.ex_found && !io.flush.br_taken  // br_taken是EXU的输出，ex_found是IDU的输出，所以如果两者同时为true，则EXU的分支指令优先级更高（因为它更老）
-    val need_flush_in_IW = br_flush || jump_flush || ex_flush
+    val need_flush_in_IW = (br_flush || jump_flush || ex_flush) && valid
     val need_flush_in_IW_preserved = bool_preserve(need_flush_in_IW, io.out.fire, false.B)._1
     // io.flush.flush := false.B // 这里不能接need_flush_in_IW，否则io.in.valid就会在下一拍被无效掉，导致之前在val valid信号定义处那个注释提到的问题。因此这里io.flush.flush必须是false.B。
 
@@ -71,6 +71,6 @@ class IWU extends Module {
     iringbuf.pc := io.in.bits.pc
     iringbuf.inst := io.mem.r.rdata
     iringbuf.before_ifetch := false.B
-    iringbuf.after_ifetch := io.out.fire
-    iringbuf.flush_after_ifetch := io.in.valid && need_flush_in_IW  // TODO: 这里需要考虑need_flush_in_IF吗？
+    iringbuf.after_ifetch := io.out.fire && !io.out.bits.need_flush_in_IF_or_IW // 不能用!need_flush_in_IW_preserved，因为如果是IF阶段被flush掉了，那么need_flush_in_IW_preserved是0，但这条指令在IF阶段就没有填入iringbuf，所以这里也不应该after_ifetch
+    iringbuf.flush_after_ifetch := io.out.fire && need_flush_in_IW_preserved  // 不能用!io.out.bits.need_flush_in_IF_or_IW，因为对于IF阶段就被flush掉的指令，它在IF阶段就没有填入iringbuf，所里这里不应该对它的iringbuf项进行flush
 }

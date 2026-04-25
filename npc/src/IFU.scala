@@ -77,7 +77,7 @@ class IFU extends Module {
     iringbuf.rst := reset
     iringbuf.pc := io.out.bits.pc
     iringbuf.inst := 0.U(32.W)
-    iringbuf.before_ifetch := io.out.fire
+    iringbuf.before_ifetch := io.out.fire && !need_flush_in_IF_preserved
     iringbuf.after_ifetch := false.B
     iringbuf.flush_after_ifetch := false.B
 }

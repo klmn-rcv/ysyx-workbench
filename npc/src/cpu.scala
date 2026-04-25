@@ -40,8 +40,8 @@ object StageConnect {
 
 class CPU extends Module {
     val io = IO(new Bundle {
-        val inst_mem = new AXI4Lite(32, 32)
-        val data_mem = new AXI4Lite(32, 32)
+        val inst_mem_axi = new AXI4Lite(32, 32)
+        val data_mem_axi = new AXI4Lite(32, 32)
     })
 
     val ifu = Module(new IFU)
@@ -60,17 +60,17 @@ class CPU extends Module {
 
     // CPU core's output
     // instruction memory AXI
-    io.inst_mem.ar <> ifu.io.mem.ar
-    io.inst_mem.r <> iwu.io.mem.r
-    io.inst_mem.aw <> ifu.io.mem.aw
-    io.inst_mem.w <> ifu.io.mem.w
-    io.inst_mem.b <> iwu.io.mem.b
+    io.inst_mem_axi.ar <> ifu.io.mem.ar
+    io.inst_mem_axi.r <> iwu.io.mem.r
+    io.inst_mem_axi.aw <> ifu.io.mem.aw
+    io.inst_mem_axi.w <> ifu.io.mem.w
+    io.inst_mem_axi.b <> iwu.io.mem.b
     // data memory AXI
-    io.data_mem.ar <> lsu.io.mem.ar
-    io.data_mem.r <> lswu.io.mem.r
-    io.data_mem.aw <> lsu.io.mem.aw
-    io.data_mem.w <> lsu.io.mem.w
-    io.data_mem.b <> lswu.io.mem.b
+    io.data_mem_axi.ar <> lsu.io.mem.ar
+    io.data_mem_axi.r <> lswu.io.mem.r
+    io.data_mem_axi.aw <> lsu.io.mem.aw
+    io.data_mem_axi.w <> lsu.io.mem.w
+    io.data_mem_axi.b <> lswu.io.mem.b
 
     // CSR's input
     csr.io.in.req := wbu.io.csr.csrReq

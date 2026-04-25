@@ -20,7 +20,7 @@ class LSWU extends Module {
 
     val valid = io.in.valid // && !flush  // 不能在LSWU直接flush指令
 
-    val need_flush_in_LSWU = !mem_access && false.B  // !mem_access是因为，如果是访存指令，我们认为它不能在LSWU被flush，因为需要完成握手，并且还需要让它流到下一级（LSWU）去完成flush的动作；如果不是访存指令，可以直接flush。
+    val need_flush_in_LSWU = (!mem_access && false.B) && valid  // !mem_access是因为，如果是访存指令，我们认为它不能在LSWU被flush，因为需要完成握手，并且还需要让它流到下一级（LSWU）去完成flush的动作；如果不是访存指令，可以直接flush。
 
     val load_data = Wire(UInt(32.W))
     val r_fire = io.mem.r.rvalid && io.mem.r.rready  // 对于非load指令，r_fire永远为0（因为rready为0）

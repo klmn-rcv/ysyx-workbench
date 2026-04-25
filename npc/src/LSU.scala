@@ -18,7 +18,7 @@ class LSU extends Module {
 
     val valid = io.in.valid // && !flush  // 不能在LSU直接flush指令
 
-    val need_flush_in_LSU = !mem_access && false.B  // !mem_access是因为，如果是访存指令，我们认为它不能在LSU被flush，因为需要完成握手，并且还需要让它流到下一级（LSWU）去完成flush的动作；如果不是访存指令，可以直接flush。
+    val need_flush_in_LSU = (!mem_access && false.B) && valid  // !mem_access是因为，如果是访存指令，我们认为它不能在LSU被flush，因为需要完成握手，并且还需要让它流到下一级（LSWU）去完成flush的动作；如果不是访存指令，可以直接flush。
 
     val ar_fire = io.mem.ar.arvalid && io.mem.ar.arready  // 不能接valid信号（虽然接不接不影响逻辑），因为一旦这里的握手成功，是不能忽略的，AR之后有R握手，AW/W之后有B握手，如果这里握手成功却忽略了，就会错位
     val aw_fire = io.mem.aw.awvalid && io.mem.aw.awready
