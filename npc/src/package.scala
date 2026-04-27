@@ -306,6 +306,7 @@ package object cpu {
         val inv = Bool()
         val ecall = Bool()
         val mret = Bool()
+        val need_skip_ref = Bool()
     }
 
     object AXI4Resp {

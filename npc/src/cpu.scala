@@ -42,6 +42,8 @@ class CPU extends Module {
     val io = IO(new Bundle {
         val inst_mem_axi = new AXI4Lite(32, 32)
         val data_mem_axi = new AXI4Lite(32, 32)
+        val data_mem_r_need_skip_ref = Input(Bool())
+        val data_mem_b_need_skip_ref = Input(Bool())
     })
 
     val ifu = Module(new IFU)
@@ -116,6 +118,8 @@ class CPU extends Module {
 
     // LSWU's input
     StageConnect(lsu.io.out, lswu.io.in, arch) // LSWU不能flush
+    lswu.io.mem.r_need_skip_ref := io.data_mem_r_need_skip_ref
+    lswu.io.mem.b_need_skip_ref := io.data_mem_b_need_skip_ref
 
     // WBU's input
     StageConnect(lswu.io.out, wbu.io.in, arch, wbu.io.flush.flush)

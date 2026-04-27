@@ -10,6 +10,8 @@ class LSWU extends Module {
         val mem = new Bundle {
             val r = new AXI4LiteR(32)
             val b = new AXI4LiteB
+            val r_need_skip_ref = Input(Bool())
+            val b_need_skip_ref = Input(Bool())
         }
     })
 
@@ -29,6 +31,10 @@ class LSWU extends Module {
     val (r_fire_preserved, load_data_preserved, r_fire_after, _) = valid_and_data_preserve(r_fire, load_data, io.out.fire, false.B) // 在flush的时候立刻把r_fire_reg置为0（注意不是把r_fire_preserved置为0！），这里的立刻是异步的意思
     val (b_fire_preserved, b_fire_after) = bool_preserve(b_fire, io.out.fire, false.B)
 
+    val r_need_skip_ref = r_fire && io.mem.r_need_skip_ref
+    val b_need_skip_ref = b_fire && io.mem.b_need_skip_ref
+    val (need_skip_ref_preserved, _) = bool_preserve(r_need_skip_ref || b_need_skip_ref, io.out.fire, false.B)
+
     val ready_go = !mem_access ||
                    (io.in.bits.rd_mem && r_fire_preserved) ||  
                    (io.in.bits.wr_mem && b_fire_preserved) 
@@ -44,6 +50,7 @@ class LSWU extends Module {
     io.out.bits.need_flush_in_LSU_or_LSWU := io.in.bits.need_flush_in_LSU || need_flush_in_LSWU_preserved
 
     io.out.bits.data := Mux(io.in.bits.rd_mem, load_data_preserved, io.in.bits.result)
+    io.out.bits.need_skip_ref := need_skip_ref_preserved
 
     io.out.bits.wr_reg := io.in.bits.wr_reg
     io.out.bits.rd := io.in.bits.rd

@@ -397,7 +397,7 @@ uint32_t eval(int p, int q, bool *success) {
     if(op_index == -1) {  // only TK_DEREF can go into this if
       if(tokens[p].type == TK_DEREF) {
         uint32_t addr = eval(p + 1, q, success);  // p + 1 to q (p is TK_DEREF)
-        uint32_t ret = pmem_read(addr, MEM_READ_DEBUG);
+        uint32_t ret = pmem_read(addr, MEM_READ_DEBUG, 0);
         return ret;
       }
       else if(tokens[p].type == TK_NEG) {

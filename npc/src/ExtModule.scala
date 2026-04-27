@@ -18,6 +18,8 @@ class Mem extends ExtModule {
     val rst = IO(Input(Bool()))
     val is_inst = IO(Input(Bool()))
     val axi = IO(Flipped(new AXI4Lite(32, 32)))
+    val r_need_skip_ref = IO(Output(Bool()))
+    val b_need_skip_ref = IO(Output(Bool()))
 
     addResource("/Mem.sv")
     addResource("/LFSR.sv")
@@ -30,6 +32,7 @@ class Itrace extends ExtModule {
     val pc = IO(Input(UInt(32.W)))
     val inst = IO(Input(UInt(32.W)))
     val dnpc = IO(Input(UInt(32.W)))
+    val need_skip_ref = IO(Input(UInt(8.W)))
 
     addResource("/Itrace.sv")
 }

@@ -8,6 +8,8 @@ module Mem(
     input wire clk,
     input wire rst,
     input wire is_inst,  // 只用于DPI-C函数，用于mtrace，不用于控制逻辑
+    output reg r_need_skip_ref,
+    output reg b_need_skip_ref,
 
     // AR
     input wire [31:0] axi_ar_araddr,
@@ -36,8 +38,8 @@ module Mem(
     output reg axi_b_bvalid,
     input wire axi_b_bready
 );
-    import "DPI-C" function int pmem_read(input int unsigned raddr, input byte read_type);
-    import "DPI-C" function void pmem_write(input int unsigned waddr, input int wdata, input byte unsigned wmask);
+    import "DPI-C" function int pmem_read(input int unsigned raddr, input byte read_type, output byte need_skip_ref);
+    import "DPI-C" function void pmem_write(input int unsigned waddr, input int wdata, input byte unsigned wmask, output byte need_skip_ref);
 
     wire [7:0] read_type = is_inst ? {6'd0, MEM_READ_INST} : {6'd0, MEM_READ_DATA}; // 只用于传给DPI-C函数，用于mtrace
 
@@ -54,7 +56,7 @@ module Mem(
     reg [3:0] r_latency_cnt;
     reg [3:0] w_latency_cnt;
 
-    reg [31:0] raddr_latched;
+    // reg [31:0] raddr_latched;
     reg [31:0] awaddr_latched;
     reg [31:0] wdata_latched;
     reg [3:0]  wstrb_latched;
@@ -160,20 +162,22 @@ module Mem(
 
     always @(posedge clk) begin
         if(rst) begin
-            raddr_latched <= 32'd0;
+            // raddr_latched <= 32'd0;
             axi_r_rdata <= 32'd0;
             axi_r_rresp <= 2'd0;
             axi_r_rvalid <= 1'b0;
+            r_need_skip_ref <= 1'b0;
             r_latency_cnt <= 4'd0;
         end
         else begin
             case(r_current_state)
                 R_IDLE: begin
                     if(ar_fire) begin
-                        raddr_latched <= axi_ar_araddr;
+                        // raddr_latched <= axi_ar_araddr;
+                        axi_r_rdata <= pmem_read(axi_ar_araddr, read_type, {7'd0, r_need_skip_ref});
                         if(r_latency == 4'd1) begin
                             r_latency_cnt <= 4'd0;
-                            axi_r_rdata <= pmem_read(axi_ar_araddr, read_type);
+                            // axi_r_rdata <= pmem_read(axi_ar_araddr, read_type);
                             axi_r_rresp <= 2'd0;
                             axi_r_rvalid <= 1'b1;
                         end
@@ -185,7 +189,7 @@ module Mem(
                 R_WAIT: begin
                     if(r_latency_cnt == 4'd1) begin
                         r_latency_cnt <= 4'd0;
-                        axi_r_rdata <= pmem_read(raddr_latched, read_type);
+                        // axi_r_rdata <= pmem_read(raddr_latched, read_type);
                         axi_r_rresp <= 2'd0;
                         axi_r_rvalid <= 1'b1;
                     end
@@ -196,6 +200,7 @@ module Mem(
                 R_RESP: begin
                     if(r_fire) begin
                         axi_r_rvalid <= 1'b0;
+                        r_need_skip_ref <= 1'b0;
                     end
                 end
                 default: begin
@@ -214,6 +219,7 @@ module Mem(
             w_latency_cnt <= 4'd0;
             axi_b_bresp <= 2'd0;
             axi_b_bvalid <= 1'b0;
+            b_need_skip_ref <= 1'b0;
         end
         else begin
             case(w_current_state)
@@ -234,7 +240,8 @@ module Mem(
                             pmem_write(
                                 aw_fire ? axi_aw_awaddr : awaddr_latched,
                                 w_fire  ? axi_w_wdata  : wdata_latched,
-                                w_fire  ? {4'd0, axi_w_wstrb} : {4'd0, wstrb_latched}
+                                w_fire  ? {4'd0, axi_w_wstrb} : {4'd0, wstrb_latched},
+                                {7'd0, b_need_skip_ref}
                             );
                             axi_b_bresp <= 2'd0;
                             axi_b_bvalid <= 1'b1;
@@ -247,7 +254,7 @@ module Mem(
                 W_WAIT: begin
                     if(w_latency_cnt == 4'd1) begin
                         w_latency_cnt <= 4'd0;
-                        pmem_write(awaddr_latched, wdata_latched, {4'd0, wstrb_latched});
+                        pmem_write(awaddr_latched, wdata_latched, {4'd0, wstrb_latched}, {7'd0, b_need_skip_ref});
                         axi_b_bresp <= 2'd0;
                         axi_b_bvalid <= 1'b1;
                     end
@@ -258,6 +265,7 @@ module Mem(
                 W_RESP: begin
                     if(b_fire) begin
                         axi_b_bvalid <= 1'b0;
+                        b_need_skip_ref <= 1'b0;
                         aw_fire_after <= 1'b0;
                         w_fire_after <= 1'b0;
                     end

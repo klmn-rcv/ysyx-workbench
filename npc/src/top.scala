@@ -29,4 +29,7 @@ class Top extends Module {
     data_mem.rst := reset.asBool
     data_mem.is_inst := false.B
     data_mem.axi <> core.io.data_mem_axi
+
+    core.io.data_mem_r_need_skip_ref := data_mem.r_need_skip_ref
+    core.io.data_mem_b_need_skip_ref := data_mem.b_need_skip_ref
 }

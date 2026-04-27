@@ -33,6 +33,10 @@ static void trace_and_difftest() {
   if (g_print_step && log_fp != stdout) { IFDEF(CONFIG_ITRACE, puts(submit.logbuf)); }
 
   // printf("DEBUG: before entering difftest_step, submit.pc is 0x%08" PRIx32 ", submit.dnpc is 0x%08" PRIx32 "\n", submit.pc, submit.dnpc);
+  if(submit.need_skip_ref) {
+    submit.need_skip_ref = 0;
+    IFDEF(CONFIG_DIFFTEST, difftest_skip_ref());
+  }
 
   IFDEF(CONFIG_DIFFTEST, difftest_step(submit.pc, submit.dnpc));
 

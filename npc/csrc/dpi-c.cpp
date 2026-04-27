@@ -22,21 +22,22 @@ extern "C" void sim_halt(int exit_code, uint32_t exit_pc) {
   npc_state.halt_pc = exit_pc;
 }
 
-extern "C" int pmem_read(uint32_t raddr, mem_read_t read_type) {
+extern "C" int pmem_read(uint32_t raddr, mem_read_t read_type, uint8_t *need_skip_ref) {
 #if defined (CONFIG_MTRACE) || defined (CONFIG_DTRACE)
   const char *str_type[] = { "inst", "data", "debug" };
 #endif
+  *need_skip_ref = 0;
   // 总是读取地址为`raddr & ~0x3u`的4字节返回
   if (raddr == 0x10000004) { // 时钟低32位
-    IFDEF(CONFIG_DIFFTEST, difftest_skip_ref());
-    // IFDEF(CONFIG_DIFFTEST, difftest_skip_next_ref()); // 因为pmem_read是组合逻辑调用的，会在上一条指令退休（进入trace_and_difftest）之前就被调用，所以这里跳过下一条指令的ref检查，以抵消这个影响
+    // IFDEF(CONFIG_DIFFTEST, difftest_skip_ref());
+    *need_skip_ref = 1;
 
     IFDEF(CONFIG_DTRACE, _Log("[dtrace] rtc read: addr = " FMT_PADDR ", low 32 bits\n", raddr));
     return static_cast<uint32_t>(rtc_snapshot);
   }
   if (raddr == 0x10000008) { // 时钟高32位
-    IFDEF(CONFIG_DIFFTEST, difftest_skip_ref());
-    // IFDEF(CONFIG_DIFFTEST, difftest_skip_next_ref()); // 原因同上
+    // IFDEF(CONFIG_DIFFTEST, difftest_skip_ref());
+    *need_skip_ref = 1;
 
     IFDEF(CONFIG_DTRACE, _Log("[dtrace] rtc read: addr = " FMT_PADDR ", high 32 bits\n", raddr));
     auto now = std::chrono::steady_clock::now();
@@ -68,7 +69,7 @@ extern "C" int pmem_read(uint32_t raddr, mem_read_t read_type) {
   return *reinterpret_cast<int*>(pmem + mem_addr);
 }
 
-extern "C" void pmem_write(uint32_t waddr, int wdata, uint8_t wmask) {
+extern "C" void pmem_write(uint32_t waddr, int wdata, uint8_t wmask, uint8_t *need_skip_ref) {
   // 总是往地址为`waddr & ~0x3u`的4字节按写掩码`wmask`写入`wdata`
   // `wmask`中每比特表示`wdata`中1个字节的掩码,
   // 如`wmask = 0x3`代表只写入最低2个字节, 内存中的其它字节保持不变
@@ -79,8 +80,11 @@ extern "C" void pmem_write(uint32_t waddr, int wdata, uint8_t wmask) {
   if (wmask & 0x4) byte_mask |= 0x00FF0000;
   if (wmask & 0x8) byte_mask |= 0xFF000000;
 
+  *need_skip_ref = 0;
   if(waddr == 0x10000000) { // 串口
-    IFDEF(CONFIG_DIFFTEST, difftest_skip_ref()) ;
+    // IFDEF(CONFIG_DIFFTEST, difftest_skip_ref()) ;
+    *need_skip_ref = 1;
+
     uint8_t uart_data = wdata & byte_mask & 0xFF;
     IFDEF(CONFIG_DTRACE, _Log("[dtrace] uart write: addr = " FMT_PADDR ", data = 0x%02x\n", waddr, uart_data));
     fputc(uart_data, stderr);
@@ -98,11 +102,12 @@ extern "C" void pmem_write(uint32_t waddr, int wdata, uint8_t wmask) {
 }
 
 // 没有定义CONFIG_ITRACE时，这个函数也会记录inst和pc，因为要维护s给difftest使用
-extern "C" void itrace(uint32_t pc, uint32_t inst, uint32_t dnpc) {
+extern "C" void itrace(uint32_t pc, uint32_t inst, uint32_t dnpc, uint8_t need_skip_ref) {
   // printf("[itrace] DEBUG: submit pc = 0x%08x, now g_nr_commit is %" PRIu64 "\n", pc, g_nr_commit + 1);
   submit.inst = inst;
   submit.pc = pc;
   submit.dnpc = dnpc;
+  submit.need_skip_ref = need_skip_ref;
   g_nr_commit++;
 }
 

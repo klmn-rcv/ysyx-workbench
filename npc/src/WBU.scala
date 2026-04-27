@@ -91,4 +91,5 @@ class WBU extends Module {
     itrace.pc := io.in.bits.pc
     itrace.inst := io.in.bits.inst
     itrace.dnpc := dnpc
+    itrace.need_skip_ref := io.in.bits.need_skip_ref
 }
