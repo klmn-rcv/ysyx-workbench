@@ -7,7 +7,7 @@ typedef enum logic [1:0] {
 module Mem(
     input wire clk,
     input wire rst,
-    input wire is_inst,  // 只用于DPI-C函数，用于mtrace，不用于控制逻辑
+    input wire read_is_inst,  // 当前这笔AR请求是否来自IFU，只用于DPI-C函数，用于mtrace
     output reg r_need_skip_ref,
     output reg b_need_skip_ref,
 
@@ -41,7 +41,7 @@ module Mem(
     import "DPI-C" function int pmem_read(input int unsigned raddr, input byte read_type, output byte need_skip_ref);
     import "DPI-C" function void pmem_write(input int unsigned waddr, input int wdata, input byte unsigned wmask, output byte need_skip_ref);
 
-    wire [7:0] read_type = is_inst ? {6'd0, MEM_READ_INST} : {6'd0, MEM_READ_DATA}; // 只用于传给DPI-C函数，用于mtrace
+    wire [7:0] read_type = read_is_inst ? {6'd0, MEM_READ_INST} : {6'd0, MEM_READ_DATA}; // 只用于传给DPI-C函数，用于mtrace
 
     localparam R_IDLE = 2'd0, R_WAIT = 2'd1, R_RESP = 2'd2;
     localparam W_IDLE = 2'd0, W_WAIT = 2'd1, W_RESP = 2'd2;

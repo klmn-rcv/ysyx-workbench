@@ -23,6 +23,7 @@ test:
 
 $(VERILOG_STAMP): $(VERILOG_DEPS)
 	$(call git_commit, "generate verilog")
+	rm -rf $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)
 	mill -i runMain Elaborate --target-dir $(BUILD_DIR)
 	touch $(VERILOG_STAMP)

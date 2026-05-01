@@ -16,7 +16,7 @@ class Halt extends ExtModule {
 class Mem extends ExtModule {
     val clk = IO(Input(Clock()))
     val rst = IO(Input(Bool()))
-    val is_inst = IO(Input(Bool()))
+    val read_is_inst = IO(Input(Bool()))
     val axi = IO(Flipped(new AXI4Lite(32, 32)))
     val r_need_skip_ref = IO(Output(Bool()))
     val b_need_skip_ref = IO(Output(Bool()))

@@ -17,19 +17,17 @@ class Top extends Module {
     // })
 
     val core = Module(new CPU)
-    val inst_mem = Module(new _root_.cpu.Mem)
-    val data_mem = Module(new _root_.cpu.Mem)
+    val arbiter = Module(new Arbiter)
+    val mem = Module(new _root_.cpu.Mem)
 
-    inst_mem.clk := clock
-    inst_mem.rst := reset.asBool
-    inst_mem.is_inst := true.B
-    inst_mem.axi <> core.io.inst_mem_axi
+    arbiter.io.ifu <> core.io.inst_mem_axi
+    arbiter.io.lsu <> core.io.data_mem_axi
 
-    data_mem.clk := clock
-    data_mem.rst := reset.asBool
-    data_mem.is_inst := false.B
-    data_mem.axi <> core.io.data_mem_axi
+    mem.clk := clock
+    mem.rst := reset.asBool
+    mem.read_is_inst := arbiter.io.read_is_inst
+    mem.axi <> arbiter.io.out
 
-    core.io.data_mem_r_need_skip_ref := data_mem.r_need_skip_ref
-    core.io.data_mem_b_need_skip_ref := data_mem.b_need_skip_ref
+    core.io.data_mem_r_need_skip_ref := mem.r_need_skip_ref
+    core.io.data_mem_b_need_skip_ref := mem.b_need_skip_ref
 }
