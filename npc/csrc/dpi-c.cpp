@@ -81,15 +81,15 @@ extern "C" void pmem_write(uint32_t waddr, int wdata, uint8_t wmask, uint8_t *ne
   if (wmask & 0x8) byte_mask |= 0xFF000000;
 
   *need_skip_ref = 0;
-  if(waddr == 0x10000000) { // 串口
-    // IFDEF(CONFIG_DIFFTEST, difftest_skip_ref()) ;
-    *need_skip_ref = 1;
-
-    uint8_t uart_data = wdata & byte_mask & 0xFF;
-    IFDEF(CONFIG_DTRACE, _Log("[dtrace] uart write: addr = " FMT_PADDR ", data = 0x%02x\n", waddr, uart_data));
-    fputc(uart_data, stderr);
-    return;
-  }
+  // if(waddr == 0x10000000) { // 串口
+  //   // IFDEF(CONFIG_DIFFTEST, difftest_skip_ref()) ;
+  //   *need_skip_ref = 1;
+  //
+  //   uint8_t uart_data = wdata & byte_mask & 0xFF;
+  //   IFDEF(CONFIG_DTRACE, _Log("[dtrace] uart write: addr = " FMT_PADDR ", data = 0x%02x\n", waddr, uart_data));
+  //   fputc(uart_data, stderr);
+  //   return;
+  // }
 
   const uint32_t mem_addr = static_cast<uint32_t>(waddr - start_pc) & ~0x3u;
   Assert(mem_addr + 4 <= MEM_SIZE, "pmem_write out of bounds at address 0x%x", waddr);

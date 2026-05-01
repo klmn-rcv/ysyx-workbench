@@ -69,7 +69,7 @@ class IWU extends Module {
     iringbuf.clk := clock
     iringbuf.rst := reset
     iringbuf.pc := io.in.bits.pc
-    iringbuf.inst := io.mem.r.rdata
+    iringbuf.inst := inst_preserved
     iringbuf.before_ifetch := false.B
     iringbuf.after_ifetch := io.out.fire && !io.out.bits.need_flush_in_IF_or_IW // 不能用!need_flush_in_IW_preserved，因为如果是IF阶段被flush掉了，那么need_flush_in_IW_preserved是0，但这条指令在IF阶段就没有填入iringbuf，所以这里也不应该after_ifetch
     iringbuf.flush_after_ifetch := io.out.fire && need_flush_in_IW_preserved  // 不能用!io.out.bits.need_flush_in_IF_or_IW，因为对于IF阶段就被flush掉的指令，它在IF阶段就没有填入iringbuf，所里这里不应该对它的iringbuf项进行flush

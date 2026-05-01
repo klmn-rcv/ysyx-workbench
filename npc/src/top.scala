@@ -17,17 +17,29 @@ class Top extends Module {
     // })
 
     val core = Module(new CPU)
-    val arbiter = Module(new Arbiter)
+    val arbiter = Module(new AXI4LiteArbiter)
+    val xbar = Module(new Xbar)
     val mem = Module(new _root_.cpu.Mem)
+    val uart = Module(new UART)
 
-    arbiter.io.ifu <> core.io.inst_mem_axi
-    arbiter.io.lsu <> core.io.data_mem_axi
+    // core <-> arbiter
+    core.io.inst_mem_axi <> arbiter.io.ifu
+    core.io.data_mem_axi <> arbiter.io.lsu
+    core.io.data_mem_r_need_skip_ref := arbiter.io.lsu_r_need_skip_ref
+    core.io.data_mem_b_need_skip_ref := arbiter.io.lsu_b_need_skip_ref
 
+    // arbiter <-> xbar
+    arbiter.io.out <> xbar.io.in
+    arbiter.io.out_r_need_skip_ref := xbar.io.r_need_skip_ref
+    arbiter.io.out_b_need_skip_ref := xbar.io.b_need_skip_ref
+    xbar.io.read_is_inst := arbiter.io.read_is_inst
+
+    // xbar <-> mem/uart
+    xbar.io.mem.r_need_skip_ref := mem.r_need_skip_ref
+    xbar.io.uart.b_need_skip_ref := uart.io.b_need_skip_ref
     mem.clk := clock
     mem.rst := reset.asBool
-    mem.read_is_inst := arbiter.io.read_is_inst
-    mem.axi <> arbiter.io.out
-
-    core.io.data_mem_r_need_skip_ref := mem.r_need_skip_ref
-    core.io.data_mem_b_need_skip_ref := mem.b_need_skip_ref
+    mem.axi <> xbar.io.mem.axi
+    mem.read_is_inst := xbar.io.mem.read_is_inst
+    uart.io.axi <> xbar.io.uart.axi
 }

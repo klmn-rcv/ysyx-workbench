@@ -378,7 +378,7 @@ package object cpu {
     }
 
     // 返回：(valid_preserved, data_preserved, valid_reg, data_reg)
-    // 注意：clear_now有效时，valid不一定返回0，因为clear_now只表示立刻清除寄存器valid_reg，但输入valid可能仍然为1，此时返回的valid是1
+    // 注意：clear_now有效时，valid_preserved不一定返回0，因为clear_now只表示立刻清除寄存器valid_reg，但输入valid可能仍然为1，此时返回的valid是1
     def valid_and_data_preserve(valid: Bool, data: UInt, clear_next_cycle: Bool, clear_now: Bool): (Bool, UInt, Bool, UInt) = {
         val valid_reg = RegInit(false.B)
         val data_reg = Reg(UInt(32.W))
@@ -395,8 +395,24 @@ package object cpu {
         ( valid || (valid_reg && !clear_now), Mux(valid, data, data_reg),  (valid_reg && !clear_now), data_reg )
     }
 
+    // 返回：(data_preserved, data_reg)
+    // 注意：clear_now有效时，data_preserved不一定返回0，因为clear_now只表示立刻清除寄存器data_reg，但输入valid可能仍然为1，此时返回的data是输入的data，而不是0
+    def data_preserve(data: UInt, valid: Bool, clear_next_cycle: Bool, clear_now: Bool): (UInt, UInt) = {
+        val data_reg = Reg(chiselTypeOf(data))
+
+        // clear和valid的优先级：clear > valid
+        // 但不意味着clear有效时一定返回0，前面已经解释过了
+        when(clear_now || clear_next_cycle) {
+            data_reg := 0.U
+        }.elsewhen(valid) {
+            data_reg := data
+        }
+
+        ( Mux(valid, data, Mux(clear_now, 0.U, data_reg)), Mux(clear_now, 0.U, data_reg) )
+    }
+
     // 返回：(signal_preserved, signal_reg)
-    // 注意：clear_now有效时，函数不一定返回0，因为clear_now只表示立刻清除寄存器signal_reg，但输入signal可能仍然为1，此时返回的signal是1
+    // 注意：clear_now有效时，signal_preserved不一定返回0，因为clear_now只表示立刻清除寄存器signal_reg，但输入signal可能仍然为1，此时返回的signal是1
     def bool_preserve(signal: Bool, clear_next_cycle: Bool, clear_now: Bool): (Bool, Bool) = {
         val signal_reg = RegInit(false.B)
 

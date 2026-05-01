@@ -3,12 +3,16 @@ package cpu
 import chisel3._
 import chisel3.util._
 
-class Arbiter extends Module {
+class AXI4LiteArbiter extends Module {
     val io = IO(new Bundle {
         val ifu = Flipped(new AXI4Lite(32, 32))
         val lsu = Flipped(new AXI4Lite(32, 32))
         val out = new AXI4Lite(32, 32)
         val read_is_inst = Output(Bool())
+        val out_r_need_skip_ref = Input(Bool())
+        val out_b_need_skip_ref = Input(Bool())
+        val lsu_r_need_skip_ref = Output(Bool())
+        val lsu_b_need_skip_ref = Output(Bool())
     })
 
     val lsu_req = io.lsu.ar.arvalid || io.lsu.aw.awvalid || io.lsu.w.wvalid
@@ -61,4 +65,7 @@ class Arbiter extends Module {
 
     io.ifu.b.bvalid := false.B
     io.ifu.b.bresp := 0.U
+
+    io.lsu_r_need_skip_ref := io.out_r_need_skip_ref
+    io.lsu_b_need_skip_ref := io.out_b_need_skip_ref
 }
