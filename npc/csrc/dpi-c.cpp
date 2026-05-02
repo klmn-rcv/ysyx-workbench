@@ -22,28 +22,28 @@ extern "C" void sim_halt(int exit_code, uint32_t exit_pc) {
   npc_state.halt_pc = exit_pc;
 }
 
-extern "C" int pmem_read(uint32_t raddr, mem_read_t read_type, uint8_t *need_skip_ref) {
+extern "C" int pmem_read(uint32_t raddr, mem_read_t read_type) {//, uint8_t *need_skip_ref) {
 #if defined (CONFIG_MTRACE) || defined (CONFIG_DTRACE)
   const char *str_type[] = { "inst", "data", "debug" };
 #endif
-  *need_skip_ref = 0;
+  // *need_skip_ref = 0;
   // 总是读取地址为`raddr & ~0x3u`的4字节返回
-  if (raddr == 0x10000004) { // 时钟低32位
-    // IFDEF(CONFIG_DIFFTEST, difftest_skip_ref());
-    *need_skip_ref = 1;
+  // if (raddr == 0x10000004) { // 时钟低32位
+  //   // IFDEF(CONFIG_DIFFTEST, difftest_skip_ref());
+  //   *need_skip_ref = 1;
 
-    IFDEF(CONFIG_DTRACE, _Log("[dtrace] rtc read: addr = " FMT_PADDR ", low 32 bits\n", raddr));
-    return static_cast<uint32_t>(rtc_snapshot);
-  }
-  if (raddr == 0x10000008) { // 时钟高32位
-    // IFDEF(CONFIG_DIFFTEST, difftest_skip_ref());
-    *need_skip_ref = 1;
+  //   IFDEF(CONFIG_DTRACE, _Log("[dtrace] rtc read: addr = " FMT_PADDR ", low 32 bits\n", raddr));
+  //   return static_cast<uint32_t>(rtc_snapshot);
+  // }
+  // if (raddr == 0x10000008) { // 时钟高32位
+  //   // IFDEF(CONFIG_DIFFTEST, difftest_skip_ref());
+  //   *need_skip_ref = 1;
 
-    IFDEF(CONFIG_DTRACE, _Log("[dtrace] rtc read: addr = " FMT_PADDR ", high 32 bits\n", raddr));
-    auto now = std::chrono::steady_clock::now();
-    rtc_snapshot = std::chrono::duration_cast<std::chrono::microseconds>(now - boot_time).count();
-    return static_cast<uint32_t>(rtc_snapshot >> 32);
-  }
+  //   IFDEF(CONFIG_DTRACE, _Log("[dtrace] rtc read: addr = " FMT_PADDR ", high 32 bits\n", raddr));
+  //   auto now = std::chrono::steady_clock::now();
+  //   rtc_snapshot = std::chrono::duration_cast<std::chrono::microseconds>(now - boot_time).count();
+  //   return static_cast<uint32_t>(rtc_snapshot >> 32);
+  // }
 
   const uint32_t mem_addr = static_cast<uint32_t>(raddr - start_pc) & ~0x3u;
 
@@ -69,7 +69,7 @@ extern "C" int pmem_read(uint32_t raddr, mem_read_t read_type, uint8_t *need_ski
   return *reinterpret_cast<int*>(pmem + mem_addr);
 }
 
-extern "C" void pmem_write(uint32_t waddr, int wdata, uint8_t wmask, uint8_t *need_skip_ref) {
+extern "C" void pmem_write(uint32_t waddr, int wdata, uint8_t wmask) {//, uint8_t *need_skip_ref) {
   // 总是往地址为`waddr & ~0x3u`的4字节按写掩码`wmask`写入`wdata`
   // `wmask`中每比特表示`wdata`中1个字节的掩码,
   // 如`wmask = 0x3`代表只写入最低2个字节, 内存中的其它字节保持不变
@@ -80,7 +80,7 @@ extern "C" void pmem_write(uint32_t waddr, int wdata, uint8_t wmask, uint8_t *ne
   if (wmask & 0x4) byte_mask |= 0x00FF0000;
   if (wmask & 0x8) byte_mask |= 0xFF000000;
 
-  *need_skip_ref = 0;
+  // *need_skip_ref = 0;
   // if(waddr == 0x10000000) { // 串口
   //   // IFDEF(CONFIG_DIFFTEST, difftest_skip_ref()) ;
   //   *need_skip_ref = 1;

@@ -17,6 +17,7 @@
  * You can modify this value as you want.
  */
 #define MAX_INST_TO_PRINT 10
+#define MAX_INST_TO_LOG 100000
 
 static uint64_t g_nr_inst = 0;
 static uint64_t g_timer = 0; // unit: us
@@ -28,7 +29,8 @@ Inst submit;
 static void trace_and_difftest() {
   // printf("DEBUG: trace_and_difftest(), npc_state.state = %d\n", npc_state.state);
 #ifdef CONFIG_ITRACE
-  log_write("%s\n", submit.logbuf);
+  if(g_nr_inst < MAX_INST_TO_LOG) log_write("%s\n", submit.logbuf);
+  else if(g_nr_inst == MAX_INST_TO_LOG) log_write("...\n");
 #endif
   if (g_print_step && log_fp != stdout) { IFDEF(CONFIG_ITRACE, puts(submit.logbuf)); }
 
