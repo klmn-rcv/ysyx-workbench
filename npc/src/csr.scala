@@ -3,7 +3,8 @@ package cpu
 import chisel3._
 import chisel3.util._
 
-class CSR extends Module {
+class CSR extends Module with HasYsyxModuleName {
+  override protected def moduleSuffix: String = "CSR"
   val io = IO(new Bundle {
     val in = new Bundle {
       val req = Input(new CSRReq)

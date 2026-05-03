@@ -4,11 +4,11 @@
 #include <verilated.h>
 #include <verilated_vcd_c.h>
 
-#include "VTop.h"
+#include "VysyxSoCFull.h"
 
 #define MEM_SIZE 0x8000000
 
-extern VTop* top;
+extern VysyxSoCFull* top;
 
 #ifdef CONFIG_GEN_WAVE
 extern vluint64_t sim_time;

@@ -1,7 +1,17 @@
 import chisel3._
 import chisel3.util._
+import chisel3.experimental.dataview._
 
 package object cpu {
+    object YsyxName {
+        val prefix = "ysyx_2407xxxx"
+    }
+
+    trait HasYsyxModuleName { this: Module =>
+        protected def moduleSuffix: String
+        override def desiredName: String = s"${YsyxName.prefix}_${moduleSuffix}"
+    }
+
     object ALUOp extends ChiselEnum {
         val add, sub, slt, sltu, and, or, xor, sll, srl, sra, lui = Value
     }
@@ -316,45 +326,156 @@ package object cpu {
         val DECERR = 3.U(2.W)   // 解码错误，表示主设备发出了一个没有从设备映射的非法地址
     }
 
-    // 以下AXI4Lite接口的方向都是master的方向
-    class AXI4LiteAR(awidth: Int) extends Bundle {
+    object AXI4Burst {
+        val FIXED = 0.U(2.W)
+        val INCR = 1.U(2.W)
+        val WRAP = 2.U(2.W)
+    }
+
+    object AXI4Id {
+        val IFU = 0.U(4.W)
+        val LSU = 1.U(4.W)
+    }
+
+    object AXI4Size {
+        val b1 = "b000".U(3.W)
+        val b2 = "b001".U(3.W)
+        val b4 = "b010".U(3.W)
+
+        def fromBitWidth(bitWidth: BitWidth.Type): UInt = MuxLookup(bitWidth.asUInt, b4)(Seq(
+            BitWidth.w8.asUInt -> b1,
+            BitWidth.w16.asUInt -> b2,
+            BitWidth.w32.asUInt -> b4
+        ))
+    }
+
+    abstract class AXI4Channel extends Bundle
+
+    class AXI4AR(val awidth: Int, val idwidth: Int) extends AXI4Channel {
         val araddr = Output(UInt(awidth.W))
+        val arid = Output(UInt(idwidth.W))
+        val arlen = Output(UInt(8.W))
+        val arsize = Output(UInt(3.W))
+        val arburst = Output(UInt(2.W))
         val arvalid = Output(Bool())
         val arready = Input(Bool())
     }
 
-    class AXI4LiteR(dwidth: Int) extends Bundle {
+    class AXI4R(val dwidth: Int, val idwidth: Int) extends AXI4Channel {
         val rdata = Input(UInt(dwidth.W))
         val rresp = Input(UInt(2.W))
+        val rid = Input(UInt(idwidth.W))
+        val rlast = Input(Bool())
         val rvalid = Input(Bool())
         val rready = Output(Bool())
     }
 
-    class AXI4LiteAW(awidth: Int) extends Bundle {
+    class AXI4AW(val awidth: Int, val idwidth: Int) extends AXI4Channel {
         val awaddr = Output(UInt(awidth.W))
+        val awid = Output(UInt(idwidth.W))
+        val awlen = Output(UInt(8.W))
+        val awsize = Output(UInt(3.W))
+        val awburst = Output(UInt(2.W))
         val awvalid = Output(Bool())
         val awready = Input(Bool())
     }
 
-    class AXI4LiteW(dwidth: Int) extends Bundle {
+    class AXI4W(val dwidth: Int) extends AXI4Channel {
         val wdata = Output(UInt(dwidth.W))
         val wstrb = Output(UInt((dwidth / 8).W))
+        val wlast = Output(Bool())
         val wvalid = Output(Bool())
         val wready = Input(Bool())
     }
 
-    class AXI4LiteB extends Bundle {
+    class AXI4B(val idwidth: Int) extends AXI4Channel {
         val bresp = Input(UInt(2.W))
+        val bid = Input(UInt(idwidth.W))
         val bvalid = Input(Bool())
         val bready = Output(Bool())
     }
 
-    class AXI4Lite(awidth: Int, dwidth: Int) extends Bundle {  // Master interface
-        val ar = new AXI4LiteAR(awidth)
-        val r = new AXI4LiteR(dwidth)
-        val aw = new AXI4LiteAW(awidth)
-        val w = new AXI4LiteW(dwidth)
-        val b = new AXI4LiteB
+    class AXI4(val awidth: Int, val dwidth: Int, val idwidth: Int) extends AXI4Channel {
+        val awready = Input(Bool())
+        val awvalid = Output(Bool())
+        val awaddr = Output(UInt(awidth.W))
+        val awid = Output(UInt(idwidth.W))
+        val awlen = Output(UInt(8.W))
+        val awsize = Output(UInt(3.W))
+        val awburst = Output(UInt(2.W))
+
+        val wready = Input(Bool())
+        val wvalid = Output(Bool())
+        val wdata = Output(UInt(dwidth.W))
+        val wstrb = Output(UInt((dwidth / 8).W))
+        val wlast = Output(Bool())
+
+        val bready = Output(Bool())
+        val bvalid = Input(Bool())
+        val bresp = Input(UInt(2.W))
+        val bid = Input(UInt(idwidth.W))
+
+        val arready = Input(Bool())
+        val arvalid = Output(Bool())
+        val araddr = Output(UInt(awidth.W))
+        val arid = Output(UInt(idwidth.W))
+        val arlen = Output(UInt(8.W))
+        val arsize = Output(UInt(3.W))
+        val arburst = Output(UInt(2.W))
+
+        val rready = Output(Bool())
+        val rvalid = Input(Bool())
+        val rresp = Input(UInt(2.W))
+        val rdata = Input(UInt(dwidth.W))
+        val rlast = Input(Bool())
+        val rid = Input(UInt(idwidth.W))
+
+        def ar = this.viewAs[AXI4AR]
+        def r = this.viewAs[AXI4R]
+        def aw = this.viewAs[AXI4AW]
+        def w = this.viewAs[AXI4W]
+        def b = this.viewAs[AXI4B]
+    }
+
+    object AXI4 {
+        private def sameNameView[V <: Record](
+            mk: AXI4 => V,
+            names: String*
+        ): DataView[AXI4, V] =
+            PartialDataView(mk, names.map { n =>
+                (a: AXI4, v: V) => (a.elements(n), v.elements(n))
+            }: _*)
+
+        implicit def arView: DataView[AXI4, AXI4AR] =
+            sameNameView(a => new AXI4AR(a.awidth, a.idwidth),
+                "araddr", "arid", "arlen", "arsize", "arburst", "arvalid", "arready"
+            )
+
+        implicit def rView: DataView[AXI4, AXI4R] =
+            sameNameView(a => new AXI4R(a.dwidth, a.idwidth),
+                "rdata", "rresp", "rid", "rlast", "rvalid", "rready"
+            )
+
+        implicit def awView: DataView[AXI4, AXI4AW] =
+            sameNameView(a => new AXI4AW(a.awidth, a.idwidth),
+                "awaddr", "awid", "awlen", "awsize", "awburst", "awvalid", "awready"
+            )
+
+        implicit def wView: DataView[AXI4, AXI4W] =
+            sameNameView(a => new AXI4W(a.dwidth),
+                "wdata", "wstrb", "wlast", "wvalid", "wready"
+            )
+
+        implicit def bView: DataView[AXI4, AXI4B] =
+            sameNameView(a => new AXI4B(a.idwidth),
+                "bresp", "bid", "bvalid", "bready"
+            )
+    }
+
+    def connectFields(master: AXI4Channel, slave: AXI4Channel, names: String*): Unit = {
+        names.foreach { n =>
+            slave.elements(n) <> master.elements(n)
+        }
     }
 
     // pipeline RAW hazard

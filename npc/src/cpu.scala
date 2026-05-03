@@ -38,10 +38,11 @@ object StageConnect {
     }
 }
 
-class CPU extends Module {
+class CPU extends Module with HasYsyxModuleName {
+    override protected def moduleSuffix: String = "CPU"
     val io = IO(new Bundle {
-        val inst_mem_axi = new AXI4Lite(32, 32)
-        val data_mem_axi = new AXI4Lite(32, 32)
+        val inst_mem_axi = new AXI4(32, 32, 4)
+        val data_mem_axi = new AXI4(32, 32, 4)
         val data_mem_r_need_skip_ref = Input(Bool())
         val data_mem_b_need_skip_ref = Input(Bool())
     })
@@ -61,7 +62,7 @@ class CPU extends Module {
     val isRAW = Wire(Bool())
 
     // CPU core's output
-    // instruction memory AXI
+    // instruction/data memory AXI on flat AXI4 channel views
     io.inst_mem_axi.ar <> ifu.io.mem.ar
     io.inst_mem_axi.r <> iwu.io.mem.r
     io.inst_mem_axi.aw <> ifu.io.mem.aw

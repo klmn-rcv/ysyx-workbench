@@ -3,14 +3,15 @@ package cpu
 import chisel3._
 import chisel3.util._
 
-class LSU extends Module {
+class LSU extends Module with HasYsyxModuleName {
+    override protected def moduleSuffix: String = "LSU"
     val io = IO(new Bundle {
         val in = Flipped(Decoupled(new EXUOut))
         val out = Decoupled(new LSUOut)
         val mem = new Bundle {
-            val ar = new AXI4LiteAR(32)
-            val aw = new AXI4LiteAW(32)
-            val w = new AXI4LiteW(32)
+            val ar = new AXI4AR(32, 4)
+            val aw = new AXI4AW(32, 4)
+            val w = new AXI4W(32)
         }
     })
 
@@ -38,11 +39,20 @@ class LSU extends Module {
 
     io.mem.ar.arvalid := io.in.bits.rd_mem && valid && !ar_fire_after
     io.mem.ar.araddr := io.in.bits.result
+    io.mem.ar.arid := AXI4Id.LSU
+    io.mem.ar.arlen := 0.U
+    io.mem.ar.arsize := AXI4Size.fromBitWidth(io.in.bits.bit_width)
+    io.mem.ar.arburst := AXI4Burst.INCR
     io.mem.aw.awvalid := io.in.bits.wr_mem && valid && !aw_fire_after
     io.mem.aw.awaddr := io.in.bits.result
+    io.mem.aw.awid := AXI4Id.LSU
+    io.mem.aw.awlen := 0.U
+    io.mem.aw.awsize := AXI4Size.fromBitWidth(io.in.bits.bit_width)
+    io.mem.aw.awburst := AXI4Burst.INCR
     io.mem.w.wvalid := io.in.bits.wr_mem && valid && !w_fire_after
     io.mem.w.wdata := io.in.bits.rs2_data << (io.mem.aw.awaddr(1, 0) << 3) // 这里要左移来对齐到正确的字节位置
     io.mem.w.wstrb := MaskGen(io.in.bits.result, io.in.bits.bit_width)
+    io.mem.w.wlast := true.B
 
     val need_flush_in_LSU_preserved = bool_preserve(need_flush_in_LSU, io.out.fire, false.B)._1
     io.out.bits.need_flush_in_LSU := need_flush_in_LSU_preserved    // 这条load/store指令是否在LSU阶段被flush掉了。注意仅在load/store指令时可能拉高。由于在LSU被flush掉的load/store指令仍需要在LSWU完成握手，所以需要流到LSWU再彻底flush掉。非load/store指令不需要这样，直接在LSU就能彻底flush。

@@ -17,4 +17,7 @@ extern "C" void pmem_write(uint32_t waddr, int wdata, uint8_t wmask);//, uint8_t
 extern "C" void iringbuf_before_ifetch(uint32_t pc);
 extern "C" void iringbuf_after_ifetch(uint32_t pc, uint32_t inst);
 
+extern "C" void flash_read(int32_t addr, int32_t *data);
+extern "C" void mrom_read(int32_t addr, int32_t *data);
+
 #endif

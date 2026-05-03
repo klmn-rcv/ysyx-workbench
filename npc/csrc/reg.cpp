@@ -1,6 +1,6 @@
 #include "common.h"
 #include "sim.h"
-#include "VTop___024root.h"
+#include "VysyxSoCFull___024root.h"
 
 #define REG_NUM 16
 
@@ -18,22 +18,22 @@ static const char *csr_regs[] = {
 // 似乎只能这样写，没什么好的办法了
 word_t get_gpr(int i) {
   switch (i) {
-    case 0:  return (word_t)top->rootp->Top__DOT__core__DOT__regfile__DOT__regfile_0;
-    case 1:  return (word_t)top->rootp->Top__DOT__core__DOT__regfile__DOT__regfile_1;
-    case 2:  return (word_t)top->rootp->Top__DOT__core__DOT__regfile__DOT__regfile_2;
-    case 3:  return (word_t)top->rootp->Top__DOT__core__DOT__regfile__DOT__regfile_3;
-    case 4:  return (word_t)top->rootp->Top__DOT__core__DOT__regfile__DOT__regfile_4;
-    case 5:  return (word_t)top->rootp->Top__DOT__core__DOT__regfile__DOT__regfile_5;
-    case 6:  return (word_t)top->rootp->Top__DOT__core__DOT__regfile__DOT__regfile_6;
-    case 7:  return (word_t)top->rootp->Top__DOT__core__DOT__regfile__DOT__regfile_7;
-    case 8:  return (word_t)top->rootp->Top__DOT__core__DOT__regfile__DOT__regfile_8;
-    case 9:  return (word_t)top->rootp->Top__DOT__core__DOT__regfile__DOT__regfile_9;
-    case 10: return (word_t)top->rootp->Top__DOT__core__DOT__regfile__DOT__regfile_10;
-    case 11: return (word_t)top->rootp->Top__DOT__core__DOT__regfile__DOT__regfile_11;
-    case 12: return (word_t)top->rootp->Top__DOT__core__DOT__regfile__DOT__regfile_12;
-    case 13: return (word_t)top->rootp->Top__DOT__core__DOT__regfile__DOT__regfile_13;
-    case 14: return (word_t)top->rootp->Top__DOT__core__DOT__regfile__DOT__regfile_14;
-    case 15: return (word_t)top->rootp->Top__DOT__core__DOT__regfile__DOT__regfile_15;
+    case 0:  return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__regfile__DOT__regfile_0;
+    case 1:  return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__regfile__DOT__regfile_1;
+    case 2:  return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__regfile__DOT__regfile_2;
+    case 3:  return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__regfile__DOT__regfile_3;
+    case 4:  return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__regfile__DOT__regfile_4;
+    case 5:  return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__regfile__DOT__regfile_5;
+    case 6:  return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__regfile__DOT__regfile_6;
+    case 7:  return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__regfile__DOT__regfile_7;
+    case 8:  return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__regfile__DOT__regfile_8;
+    case 9:  return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__regfile__DOT__regfile_9;
+    case 10: return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__regfile__DOT__regfile_10;
+    case 11: return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__regfile__DOT__regfile_11;
+    case 12: return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__regfile__DOT__regfile_12;
+    case 13: return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__regfile__DOT__regfile_13;
+    case 14: return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__regfile__DOT__regfile_14;
+    case 15: return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__regfile__DOT__regfile_15;
     default: assert(0); return 0;
   }
 }
@@ -43,15 +43,15 @@ word_t get_gpr(int i) {
 // }
 
 word_t get_pc() {
-  return (word_t)top->rootp-> Top__DOT__core__DOT__wbu__DOT__submit_dnpc; //Top__DOT__core__DOT__bitsReg_5_dnpc;
+  return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__wbu__DOT__submit_dnpc;
 }
 
 word_t get_csr(int i) {
   switch (i) {
-    case 0: return (word_t)top->rootp->Top__DOT__core__DOT__csr__DOT__mstatus;
-    case 1: return (word_t)top->rootp->Top__DOT__core__DOT__csr__DOT__mtvec;
-    case 2: return (word_t)top->rootp->Top__DOT__core__DOT__csr__DOT__mepc;
-    case 3: return (word_t)top->rootp->Top__DOT__core__DOT__csr__DOT__mcause;
+    case 0: return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__csr__DOT__mstatus;
+    case 1: return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__csr__DOT__mtvec;
+    case 2: return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__csr__DOT__mepc;
+    case 3: return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__csr__DOT__mcause;
     // case 4: return (word_t)top->rootp->Top__DOT__core__DOT__csr__DOT__mcycle;
     // case 5: return (word_t)top->rootp->Top__DOT__core__DOT__csr__DOT__mcycleh;
     // case 6: return (word_t)top->rootp->Top__DOT__core__DOT__csr__DOT__mvendorid;
@@ -71,7 +71,7 @@ word_t get_csr_by_name(const char *name) {
 }
 
 word_t get_priv() {
-  return (word_t)top->rootp->Top__DOT__core__DOT__csr__DOT__priv;
+  return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__csr__DOT__priv;
 }
 
 uint32_t gpr_str2val(const char *s, bool *success) {

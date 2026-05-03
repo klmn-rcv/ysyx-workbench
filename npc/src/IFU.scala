@@ -3,7 +3,8 @@ package cpu
 import chisel3._
 import chisel3.util._
 
-class IFU extends Module {
+class IFU extends Module with HasYsyxModuleName {
+    override protected def moduleSuffix: String = "IFU"
     val io = IO(new Bundle {
         val out = Decoupled(new IFUOut)
         // val out_bypass = new Bundle {
@@ -20,9 +21,9 @@ class IFU extends Module {
             val ex_found = Input(Bool()) // 来自IDU的信号，抑制IFU的取指
         }
         val mem = new Bundle {
-            val ar = new AXI4LiteAR(32)
-            val aw = new AXI4LiteAW(32) // 输出全置0
-            val w = new AXI4LiteW(32)   // 输出全置0
+            val ar = new AXI4AR(32, 4)
+            val aw = new AXI4AW(32, 4) // 输出全置0
+            val w = new AXI4W(32)       // 输出全置0
         }
     })
 
@@ -59,6 +60,10 @@ class IFU extends Module {
                                                  // forbid_ifetch：异常从被检测到，到WB阶段触发，期间禁止取指令
                                                  // forbid_ifetch也不能用在这里了，原因和io.out.ready差不多。但它现在仍然有用，ex_found_preserved就是等价的信号
     io.mem.ar.araddr := pc  // 用寄存器里的pc取指，不用组合信号dnpc了，这样取指地址就不会变了，否则取指地址会变，不符合AXI标准
+    io.mem.ar.arid := AXI4Id.IFU
+    io.mem.ar.arlen := 0.U
+    io.mem.ar.arsize := AXI4Size.b4
+    io.mem.ar.arburst := AXI4Burst.INCR
 
     io.out.bits.pc := pc
     io.out.bits.dnpc := dnpc  // 其实这里等价于填snpc，因为一旦被redirect了，这条指令也就无效了
@@ -67,9 +72,14 @@ class IFU extends Module {
     // AW和W通道输出全置0
     io.mem.aw.awvalid := false.B
     io.mem.aw.awaddr := 0.U
+    io.mem.aw.awid := 0.U
+    io.mem.aw.awlen := 0.U
+    io.mem.aw.awsize := 0.U
+    io.mem.aw.awburst := 0.U
     io.mem.w.wvalid := false.B
     io.mem.w.wdata := 0.U
     io.mem.w.wstrb := 0.U
+    io.mem.w.wlast := false.B
 
     // itrace(iringbuf)
     val iringbuf = Module(new Iringbuf)

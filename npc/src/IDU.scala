@@ -3,7 +3,8 @@ package cpu
 import chisel3._
 import chisel3.util._
 
-class IDU extends Module {
+class IDU extends Module with HasYsyxModuleName {
+    override protected def moduleSuffix: String = "IDU"
     val io = IO(new Bundle {
         val in = Flipped(Decoupled(new IWUOut))
         val out = Decoupled(new IDUOut)

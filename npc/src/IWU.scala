@@ -3,7 +3,8 @@ package cpu
 import chisel3._
 import chisel3.util._
 
-class IWU extends Module {
+class IWU extends Module with HasYsyxModuleName {
+    override protected def moduleSuffix: String = "IWU"
     val io = IO(new Bundle {
         val in = Flipped(Decoupled(new IFUOut))  // IFUOut暂时没信号
         // val in_bypass = new Bundle {
@@ -12,8 +13,8 @@ class IWU extends Module {
         // }
         val out = Decoupled(new IWUOut)
         val mem = new Bundle {
-            val r = new AXI4LiteR(32)
-            val b = new AXI4LiteB  // 输出全置0
+            val r = new AXI4R(32, 4)
+            val b = new AXI4B(4)  // 输出全置0
         }
         val flush = new Bundle {
             val br_taken = Input(Bool())
@@ -27,7 +28,7 @@ class IWU extends Module {
     // 而内存也一直在返回指令给IWU，导致IWU接收到错位的指令！
     // 已通过在IFU里加上“io.mem.inst_req_valid := io.out.fire && ready_go”解决。
 
-    assert(!io.mem.r.rvalid || io.mem.r.rresp === AXI4Resp.OKAY)
+    assert(!io.mem.r.rvalid || (io.mem.r.rresp === AXI4Resp.OKAY && io.mem.r.rlast))
 
     val r_fire = io.mem.r.rvalid && io.mem.r.rready // && !io.in.bits.need_flush_in_IF
                 // !io.in.bits.need_flush_in_IF不能写在这里，是因为这样会导致r_fire永远为0，从而ready_go也永远为0，让这条指令永远卡死在IWU。

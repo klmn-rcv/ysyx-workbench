@@ -3,7 +3,8 @@ package cpu
 import chisel3._
 import chisel3.util._
 
-class regfile extends Module {
+class regfile extends Module with HasYsyxModuleName {
+    override protected def moduleSuffix: String = "regfile"
     val io = IO(new Bundle {
         val in = new Bundle {
             val raddr1 = Input(UInt(4.W))

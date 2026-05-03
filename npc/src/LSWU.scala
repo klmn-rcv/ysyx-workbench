@@ -3,19 +3,20 @@ package cpu
 import chisel3._
 import chisel3.util._
 
-class LSWU extends Module {
+class LSWU extends Module with HasYsyxModuleName {
+    override protected def moduleSuffix: String = "LSWU"
     val io = IO(new Bundle {
         val in = Flipped(Decoupled(new LSUOut))
         val out = Decoupled(new LSWUOut)
         val mem = new Bundle {
-            val r = new AXI4LiteR(32)
-            val b = new AXI4LiteB
+            val r = new AXI4R(32, 4)
+            val b = new AXI4B(4)
             val r_need_skip_ref = Input(Bool())
             val b_need_skip_ref = Input(Bool())
         }
     })
 
-    assert(!io.mem.r.rvalid || io.mem.r.rresp === AXI4Resp.OKAY)
+    assert(!io.mem.r.rvalid || (io.mem.r.rresp === AXI4Resp.OKAY && io.mem.r.rlast))
     assert(!io.mem.b.bvalid || io.mem.b.bresp === AXI4Resp.OKAY)
 
     val mem_access = io.in.bits.rd_mem || io.in.bits.wr_mem

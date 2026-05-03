@@ -3,7 +3,8 @@ package cpu
 import chisel3._
 import chisel3.util._
 
-class WBU extends Module {
+class WBU extends Module with HasYsyxModuleName {
+    override protected def moduleSuffix: String = "WBU"
     val io = IO(new Bundle {
         val in = Flipped(Decoupled(new LSWUOut))
         val csr = new Bundle {

@@ -3,25 +3,28 @@ package cpu
 import chisel3._
 import chisel3.util._
 
-class CLINT extends Module {
+class CLINT extends Module with HasYsyxModuleName {
+    override protected def moduleSuffix: String = "CLINT"
     val io = IO(new Bundle {
-        val axi = Flipped(new AXI4Lite(32, 32))
+        val axi = Flipped(new AXI4(32, 32, 4))
         val r_need_skip_ref = Output(Bool())
     })
 
-    val mtime_lo_addr = "h10000004".U(32.W)
-    val mtime_hi_addr = "h10000008".U(32.W)
+    val mtime_lo_addr = "h0200bff8".U(32.W)
+    val mtime_hi_addr = "h0200bffc".U(32.W)
 
     val mtime = RegInit(0.U(64.W))
     val mtime_snapshot = RegInit(0.U(64.W))
     val rdata_reg = RegInit(0.U(32.W))
+    val rid_reg = RegInit(0.U(4.W))
+    val bid_reg = RegInit(0.U(4.W))
     val write_req_complete = Wire(Bool())
 
-    val ar_fire = io.axi.ar.arvalid && io.axi.ar.arready
-    val r_fire = io.axi.r.rvalid && io.axi.r.rready
-    val aw_fire = io.axi.aw.awvalid && io.axi.aw.awready
-    val w_fire = io.axi.w.wvalid && io.axi.w.wready
-    val b_fire = io.axi.b.bvalid && io.axi.b.bready
+    val ar_fire = io.axi.arvalid && io.axi.arready
+    val r_fire = io.axi.rvalid && io.axi.rready
+    val aw_fire = io.axi.awvalid && io.axi.awready
+    val w_fire = io.axi.wvalid && io.axi.wready
+    val b_fire = io.axi.bvalid && io.axi.bready
 
     val rvalid = boolreg_set_clear(ar_fire, r_fire)
     val bvalid = boolreg_set_clear(write_req_complete, b_fire)
@@ -33,7 +36,9 @@ class CLINT extends Module {
     mtime := mtime + 1.U
 
     when(ar_fire) {
-        when(io.axi.ar.araddr === mtime_hi_addr) {
+        rid_reg := io.axi.arid
+        assert(io.axi.arsize === AXI4Size.b4)
+        when(io.axi.araddr === mtime_hi_addr) {
             mtime_snapshot := mtime
             rdata_reg := mtime(63, 32)
         }.otherwise {
@@ -41,14 +46,22 @@ class CLINT extends Module {
         }
     }
 
-    io.axi.ar.arready := !rvalid
-    io.axi.r.rvalid := rvalid
-    io.axi.r.rdata := rdata_reg
-    io.axi.r.rresp := AXI4Resp.OKAY
-    io.r_need_skip_ref := io.axi.r.rvalid
+    io.axi.arready := !rvalid
+    io.axi.rvalid := rvalid
+    io.axi.rdata := rdata_reg
+    io.axi.rresp := AXI4Resp.OKAY
+    io.axi.rid := rid_reg
+    io.axi.rlast := true.B
+    io.r_need_skip_ref := io.axi.rvalid
 
-    io.axi.aw.awready := !bvalid && !aw_fire_after
-    io.axi.w.wready := !bvalid && !w_fire_after
-    io.axi.b.bvalid := bvalid
-    io.axi.b.bresp := AXI4Resp.SLVERR
+    when(aw_fire) {
+        bid_reg := io.axi.awid
+        assert(io.axi.awsize === AXI4Size.b4)
+    }
+
+    io.axi.awready := !bvalid && !aw_fire_after
+    io.axi.wready := !bvalid && !w_fire_after
+    io.axi.bvalid := bvalid
+    io.axi.bresp := AXI4Resp.SLVERR
+    io.axi.bid := bid_reg
 }
