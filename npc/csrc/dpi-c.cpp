@@ -176,7 +176,7 @@ extern "C" void mrom_read(int32_t addr, int32_t *data) {
   // if(times < 10) {  // 只打印前10次调用
   //   printf("DEBUG: mrom_read called with addr = 0x%08x, mrom[addr - start_pc] = 0x%08x\n", addr, static_cast<uint32_t>(mrom[addr - start_pc]));
   // }
-  const uint32_t mrom_addr = addr - start_pc;
+  const uint32_t mrom_addr = (addr - start_pc) & ~0x3u;
   Assert(mrom_addr + 4 <= MROM_SIZE, "mrom_read out of bounds at address 0x%x", addr);
   *data = *reinterpret_cast<int32_t *>(mrom + mrom_addr);
   IFDEF(CONFIG_MTRACE, _Log("[mtrace] mrom_read: addr = 0x%08x, data = 0x%08x\n", addr, *data));
