@@ -25,7 +25,7 @@ NPCARGS += --elf=$(IMAGE).elf
 NPCARGS += --diff=$(DIFFTEST_REF_SO)
 
 $(DIFFTEST_REF_SO):
-	$(MAKE) -C $(NEMU_HOME)
+	$(MAKE) -B -C $(NEMU_HOME)
 
 insert-arg: image
 	@python $(AM_HOME)/tools/insert-arg.py $(IMAGE).bin $(MAINARGS_MAX_LEN) $(MAINARGS_PLACEHOLDER) "$(mainargs)"
