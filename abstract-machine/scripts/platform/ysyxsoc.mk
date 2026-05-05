@@ -24,8 +24,8 @@ NPCARGS += --log=$(shell dirname $(IMAGE).elf)/ysyxsoc-log.txt
 NPCARGS += --elf=$(IMAGE).elf
 NPCARGS += --diff=$(DIFFTEST_REF_SO)
 
-$(DIFFTEST_REF_SO):
-	$(MAKE) -B -C $(NEMU_HOME)
+difftest-ref:
+	$(MAKE) -C $(NEMU_HOME)
 
 insert-arg: image
 	@python $(AM_HOME)/tools/insert-arg.py $(IMAGE).bin $(MAINARGS_MAX_LEN) $(MAINARGS_PLACEHOLDER) "$(mainargs)"
@@ -35,13 +35,13 @@ image: image-dep
 	@echo + OBJCOPY "->" $(IMAGE_REL).bin
 	@$(OBJCOPY) -S -O binary $(IMAGE).elf $(IMAGE).bin
 
-run: insert-arg $(DIFFTEST_REF_SO)
+run: insert-arg difftest-ref
 	$(MAKE) -C $(NPC_HOME) sim IMG=$(IMAGE).bin ARGS="$(NPCARGS) --batch"
 
-debug: insert-arg $(DIFFTEST_REF_SO)
+debug: insert-arg difftest-ref
 	$(MAKE) -C $(NPC_HOME) sim IMG=$(IMAGE).bin ARGS="$(NPCARGS)"
 
-gdb: insert-arg $(DIFFTEST_REF_SO)
+gdb: insert-arg difftest-ref
 	$(MAKE) -C $(NPC_HOME) gdb IMG=$(IMAGE).bin ARGS="$(NPCARGS)"
 
-.PHONY: insert-arg image run debug gdb
+.PHONY: insert-arg image run debug gdb difftest-ref
