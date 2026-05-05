@@ -18,10 +18,14 @@ MAINARGS_PLACEHOLDER = the_insert-arg_rule_in_Makefile_will_insert_mainargs_here
 CFLAGS += -DMAINARGS_MAX_LEN=$(MAINARGS_MAX_LEN) -DMAINARGS_PLACEHOLDER=$(MAINARGS_PLACEHOLDER)
 
 REF_DIR = $(NEMU_HOME)/build
+DIFFTEST_REF_SO = $(REF_DIR)/riscv32-nemu-interpreter-so
 
 NPCARGS += --log=$(shell dirname $(IMAGE).elf)/ysyxsoc-log.txt
 NPCARGS += --elf=$(IMAGE).elf
-NPCARGS += --diff=$(REF_DIR)/riscv32-nemu-interpreter-so
+NPCARGS += --diff=$(DIFFTEST_REF_SO)
+
+$(DIFFTEST_REF_SO):
+	$(MAKE) -C $(NEMU_HOME)
 
 insert-arg: image
 	@python $(AM_HOME)/tools/insert-arg.py $(IMAGE).bin $(MAINARGS_MAX_LEN) $(MAINARGS_PLACEHOLDER) "$(mainargs)"
@@ -31,13 +35,13 @@ image: image-dep
 	@echo + OBJCOPY "->" $(IMAGE_REL).bin
 	@$(OBJCOPY) -S -O binary $(IMAGE).elf $(IMAGE).bin
 
-run: insert-arg
+run: insert-arg $(DIFFTEST_REF_SO)
 	$(MAKE) -C $(NPC_HOME) sim IMG=$(IMAGE).bin ARGS="$(NPCARGS) --batch"
 
-debug: insert-arg
+debug: insert-arg $(DIFFTEST_REF_SO)
 	$(MAKE) -C $(NPC_HOME) sim IMG=$(IMAGE).bin ARGS="$(NPCARGS)"
 
-gdb: insert-arg
+gdb: insert-arg $(DIFFTEST_REF_SO)
 	$(MAKE) -C $(NPC_HOME) gdb IMG=$(IMAGE).bin ARGS="$(NPCARGS)"
 
 .PHONY: insert-arg image run debug gdb
