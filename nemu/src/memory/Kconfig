@@ -14,6 +14,22 @@ config PC_RESET_OFFSET
   default 0x100000 if ISA_x86
   default 0
 
+config MROMBASE
+  hex "MROM base address"
+  default 0x20000000
+
+config MROMSIZE
+  hex "MROM size"
+  default 0x1000
+
+config SRAMBASE
+  hex "SRAM base address"
+  default 0x0f000000
+
+config SRAMSIZE
+  hex "SRAM size"
+  default 0x2000
+
 choice
   prompt "Physical memory definition"
   default PMEM_GARRAY

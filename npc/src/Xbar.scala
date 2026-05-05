@@ -16,7 +16,6 @@ class Xbar extends Module with HasYsyxModuleName {
         val b_need_skip_ref = Output(Bool())
     })
 
-    val uart_base = "h10000000".U(32.W)
     val clint_mtime_lo = "h0200bff8".U(32.W)
     val clint_mtime_hi = "h0200bffc".U(32.W)
 
@@ -32,7 +31,6 @@ class Xbar extends Module with HasYsyxModuleName {
     val write_req_complete = aw_fire_preserved && w_fire_preserved
 
     val hit_clint_r = io.arbiter.araddr === clint_mtime_lo || io.arbiter.araddr === clint_mtime_hi
-    val hit_uart_w = io.arbiter.awaddr === uart_base
     val hit_clint_w = io.arbiter.awaddr === clint_mtime_lo || io.arbiter.awaddr === clint_mtime_hi
     val hit_soc_r = !hit_clint_r
     val hit_soc_w = !hit_clint_w
@@ -47,7 +45,7 @@ class Xbar extends Module with HasYsyxModuleName {
     }
     when(aw_fire) {
         write_owner := Mux(hit_clint_w, owner_clint, owner_soc)
-        write_skip_ref := hit_uart_w
+        write_skip_ref := io.arbiter.awaddr === "h10000000".U(32.W) // 仅暂时用于skip_ref逻辑，不用于Xbar分发逻辑（uart实际上在soc里）
     }
 
     // AR

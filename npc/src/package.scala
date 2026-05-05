@@ -203,6 +203,20 @@ package object cpu {
         }
     }
 
+    // object ExtractLoadData {
+    //     def apply(rdata: UInt, addr: UInt, bitWidth: BitWidth.Type, sign: Sign.Type): UInt = {
+    //         // val shifted = rdata >> (addr(1, 0) << 3)  // addr(1, 0) << 3 就是 addr(1, 0) * 8，shifted是把rdata里我们需要的部分右移到边界
+    //         val b = rdata(7, 0)
+    //         val h = rdata(15, 0)
+    //         val loadData = MuxLookup(bitWidth.asUInt, rdata)(Seq(
+    //             BitWidth.w8.asUInt -> Mux(sign === Sign.signed, Cat(Fill(24, b(7)), b), b),
+    //             BitWidth.w16.asUInt -> Mux(sign === Sign.signed, Cat(Fill(16, h(15)), h), h),
+    //             BitWidth.w32.asUInt -> rdata
+    //         ))
+    //         loadData
+    //     }
+    // }
+
     class CSRReq extends Bundle {
         val addr = UInt(12.W)
         val re = Bool()

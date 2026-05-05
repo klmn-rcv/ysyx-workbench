@@ -14,6 +14,8 @@ VerilatedVcdC* tfp = new VerilatedVcdC;
 void init_disasm();
 void sdb_set_batch_mode();
 
+char mrom[MROM_SIZE]; // mask rom
+
 char pmem[MEM_SIZE];  // memory
 
 static const char *img_file = NULL;
@@ -29,14 +31,18 @@ static long load_image(const char* path) {
     std::exit(1);
   }
 
-  const long n = std::fread(pmem, 1, MEM_SIZE, fp);
+  // const long n = std::fread(pmem, 1, MEM_SIZE, fp);
+  const long n = std::fread(mrom, 1, MROM_SIZE, fp);
+
+  // printf("DEBUG: In load_image, mrom's first inst is 0x%08x\n", *(uint32_t *)mrom);
+
   if (std::ferror(fp)) {
     std::fprintf(stderr, "[sim] failed to read bin file: %s\n", path);
     std::fclose(fp);
     std::exit(1);
   }
   std::fclose(fp);
-  printf("[sim] loaded %ld bytes from %s\n", n, path);
+  printf("[sim] loaded %ld bytes from %s to mrom\n", n, path);
   return n;
 }
 
@@ -44,8 +50,8 @@ static void init_sim() {
   top->clock = 0;
   top->reset = 1;
 
-  // 保持原来的两周期复位过程
-  for (int i = 0; i < 2; i++) {
+  // 为了适配SoC，改成了10周期复位（SoC里的移位寄存器会把它扩展成20拍复位）
+  for (int i = 0; i < 10; i++) {
     top->clock = 0;
     top->eval();
 #ifdef CONFIG_GEN_WAVE
@@ -130,9 +136,13 @@ int main(int argc, char** argv) {
 
   init_log(log_file);
 
+  std::memset(mrom, 0, sizeof(mrom));
+
   std::memset(pmem, 0, sizeof(pmem));
 
   long img_size = load_image(img_file);
+
+  // printf("DEBUG: After load_image, mrom[0] = 0x%08x\n", static_cast<uint32_t>(mrom[0]));
 
   IFDEF(CONFIG_FTRACE, init_ftrace(elf_file));
 

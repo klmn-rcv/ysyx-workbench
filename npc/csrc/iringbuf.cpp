@@ -28,6 +28,10 @@ static void check_pc_between_strings(char *str1, char *str2) {
   }
 }
 
+void iringbuf_clear_all(void) {
+  memset(&iringbuf, 0, sizeof(iringbuf));
+}
+
 static void iringbuf_push(const char *str) {
   assert(iringbuf.push_pos >= 0 && iringbuf.push_pos < IRINGBUF_NR);
   assert(iringbuf.count >= 0 && iringbuf.count <= IRINGBUF_NR);

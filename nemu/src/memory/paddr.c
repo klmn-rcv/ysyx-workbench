@@ -22,10 +22,18 @@
 static uint8_t *pmem = NULL;
 #else // CONFIG_PMEM_GARRAY
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
+static uint8_t mrom[CONFIG_MROMSIZE] PG_ALIGN = {};
+static uint8_t sram[CONFIG_SRAMSIZE] PG_ALIGN = {};
 #endif
 
 uint8_t* guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }
 paddr_t host_to_guest(uint8_t *haddr) { return haddr - pmem + CONFIG_MBASE; }
+uint8_t* guest_to_mrom(paddr_t paddr) { return mrom + paddr - CONFIG_MROMBASE; }
+paddr_t mrom_to_guest(uint8_t *maddr) { return maddr - mrom + CONFIG_MROMBASE; }
+uint8_t* guest_to_sram(paddr_t paddr) { return sram + paddr - CONFIG_SRAMBASE; }
+paddr_t sram_to_guest(uint8_t *saddr) { return saddr - sram + CONFIG_SRAMBASE; }
+
+int flag_mrom_init = 1; // 完成MROM初始化之后就将它置为0，此后不再允许对MROM的写入
 
 static word_t pmem_read(paddr_t addr, int len) {
   word_t ret = host_read(guest_to_host(addr), len);
@@ -34,6 +42,31 @@ static word_t pmem_read(paddr_t addr, int len) {
 
 static void pmem_write(paddr_t addr, int len, word_t data) {
   host_write(guest_to_host(addr), len, data);
+}
+
+static word_t mrom_read(paddr_t addr, int len) {
+  // printf("DEBUG: In mrom_read, addr = 0x%08x, len = %d\n", addr, len);
+  word_t ret = host_read(guest_to_mrom(addr), len);
+  return ret;
+}
+
+static void mrom_write(paddr_t addr, int len, word_t data) {
+  if(flag_mrom_init) {
+    host_write(guest_to_mrom(addr), len, data);
+  }
+  else {
+    printf("Error: MROM is read-only\n");
+    assert(0);
+  }
+}
+
+static word_t sram_read(paddr_t addr, int len) {
+  word_t ret = host_read(guest_to_sram(addr), len);
+  return ret;
+}
+
+static void sram_write(paddr_t addr, int len, word_t data) {
+  host_write(guest_to_sram(addr), len, data);
 }
 
 static void out_of_bound(paddr_t addr) {
@@ -61,6 +94,24 @@ word_t paddr_read(paddr_t addr, int len, mem_read_t read_type) {
 #endif
     return pmem_read(addr, len);
   }
+  else if(in_mrom(addr)) {
+#ifdef CONFIG_MTRACE
+    if(CONFIG_MTRACE_COND)
+      _Log("[mtrace] mrom_read (%s): addr = " FMT_PADDR ", len = %d\n", str_type[read_type], addr, len);
+#endif
+    word_t data = mrom_read(addr, len);
+    // _Log("DEBUG: [mtrace] mrom_read: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
+    return data;
+  }
+  else if(in_sram(addr)) {
+#ifdef CONFIG_MTRACE
+    if(CONFIG_MTRACE_COND)
+      _Log("[mtrace] sram_read (%s): addr = " FMT_PADDR ", len = %d\n", str_type[read_type], addr, len);
+#endif
+    word_t data = sram_read(addr, len);
+    // _Log("DEBUG: [mtrace] sram_read: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
+    return data;
+  }
 #ifdef CONFIG_DEVICE
 #ifdef CONFIG_DTRACE
   if(CONFIG_DTRACE_COND)
@@ -80,6 +131,24 @@ void paddr_write(paddr_t addr, int len, word_t data) {
 #endif
     pmem_write(addr, len, data); 
     return; 
+  }
+  else if(in_mrom(addr)) {
+#ifdef CONFIG_MTRACE
+    if(CONFIG_MTRACE_COND)
+      _Log("[mtrace] mrom_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
+#endif
+    // _Log("DEBUG: [mtrace] mrom_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
+    mrom_write(addr, len, data);
+    return;
+  }
+  else if(in_sram(addr)) {
+#ifdef CONFIG_MTRACE
+    if(CONFIG_MTRACE_COND)
+      _Log("[mtrace] sram_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
+#endif
+    // _Log("DEBUG: [mtrace] sram_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
+    sram_write(addr, len, data);
+    return;
   }
 #ifdef CONFIG_DEVICE
 #ifdef CONFIG_DTRACE

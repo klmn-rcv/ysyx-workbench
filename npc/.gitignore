@@ -28,3 +28,6 @@ test_run_dir/
 # verilator
 obj_dir/
 *.vcd
+
+logisim-bin/
+tests/
