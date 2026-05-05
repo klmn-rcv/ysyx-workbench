@@ -100,7 +100,7 @@ word_t paddr_read(paddr_t addr, int len, mem_read_t read_type) {
       _Log("[mtrace] mrom_read (%s): addr = " FMT_PADDR ", len = %d\n", str_type[read_type], addr, len);
 #endif
     word_t data = mrom_read(addr, len);
-    // _Log("DEBUG: [mtrace] mrom_read: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
+    _Log("DEBUG: [mtrace] mrom_read: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
     return data;
   }
   else if(in_sram(addr)) {
@@ -109,7 +109,7 @@ word_t paddr_read(paddr_t addr, int len, mem_read_t read_type) {
       _Log("[mtrace] sram_read (%s): addr = " FMT_PADDR ", len = %d\n", str_type[read_type], addr, len);
 #endif
     word_t data = sram_read(addr, len);
-    // _Log("DEBUG: [mtrace] sram_read: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
+    _Log("DEBUG: [mtrace] sram_read: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
     return data;
   }
 #ifdef CONFIG_DEVICE
@@ -137,7 +137,7 @@ void paddr_write(paddr_t addr, int len, word_t data) {
     if(CONFIG_MTRACE_COND)
       _Log("[mtrace] mrom_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
 #endif
-    // _Log("DEBUG: [mtrace] mrom_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
+    _Log("DEBUG: [mtrace] mrom_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
     mrom_write(addr, len, data);
     return;
   }
@@ -146,7 +146,7 @@ void paddr_write(paddr_t addr, int len, word_t data) {
     if(CONFIG_MTRACE_COND)
       _Log("[mtrace] sram_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
 #endif
-    // _Log("DEBUG: [mtrace] sram_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
+    _Log("DEBUG: [mtrace] sram_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
     sram_write(addr, len, data);
     return;
   }
