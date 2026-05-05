@@ -22,6 +22,11 @@
 #define PMEM_RIGHT ((paddr_t)CONFIG_MBASE + CONFIG_MSIZE - 1)
 #define RESET_VECTOR (PMEM_LEFT + CONFIG_PC_RESET_OFFSET)
 
+#define MROM_LEFT  ((paddr_t)CONFIG_MROMBASE)
+#define MROM_RIGHT ((paddr_t)CONFIG_MROMBASE + CONFIG_MROMSIZE - 1)
+#define SRAM_LEFT  ((paddr_t)CONFIG_SRAMBASE)
+#define SRAM_RIGHT ((paddr_t)CONFIG_SRAMBASE + CONFIG_SRAMSIZE - 1)
+
 enum {
   MEM_READ_INST,
   MEM_READ_DATA,
@@ -34,9 +39,27 @@ typedef uint8_t mem_read_t;
 uint8_t* guest_to_host(paddr_t paddr);
 /* convert the host virtual address in NEMU to guest physical address in the guest program */
 paddr_t host_to_guest(uint8_t *haddr);
+/* convert the guest physical address in the guest program to mrom virtual address in NEMU */
+uint8_t* guest_to_mrom(paddr_t paddr);
+/* convert the mrom virtual address in NEMU to guest physical address in the guest program */
+paddr_t mrom_to_guest(uint8_t *maddr);
+/* convert the guest physical address in the guest program to sram virtual address in NEMU */
+uint8_t* guest_to_sram(paddr_t paddr);
+/* convert the sram virtual address in NEMU to guest physical address in the guest program */
+paddr_t sram_to_guest(uint8_t *saddr);
+
+extern int flag_mrom_init;
 
 static inline bool in_pmem(paddr_t addr) {
   return addr - CONFIG_MBASE < CONFIG_MSIZE;
+}
+
+static inline bool in_mrom(paddr_t addr) {
+  return addr - CONFIG_MROMBASE < CONFIG_MROMSIZE;
+}
+
+static inline bool in_sram(paddr_t addr) {
+  return addr - CONFIG_SRAMBASE < CONFIG_SRAMSIZE;
 }
 
 word_t paddr_read(paddr_t addr, int len, mem_read_t read_type);

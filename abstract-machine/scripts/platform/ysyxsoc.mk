@@ -1,16 +1,16 @@
-AM_SRCS := riscv/npc/start.S \
-           riscv/npc/trm.c \
-           riscv/npc/ioe.c \
-           riscv/npc/timer.c \
-           riscv/npc/input.c \
-           riscv/npc/cte.c \
-           riscv/npc/trap.S \
+AM_SRCS := riscv/ysyxsoc/start.S \
+           riscv/ysyxsoc/trm.c \
+           riscv/ysyxsoc/ioe.c \
+           riscv/ysyxsoc/timer.c \
+           riscv/ysyxsoc/input.c \
+           riscv/ysyxsoc/cte.c \
+           riscv/ysyxsoc/trap.S \
            platform/dummy/vme.c \
            platform/dummy/mpe.c
 
 CFLAGS    += -fdata-sections -ffunction-sections
-LDSCRIPTS += $(AM_HOME)/scripts/linker.ld
-LDFLAGS   += --defsym=_mrom_start=0x20000000 --defsym=_entry_offset=0x0
+LDSCRIPTS += $(AM_HOME)/scripts/linker-ysyxsoc.ld
+LDFLAGS   += --defsym=_mrom_start=0x20000000 --defsym=_sram_start=0x0f000000 --defsym=_sram_end=0x0f002000 --defsym=_entry_offset=0x0
 LDFLAGS   += --gc-sections -e _start
 
 MAINARGS_MAX_LEN = 64
@@ -19,7 +19,7 @@ CFLAGS += -DMAINARGS_MAX_LEN=$(MAINARGS_MAX_LEN) -DMAINARGS_PLACEHOLDER=$(MAINAR
 
 REF_DIR = $(NEMU_HOME)/build
 
-NPCARGS += --log=$(shell dirname $(IMAGE).elf)/npc-log.txt
+NPCARGS += --log=$(shell dirname $(IMAGE).elf)/ysyxsoc-log.txt
 NPCARGS += --elf=$(IMAGE).elf
 NPCARGS += --diff=$(REF_DIR)/riscv32-nemu-interpreter-so
 
@@ -29,7 +29,7 @@ insert-arg: image
 image: image-dep
 	@$(OBJDUMP) -d $(IMAGE).elf > $(IMAGE).txt
 	@echo + OBJCOPY "->" $(IMAGE_REL).bin
-	@$(OBJCOPY) -S --set-section-flags .bss=alloc,contents -O binary $(IMAGE).elf $(IMAGE).bin
+	@$(OBJCOPY) -S -O binary $(IMAGE).elf $(IMAGE).bin
 
 run: insert-arg
 	$(MAKE) -C $(NPC_HOME) sim IMG=$(IMAGE).bin ARGS="$(NPCARGS) --batch"

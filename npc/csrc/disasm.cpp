@@ -16,6 +16,7 @@
 #include <dlfcn.h>
 #include <capstone/capstone.h>
 #include <common.h>
+#include "sim.h"
 
 static size_t (*cs_disasm_dl)(csh handle, const uint8_t *code,
     size_t code_size, uint64_t address, size_t count, cs_insn **insn);
@@ -52,7 +53,13 @@ void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte) {
   // printf("DEBUG: disassemble: pc = 0x%lx, code = %02x %02x %02x %02x\n", (unsigned long)pc, code[3], code[2], code[1], code[0]);
   cs_insn *insn;
   size_t count = cs_disasm_dl(handle, code, nbyte, pc, 0, &insn);
-  // printf("DEBUG: count = %lu, insn[0] = %s, pc = 0x%lx\n", count, insn->mnemonic, (unsigned long)pc);
+  // printf("DEBUG: count = %lu, pc = 0x%lx, code = ", count, (unsigned long)pc);
+  // for (int i = 0; i < nbyte; i++) {
+  //   printf("%02x ", code[i]);
+  // }
+  // printf("\n");
+  extern char mrom[];
+  // printf("DEBUG: mrom's first inst is 0x%08x\n", *(uint32_t *)mrom);
   assert(count == 1);
   int ret = snprintf(str, size, "%s", insn->mnemonic);
   if (insn->op_str[0] != '\0') {

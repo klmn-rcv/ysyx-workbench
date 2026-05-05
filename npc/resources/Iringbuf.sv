@@ -7,13 +7,14 @@ module Iringbuf (
   input wire after_ifetch,
   input wire flush_after_ifetch
 );
+  import "DPI-C" function void iringbuf_reset();
   import "DPI-C" function void iringbuf_before_ifetch(input int unsigned pc);
   import "DPI-C" function void iringbuf_after_ifetch(input int unsigned pc, input int unsigned inst);
   import "DPI-C" function void iringbuf_flush_after_ifetch(input int unsigned pc);
 
   always @(posedge clk) begin
     if (rst) begin
-      // do nothing
+      iringbuf_reset();
     end
     else begin
       if (before_ifetch) begin

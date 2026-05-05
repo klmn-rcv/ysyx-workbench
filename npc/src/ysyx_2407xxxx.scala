@@ -20,9 +20,9 @@ class ysyx_2407xxxx extends Module {
     core.io.data_mem_r_need_skip_ref := arbiter.io.lsu_r_need_skip_ref
     core.io.data_mem_b_need_skip_ref := arbiter.io.lsu_b_need_skip_ref
 
-    arbiter.io.out <> xbar.io.arbiter
-    arbiter.io.out_r_need_skip_ref := xbar.io.r_need_skip_ref
-    arbiter.io.out_b_need_skip_ref := xbar.io.b_need_skip_ref
+    arbiter.io.xbar <> xbar.io.arbiter
+    arbiter.io.xbar_r_need_skip_ref := xbar.io.r_need_skip_ref
+    arbiter.io.xbar_b_need_skip_ref := xbar.io.b_need_skip_ref
 
     clint.io.axi <> xbar.io.clint.axi
     xbar.io.clint.r_need_skip_ref := clint.io.r_need_skip_ref

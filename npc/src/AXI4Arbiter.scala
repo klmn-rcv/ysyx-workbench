@@ -8,9 +8,9 @@ class AXI4Arbiter extends Module with HasYsyxModuleName {
     val io = IO(new Bundle {
         val ifu = Flipped(new AXI4(32, 32, 4))
         val lsu = Flipped(new AXI4(32, 32, 4))
-        val out = new AXI4(32, 32, 4)
-        val out_r_need_skip_ref = Input(Bool())
-        val out_b_need_skip_ref = Input(Bool())
+        val xbar = new AXI4(32, 32, 4)
+        val xbar_r_need_skip_ref = Input(Bool())
+        val xbar_b_need_skip_ref = Input(Bool())
         val lsu_r_need_skip_ref = Output(Bool())
         val lsu_b_need_skip_ref = Output(Bool())
     })
@@ -23,31 +23,31 @@ class AXI4Arbiter extends Module with HasYsyxModuleName {
     assert(!(io.lsu.arvalid && (io.lsu.awvalid || io.lsu.wvalid)))
 
     // AR
-    io.out.arvalid := io.lsu.arvalid || grant_ifu_read
+    io.xbar.arvalid := io.lsu.arvalid || grant_ifu_read
     when(io.lsu.arvalid) {
-        connectFields(io.lsu.ar, io.out.ar, "araddr", "arid", "arlen", "arsize", "arburst")
-        io.lsu.arready := io.out.arready
+        connectFields(io.lsu.ar, io.xbar.ar, "araddr", "arid", "arlen", "arsize", "arburst")
+        io.lsu.arready := io.xbar.arready
         io.ifu.arready := false.B
     }.otherwise {
-        connectFields(io.ifu.ar, io.out.ar, "araddr", "arid", "arlen", "arsize", "arburst")
+        connectFields(io.ifu.ar, io.xbar.ar, "araddr", "arid", "arlen", "arsize", "arburst")
         io.lsu.arready := false.B
-        io.ifu.arready := io.out.arready && grant_ifu_read
+        io.ifu.arready := io.xbar.arready && grant_ifu_read
     }
 
-    when(io.out.arvalid && io.out.arready) {
+    when(io.xbar.arvalid && io.xbar.arready) {
         read_owner_is_ifu := grant_ifu_read
     }
 
     // R
     when(read_owner_is_ifu) {
-        connectFields(io.out.r, io.ifu.r, "rvalid", "rdata", "rresp", "rid", "rlast", "rready")
+        connectFields(io.xbar.r, io.ifu.r, "rvalid", "rdata", "rresp", "rid", "rlast", "rready")
         io.lsu.rvalid := false.B
         io.lsu.rdata := 0.U
         io.lsu.rresp := 0.U
         io.lsu.rid := 0.U
         io.lsu.rlast := false.B
     }.otherwise {
-        connectFields(io.out.r, io.lsu.r, "rvalid", "rdata", "rresp", "rid", "rlast", "rready")
+        connectFields(io.xbar.r, io.lsu.r, "rvalid", "rdata", "rresp", "rid", "rlast", "rready")
         io.ifu.rvalid := false.B
         io.ifu.rdata := 0.U
         io.ifu.rresp := 0.U
@@ -56,20 +56,20 @@ class AXI4Arbiter extends Module with HasYsyxModuleName {
     }
 
     // AW
-    io.out.awvalid := io.lsu.awvalid
-    connectFields(io.lsu.aw, io.out.aw, "awaddr", "awid", "awlen", "awsize", "awburst", "awready")
+    io.xbar.awvalid := io.lsu.awvalid
+    connectFields(io.lsu.aw, io.xbar.aw, "awaddr", "awid", "awlen", "awsize", "awburst", "awready")
     io.ifu.awready := false.B
 
     // W
-    connectFields(io.lsu.w, io.out.w, "wvalid", "wdata", "wstrb", "wlast", "wready")
+    connectFields(io.lsu.w, io.xbar.w, "wvalid", "wdata", "wstrb", "wlast", "wready")
     io.ifu.wready := false.B
 
     // B
-    connectFields(io.out.b, io.lsu.b, "bvalid", "bresp", "bid", "bready")
+    connectFields(io.xbar.b, io.lsu.b, "bvalid", "bresp", "bid", "bready")
     io.ifu.bvalid := false.B
     io.ifu.bresp := 0.U
     io.ifu.bid := 0.U
 
-    io.lsu_r_need_skip_ref := io.out_r_need_skip_ref
-    io.lsu_b_need_skip_ref := io.out_b_need_skip_ref
+    io.lsu_r_need_skip_ref := io.xbar_r_need_skip_ref
+    io.lsu_b_need_skip_ref := io.xbar_b_need_skip_ref
 }

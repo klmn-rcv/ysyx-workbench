@@ -6,6 +6,8 @@
 
 #include "VysyxSoCFull.h"
 
+#define MROM_SIZE 0x1000
+
 #define MEM_SIZE 0x8000000
 
 extern VysyxSoCFull* top;
