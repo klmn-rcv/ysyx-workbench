@@ -16,6 +16,7 @@ class LSWU extends Module with HasYsyxModuleName {
         }
         val ctrl = new Bundle {
             val ex_found_out = Output(Bool())
+            val older_mem_pending = Output(Bool())
         }
         val flush = new Bundle {
             val ex_found_in = Input(Bool())
@@ -34,7 +35,7 @@ class LSWU extends Module with HasYsyxModuleName {
     flush:= !mem_access && io.flush.ex_found_in
     io.flush.flush := flush
 
-    val need_flush_in_LSWU = (mem_access && io.flush.ex_found_in) && valid  // !mem_access是因为，如果是访存指令，我们认为它不能在LSWU被flush，因为需要完成握手，并且还需要让它流到下一级（LSWU）去完成flush的动作；如果不是访存指令，可以直接flush。
+    // val need_flush_in_LSWU = (mem_access && io.flush.ex_found_in) && valid  // !mem_access是因为，如果是访存指令，我们认为它不能在LSWU被flush，因为需要完成握手，并且还需要让它流到下一级（LSWU）去完成flush的动作；如果不是访存指令，可以直接flush。
 
     val load_data = Wire(UInt(32.W))
     val r_fire = io.mem.r.rvalid && io.mem.r.rready  // 对于非load指令，r_fire永远为0（因为rready为0）
@@ -42,6 +43,13 @@ class LSWU extends Module with HasYsyxModuleName {
                 // 上面两个fire信号都不能接valid信号（虽然接不接不影响逻辑），因为现在不允许在内容无效的时候假握手了，原因是LSU随时可能流过来，导致错位
     val (r_fire_preserved, load_data_preserved, r_fire_after, _) = valid_and_data_preserve(r_fire, load_data, io.out.fire, false.B)
     val (b_fire_preserved, b_fire_after) = bool_preserve(b_fire, io.out.fire, false.B)
+
+    io.ctrl.older_mem_pending := (io.in.bits.rd_mem && !r_fire_after) ||
+                                 (io.in.bits.wr_mem && !b_fire_after)
+    // older_mem_pending表示：LSWU当前还持有一条更老的访存指令，并且它的最终 R/B 握手还没完成。
+    // 这时年轻访存虽然可以先进入LSU，但不能启动新的AR/AW/W。
+    // 原因是：如果更老指令在这一拍的R/B响应里检测到resp_ex，年轻访存必须不能先把自己的请求发到总线上，
+    // 否则请求将不可撤回，而这可能产生副作用。
 
     val r_need_skip_ref = r_fire && io.mem.r_need_skip_ref
     val b_need_skip_ref = b_fire && io.mem.b_need_skip_ref
@@ -66,8 +74,8 @@ class LSWU extends Module with HasYsyxModuleName {
     io.mem.b.bready := valid && io.in.bits.wr_mem && !b_fire_after && !io.in.bits.has_exception
     // B 通道同理：这里只看上级已经带下来的异常，不看本级由当前 B 握手才得出的 resp_ex。
 
-    val need_flush_in_LSWU_preserved = bool_preserve(need_flush_in_LSWU, io.out.fire, false.B)._1
-    io.out.bits.need_flush_in_LSU_or_LSWU := io.in.bits.need_flush_in_LSU || need_flush_in_LSWU_preserved
+    // val need_flush_in_LSWU_preserved = bool_preserve(need_flush_in_LSWU, io.out.fire, false.B)._1
+    // io.out.bits.need_flush_in_LSU_or_LSWU := io.in.bits.need_flush_in_LSU || need_flush_in_LSWU_preserved
 
     io.out.bits.data := Mux(io.in.bits.rd_mem, load_data_preserved, io.in.bits.result)
     io.out.bits.need_skip_ref := need_skip_ref_preserved

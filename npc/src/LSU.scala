@@ -13,6 +13,9 @@ class LSU extends Module with HasYsyxModuleName {
             val aw = new AXI4AW(32, 4)
             val w = new AXI4W(32)
         }
+        val ctrl = new Bundle {
+            val older_mem_pending = Input(Bool())
+        }
         val flush = new Bundle {
             val ex_found_in = Input(Bool())
             val flush = Output(Bool())
@@ -21,15 +24,15 @@ class LSU extends Module with HasYsyxModuleName {
 
     val mem_access = io.in.bits.rd_mem || io.in.bits.wr_mem
 
-    val flush = Wire(Bool())   // 只有!mem_access的时候才可能拉高flush
-    val valid = io.in.valid && !flush  // 不能在LSU直接flush mem_access指令
+    val flush = Wire(Bool())
+    val valid = io.in.valid && !flush
     val has_exception = io.in.bits.has_exception
     val allow_side_effect = valid && !has_exception
 
-    flush := !mem_access && io.flush.ex_found_in   // !mem_access是因为，如果是访存指令，我们认为它不能在LSU被flush，因为需要完成握手，并且还需要让它流到下一级（LSWU）去完成flush的动作；如果不是访存指令，可以直接flush。
+    flush := io.flush.ex_found_in
     io.flush.flush := flush
 
-    val need_flush_in_LSU = (mem_access && io.flush.ex_found_in) && valid  // 仅在访存指令时可能拉高
+    // val need_flush_in_LSU = (mem_access && io.flush.ex_found_in) && valid  // 仅在访存指令时可能拉高
 
     val ar_fire = io.mem.ar.arvalid && io.mem.ar.arready  // 不能接valid信号（虽然接不接不影响逻辑），因为一旦这里的握手成功，是不能忽略的，AR之后有R握手，AW/W之后有B握手，如果这里握手成功却忽略了，就会错位
     val aw_fire = io.mem.aw.awvalid && io.mem.aw.awready
@@ -47,25 +50,29 @@ class LSU extends Module with HasYsyxModuleName {
     io.out.valid := valid && ready_go   // io.out.valid不会放行非load/store指令流到下一级，但会放行被flush掉的load/store指令流到下一级，交给LSWU来彻底flush掉。
 
 
-    io.mem.ar.arvalid := io.in.bits.rd_mem && !ar_fire_after && allow_side_effect
+    io.mem.ar.arvalid := io.in.bits.rd_mem && !ar_fire_after && allow_side_effect && !io.ctrl.older_mem_pending
+    // 只有在LSWU里不存在更老、结果未定的访存时，年轻load才允许真正把AR发出去。
+    // 这是因为如果更老访存这拍在LSWU的R响应里报fault，处于LSU的年轻的load由于已经发出了arvalid，无法撤销，必须进行完这次请求，而load在访问设备时可能造成外部副作用。
     io.mem.ar.araddr := io.in.bits.result
     io.mem.ar.arid := AXI4Id.LSU
     io.mem.ar.arlen := 0.U
     io.mem.ar.arsize := AXI4Size.fromBitWidth(io.in.bits.bit_width)
     io.mem.ar.arburst := AXI4Burst.INCR
-    io.mem.aw.awvalid := io.in.bits.wr_mem && !aw_fire_after && allow_side_effect
+    io.mem.aw.awvalid := io.in.bits.wr_mem && !aw_fire_after && allow_side_effect && !io.ctrl.older_mem_pending
     io.mem.aw.awaddr := io.in.bits.result
     io.mem.aw.awid := AXI4Id.LSU
     io.mem.aw.awlen := 0.U
     io.mem.aw.awsize := AXI4Size.fromBitWidth(io.in.bits.bit_width)
     io.mem.aw.awburst := AXI4Burst.INCR
-    io.mem.w.wvalid := io.in.bits.wr_mem && !w_fire_after && allow_side_effect
+    io.mem.w.wvalid := io.in.bits.wr_mem && !w_fire_after && allow_side_effect && !io.ctrl.older_mem_pending
+    // store的AW/W也必须等更老访存的结果确定后才能启动。
+    // 对store来说这一点更关键，因为AW/W一旦发出就会造成外部副作用，不能靠后续flush挽回。
     io.mem.w.wdata := io.in.bits.rs2_data << (io.mem.aw.awaddr(1, 0) << 3) // 这里要左移来对齐到正确的字节位置
     io.mem.w.wstrb := MaskGen(io.in.bits.result, io.in.bits.bit_width)
     io.mem.w.wlast := true.B
 
-    val need_flush_in_LSU_preserved = bool_preserve(need_flush_in_LSU, io.out.fire, false.B)._1
-    io.out.bits.need_flush_in_LSU := need_flush_in_LSU_preserved    // 这条load/store指令是否在LSU阶段被flush掉了。注意仅在load/store指令时可能拉高。由于在LSU被flush掉的load/store指令仍需要在LSWU完成握手，所以需要流到LSWU再彻底flush掉。非load/store指令不需要这样，直接在LSU就能彻底flush。
+    // val need_flush_in_LSU_preserved = bool_preserve(need_flush_in_LSU, io.out.fire, false.B)._1
+    // io.out.bits.need_flush_in_LSU := need_flush_in_LSU_preserved    // 这条load/store指令是否在LSU阶段被flush掉了。注意仅在load/store指令时可能拉高。由于在LSU被flush掉的load/store指令仍需要在LSWU完成握手，所以需要流到LSWU再彻底flush掉。非load/store指令不需要这样，直接在LSU就能彻底flush。
     
     io.out.bits.raddr := io.in.bits.result         // 传给LSWU用来提取load得到的数据
     io.out.bits.bit_width := io.in.bits.bit_width  // 传给LSWU用来提取load得到的数据

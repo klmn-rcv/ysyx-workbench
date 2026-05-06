@@ -32,7 +32,8 @@ class WBU extends Module with HasYsyxModuleName {
         }
     })
 
-    val flush = io.in.bits.need_flush_in_LSU_or_LSWU
+    // val flush = io.in.bits.need_flush_in_LSU_or_LSWU
+    val flush = false.B
     val valid = io.in.valid && !flush
     val has_exception = io.in.bits.has_exception
     val allow_side_effect = valid && !has_exception

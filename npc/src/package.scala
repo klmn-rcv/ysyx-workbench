@@ -309,7 +309,7 @@ package object cpu {
     }
 
     class LSUOut extends Bundle {
-        val need_flush_in_LSU = Bool()
+        // val need_flush_in_LSU = Bool()
         val raddr = UInt(32.W)      // 为了LSWU提取load得到的数据
         val bit_width = BitWidth()  // 为了LSWU提取load得到的数据
         val sign = Sign()           // 为了LSWU提取load得到的数据
@@ -331,7 +331,7 @@ package object cpu {
     }
 
     class LSWUOut extends Bundle {
-        val need_flush_in_LSU_or_LSWU = Bool()
+        // val need_flush_in_LSU_or_LSWU = Bool()
         val data = UInt(32.W)
         val wr_reg = Bool()
         val rd = UInt(5.W)
