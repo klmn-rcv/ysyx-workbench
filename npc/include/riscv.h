@@ -5,6 +5,13 @@
 
 word_t get_gpr(int i);
 word_t get_pc();
+word_t get_if_pc();
+word_t get_iw_pc();
+word_t get_id_pc();
+word_t get_ex_pc();
+word_t get_ls_pc();
+word_t get_lsw_pc();
+word_t get_wb_pc();
 word_t get_csr_by_name(const char *name);
 word_t get_priv();
 
