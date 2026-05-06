@@ -96,14 +96,14 @@ class CPU extends Module with HasYsyxModuleName {
     ifu.io.ctrl.jump_target := idu.io.ctrl.jump_target
     ifu.io.ctrl.br_taken := exu.io.ctrl.br_taken
     ifu.io.ctrl.br_target := exu.io.ctrl.br_target
-    ifu.io.ctrl.ex_found := idu.io.ctrl.ex_found
+    ifu.io.ctrl.ex_found_in := iwu.io.ctrl.ex_found_out || idu.io.ctrl.ex_found_out || lswu.io.ctrl.ex_found_out
 
     // IWU's input
     StageConnect(ifu.io.out, iwu.io.in, arch) // IWU不能flush
     iwu.io.flush.br_taken := exu.io.ctrl.br_taken
     iwu.io.flush.jump_valid := idu.io.ctrl.jump_valid
-    iwu.io.flush.ex_found := idu.io.ctrl.ex_found
-    
+    iwu.io.flush.ex_found_in := idu.io.ctrl.ex_found_out || lswu.io.ctrl.ex_found_out
+
     // IDU's input
     StageConnect(iwu.io.out, idu.io.in, arch, idu.io.flush.flush)
     idu.io.rf.rdata1 := regfile.io.out.rdata1

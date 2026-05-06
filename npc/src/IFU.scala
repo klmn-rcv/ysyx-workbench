@@ -18,7 +18,7 @@ class IFU extends Module with HasYsyxModuleName {
             val jump_target = Input(UInt(32.W))
             val br_taken = Input(Bool())
             val br_target = Input(UInt(32.W))
-            val ex_found = Input(Bool()) // 来自IDU的信号，抑制IFU的取指
+            val ex_found_in = Input(Bool()) // 来自IDU的信号，抑制IFU的取指
         }
         val mem = new Bundle {
             val ar = new AXI4AR(32, 4)
@@ -28,7 +28,6 @@ class IFU extends Module with HasYsyxModuleName {
     })
 
     // val sent_to_bus = boolreg_set_clear(io.mem.ar.arvalid && !ar_fire_preserved, io.out.fire)
-
 
     val ar_fire = io.mem.ar.arvalid && io.mem.ar.arready
     val (ar_fire_preserved, ar_fire_after) = bool_preserve(ar_fire, io.out.fire, false.B)
@@ -41,10 +40,10 @@ class IFU extends Module with HasYsyxModuleName {
     val (br_taken_preserved, br_target_preserved, _, _)                   = valid_and_data_preserve(io.ctrl.br_taken, io.ctrl.br_target, io.out.fire, false.B)
     val (ex_redirect_valid_preserved, ex_redirect_target_preserved, _, _) = valid_and_data_preserve(io.ctrl.ex_redirect_valid, io.ctrl.ex_redirect_target, io.out.fire, false.B)
 
-    val ex_found_preserved = bool_preserve(io.ctrl.ex_found, false.B, io.ctrl.ex_redirect_valid)._1 // 这个保持信号和其他的不同，不会在io.out.fire的时候被清除，而是会一直保持到ex_redirect_valid为1的时候才被清除，因为只要ex_found为1，就说明发现了异常，这时应该“禁止”IFU继续取指。
-                                                                // 但“禁止”取指不是禁止IFU继续发AR请求，而是flush掉它取来的所有指令，方法和其他redirect一样，利用flush_preserved这个信号。不直接禁止取指请求的原因是，必须允许ex_found拉高时的AR请求完成握手，不能立刻拉低arvalid，所以拉低arvalid的时机不好掌握，不如复用flush_preserved这个机制。
+    val ex_found_in_preserved = bool_preserve(io.ctrl.ex_found_in, false.B, io.ctrl.ex_redirect_valid)._1 // 这个保持信号和其他的不同，不会在io.out.fire的时候被清除，而是会一直保持到ex_redirect_valid为1的时候才被清除，因为只要ex_found_in为1，就说明发现了异常，这时应该“禁止”IFU继续取指。
+                                                                // 但“禁止”取指不是禁止IFU继续发AR请求，而是flush掉它取来的所有指令，方法和其他redirect一样，利用flush_preserved这个信号。不直接禁止取指请求的原因是，必须允许ex_found_in拉高时的AR请求完成握手，不能立刻拉低arvalid，所以拉低arvalid的时机不好掌握，不如复用flush_preserved这个机制。
 
-    val need_flush_in_IF_preserved = jump_valid_preserved || br_taken_preserved || ex_redirect_valid_preserved || ex_found_preserved
+    val need_flush_in_IF_preserved = jump_valid_preserved || br_taken_preserved || ex_redirect_valid_preserved || ex_found_in_preserved
 
     val dnpc = Wire(UInt(32.W))
     val pc = RegEnable(dnpc, "h20000000".U(32.W), io.out.fire)
@@ -58,7 +57,7 @@ class IFU extends Module with HasYsyxModuleName {
     io.mem.ar.arvalid := valid && !ar_fire_after // valid && io.out.ready && !forbid_ifetch
                                                  // 改成AXI后，原本的io.out.ready就不行了，因为它可能先有效后无效，导致arvalid在握手成功之前先有效后无效，这是AXI不允许的行为，AXI的valid信号必须在握手成功之前一直保持有效
                                                  // forbid_ifetch：异常从被检测到，到WB阶段触发，期间禁止取指令
-                                                 // forbid_ifetch也不能用在这里了，原因和io.out.ready差不多。但它现在仍然有用，ex_found_preserved就是等价的信号
+                                                 // forbid_ifetch也不能用在这里了，原因和io.out.ready差不多。但它现在仍然有用，ex_found_in_preserved就是等价的信号
     io.mem.ar.araddr := pc  // 用寄存器里的pc取指，不用组合信号dnpc了，这样取指地址就不会变了，否则取指地址会变，不符合AXI标准
     io.mem.ar.arid := AXI4Id.IFU
     io.mem.ar.arlen := 0.U
@@ -68,6 +67,8 @@ class IFU extends Module with HasYsyxModuleName {
     io.out.bits.pc := pc
     io.out.bits.dnpc := dnpc  // 其实这里等价于填snpc，因为一旦被redirect了，这条指令也就无效了
     io.out.bits.need_flush_in_IF := need_flush_in_IF_preserved // 这条指令是否在IF阶段被flush掉了。由于在IF被flush掉的指令仍需要在IW完成握手，所以需要流到ID再彻底flush掉，而不像正常情况下一旦被flush就不会流到下个阶段了
+
+    io.out.bits.has_exception := false.B  // IF阶段暂时不会有异常产生
 
     // AW和W通道输出全置0
     io.mem.aw.awvalid := false.B

@@ -16,10 +16,13 @@ class IWU extends Module with HasYsyxModuleName {
             val r = new AXI4R(32, 4)
             val b = new AXI4B(4)  // 输出全置0
         }
+        val ctrl = new Bundle {
+            val ex_found_out = Output(Bool())
+        }
         val flush = new Bundle {
             val br_taken = Input(Bool())
             val jump_valid = Input(Bool())
-            val ex_found = Input(Bool())  // 来自IDU的信号，需要当作flush处理
+            val ex_found_in = Input(Bool())  // 来自IDU的信号，需要当作flush处理
             // val flush = Output(Bool())
         }
     })
@@ -27,8 +30,6 @@ class IWU extends Module with HasYsyxModuleName {
     // 由于流水线会阻塞，所以这里存在问题！尤其是当ID阻塞时，IF也会阻塞，此时IF一直在发它的地址请求，
     // 而内存也一直在返回指令给IWU，导致IWU接收到错位的指令！
     // 已通过在IFU里加上“io.mem.inst_req_valid := io.out.fire && ready_go”解决。
-
-    assert(!io.mem.r.rvalid || (io.mem.r.rresp === AXI4Resp.OKAY && io.mem.r.rlast))
 
     val r_fire = io.mem.r.rvalid && io.mem.r.rready // && !io.in.bits.need_flush_in_IF
                 // !io.in.bits.need_flush_in_IF不能写在这里，是因为这样会导致r_fire永远为0，从而ready_go也永远为0，让这条指令永远卡死在IWU。
@@ -46,9 +47,14 @@ class IWU extends Module with HasYsyxModuleName {
     io.in.ready := !reset.asBool && (!valid || ready_go && io.out.ready)
     io.out.valid := valid && ready_go
 
+    // assert(!io.mem.r.rvalid || (io.mem.r.rresp === AXI4Resp.OKAY && io.mem.r.rlast))
+    val resp_ex = resp_error(io.mem.r.rresp) && r_fire  // 在valid高的时候，resp_ex才有可能拉高（因为r_fire只有在valid高的时候才可能拉高）
+    val resp_ex_preserved = bool_preserve(resp_ex, io.out.fire, false.B)._1
+    io.ctrl.ex_found_out := resp_ex
+
     val br_flush = io.flush.br_taken
     val jump_flush = io.flush.jump_valid && !io.flush.br_taken  // br_taken是EXU的输出，jump_valid是IDU的输出，所以如果两者同时为true，则EXU的分支指令优先级更高（因为它更老）
-    val ex_flush = io.flush.ex_found && !io.flush.br_taken  // br_taken是EXU的输出，ex_found是IDU的输出，所以如果两者同时为true，则EXU的分支指令优先级更高（因为它更老）
+    val ex_flush = io.flush.ex_found_in && !io.flush.br_taken  // br_taken是EXU的输出，ex_found_in是IDU的输出，所以如果两者同时为true，则EXU的分支指令优先级更高（因为它更老）
     val need_flush_in_IW = (br_flush || jump_flush || ex_flush) && valid
     val need_flush_in_IW_preserved = bool_preserve(need_flush_in_IW, io.out.fire, false.B)._1
     // io.flush.flush := false.B // 这里不能接need_flush_in_IW，否则io.in.valid就会在下一拍被无效掉，导致之前在val valid信号定义处那个注释提到的问题。因此这里io.flush.flush必须是false.B。
@@ -61,6 +67,7 @@ class IWU extends Module with HasYsyxModuleName {
     io.out.bits.inst := inst_preserved
     io.out.bits.pc := io.in.bits.pc
     io.out.bits.dnpc := io.in.bits.dnpc
+    io.out.bits.has_exception := io.in.bits.has_exception || resp_ex_preserved
 
     // B通道输出全置0
     io.mem.b.bready := false.B

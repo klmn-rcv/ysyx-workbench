@@ -245,6 +245,7 @@ package object cpu {
         val need_flush_in_IF = Bool()
         val pc = UInt(32.W)
         val dnpc = UInt(32.W)
+        val has_exception = Bool()
     }
 
     class IWUOut extends Bundle {
@@ -252,6 +253,7 @@ package object cpu {
         val inst = UInt(32.W)
         val pc = UInt(32.W)
         val dnpc = UInt(32.W)
+        val has_exception = Bool()
     }
 
     class IDUOut extends Bundle {
@@ -276,6 +278,7 @@ package object cpu {
         val inv = Bool()
         val ecall = Bool()
         val mret = Bool()
+        val has_exception = Bool()
     }
 
     class EXUOut extends Bundle {
@@ -295,6 +298,7 @@ package object cpu {
         val inv = Bool()
         val ecall = Bool()
         val mret = Bool()
+        val has_exception = Bool()
     }
 
     class LSUOut extends Bundle {
@@ -315,6 +319,7 @@ package object cpu {
         val inv = Bool()
         val ecall = Bool()
         val mret = Bool()
+        val has_exception = Bool()
     }
 
     class LSWUOut extends Bundle {
@@ -330,6 +335,7 @@ package object cpu {
         val inv = Bool()
         val ecall = Bool()
         val mret = Bool()
+        val has_exception = Bool()
         val need_skip_ref = Bool()
     }
 
@@ -574,5 +580,9 @@ package object cpu {
         }
 
         reg
+    }
+
+    def resp_error(resp: UInt(2.W)): Bool = {
+        resp === AXI4Resp.SLVERR || resp === AXI4Resp.DEVERR
     }
 }

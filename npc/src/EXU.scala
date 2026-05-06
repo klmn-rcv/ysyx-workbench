@@ -55,4 +55,5 @@ class EXU extends Module with HasYsyxModuleName {
 
     io.out.bits.ecall := io.in.bits.ecall
     io.out.bits.mret := io.in.bits.mret
+    io.out.bits.has_exception := io.in.bits.has_exception
 }

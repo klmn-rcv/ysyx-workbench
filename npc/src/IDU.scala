@@ -18,7 +18,7 @@ class IDU extends Module with HasYsyxModuleName {
         val ctrl = new Bundle {
             val jump_valid = Output(Bool())
             val jump_target = Output(UInt(32.W))
-            val ex_found = Output(Bool())
+            val ex_found_out = Output(Bool())
         }
         val raw_info = new Bundle {
             val needRs1 = Output(Bool())
@@ -157,7 +157,9 @@ class IDU extends Module with HasYsyxModuleName {
     io.out.bits.ecall := funcType === FuncType.ecall
     io.out.bits.mret := funcType === FuncType.mret
 
-    io.ctrl.ex_found := (io.out.bits.ebreak || io.out.bits.inv || io.out.bits.ecall || io.out.bits.mret) && io.out.fire
+    io.ctrl.ex_found_out := (io.out.bits.ebreak || io.out.bits.inv || io.out.bits.ecall || io.out.bits.mret) && io.out.fire
+
+    io.out.bits.has_exception := io.in.bits.has_exception
 
     // ftrace（由于流水线阻塞的存在，ftrace内的DPI-C函数可能会被多次调用，所以给is_jal和is_jalr信号加上了io.out.fire）
     val ftrace = Module(new Ftrace)

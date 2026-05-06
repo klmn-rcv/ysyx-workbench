@@ -14,6 +14,9 @@ class LSWU extends Module with HasYsyxModuleName {
             val r_need_skip_ref = Input(Bool())
             val b_need_skip_ref = Input(Bool())
         }
+        val ctrl = new Bundle {
+            val ex_found_out = Output(Bool())
+        }
     })
 
     assert(!io.mem.r.rvalid || (io.mem.r.rresp === AXI4Resp.OKAY && io.mem.r.rlast))
@@ -42,6 +45,10 @@ class LSWU extends Module with HasYsyxModuleName {
     io.in.ready := !reset.asBool && (!valid || ready_go && io.out.ready)
     io.out.valid := valid && ready_go
 
+    val resp_ex = io.in.bits.rd_mem && resp_error(io.mem.r.rresp) && r_fire
+    val resp_ex_preserved = bool_preserve(resp_ex, io.out.fire, false.B)._1
+    io.ctrl.ex_found_out := resp_ex
+
     load_data := ExtractLoadData(io.mem.r.rdata, io.in.bits.raddr, io.in.bits.bit_width, io.in.bits.sign)
 
     io.mem.r.rready := valid && io.in.bits.rd_mem && !r_fire_after
@@ -63,4 +70,5 @@ class LSWU extends Module with HasYsyxModuleName {
     io.out.bits.csrReq := io.in.bits.csrReq
     io.out.bits.ecall := io.in.bits.ecall
     io.out.bits.mret := io.in.bits.mret
+    io.out.bits.has_exception := io.in.bits.exception || resp_ex_preserved
 }
