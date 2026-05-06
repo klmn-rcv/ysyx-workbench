@@ -110,7 +110,7 @@ class CPU extends Module with HasYsyxModuleName {
     idu.io.rf.rdata2 := regfile.io.out.rdata2
     idu.io.raw_info.isRAW := isRAW
     idu.io.flush.br_taken := exu.io.ctrl.br_taken
-    idu.io.flush.ex_found_in := lsu.io.ctrl.ex_found_out || lswu.io.ctrl.ex_found_out
+    idu.io.flush.ex_found_in := lswu.io.ctrl.ex_found_out
 
     // EXU's input
     StageConnect(idu.io.out, exu.io.in, arch)
