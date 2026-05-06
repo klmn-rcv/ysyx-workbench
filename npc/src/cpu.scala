@@ -114,7 +114,7 @@ class CPU extends Module with HasYsyxModuleName {
 
     // EXU's input
     StageConnect(idu.io.out, exu.io.in, arch)
-    exu.io.flush.ex_found_in := lsu.io.ctrl.ex_found_out || lswu.io.ctrl.ex_found_out
+    exu.io.flush.ex_found_in := lswu.io.ctrl.ex_found_out
 
     // LSU's input
     StageConnect(exu.io.out, lsu.io.in, arch, lsu.io.flush.flush) // LSU能flush（仅对!mem_access的指令能）
