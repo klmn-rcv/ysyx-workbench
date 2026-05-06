@@ -8,11 +8,9 @@ class Xbar extends Module with HasYsyxModuleName {
     val io = IO(new Bundle {
         val arbiter = Flipped(new AXI4(32, 32, 4))
         val soc = new AXI4(32, 32, 4)
-        val clint = new Bundle {
-            val axi = new AXI4(32, 32, 4)
-            val r_need_skip_ref = Input(Bool())
-        }
-        val addrErr = new AXI4(32, 32, 4)
+        val clint = new AXI4(32, 32, 4)
+        val addrerr = new AXI4(32, 32, 4)
+        val clint_r_need_skip_ref = Input(Bool())
         val r_need_skip_ref = Output(Bool())
         val b_need_skip_ref = Output(Bool())
     })
@@ -44,72 +42,72 @@ class Xbar extends Module with HasYsyxModuleName {
     val hit_sram_w = inRange(io.arbiter.awaddr, sram_base, sram_end)
     val hit_soc_r = hit_mrom_r || hit_sram_r
     val hit_soc_w = hit_mrom_w || hit_sram_w
-    val hit_addrErr_r = !hit_clint_r && !hit_soc_r
-    val hit_addrErr_w = !hit_clint_w && !hit_soc_w
+    val hit_addrerr_r = !hit_clint_r && !hit_soc_r
+    val hit_addrerr_w = !hit_clint_w && !hit_soc_w
 
-    val owner_soc :: owner_clint :: owner_addrErr :: Nil = Enum(3)
+    val owner_soc :: owner_clint :: owner_addrerr :: Nil = Enum(3)
     val read_owner = RegInit(owner_soc)
     val write_owner = RegInit(owner_soc)
     val write_skip_ref = RegInit(false.B)
 
     when(ar_fire) {
-        read_owner := Mux(hit_clint_r, owner_clint, Mux(hit_soc_r, owner_soc, owner_addrErr))
+        read_owner := Mux(hit_clint_r, owner_clint, Mux(hit_soc_r, owner_soc, owner_addrerr))
     }
     when(aw_fire) {
-        write_owner := Mux(hit_clint_w, owner_clint, Mux(hit_soc_w, owner_soc, owner_addrErr))
+        write_owner := Mux(hit_clint_w, owner_clint, Mux(hit_soc_w, owner_soc, owner_addrerr))
         write_skip_ref := io.arbiter.awaddr === "h10000000".U(32.W) // 仅暂时用于skip_ref逻辑，不用于Xbar分发逻辑（uart实际上在soc里）
     }
 
     // AR
     connectFields(io.arbiter.ar, io.soc.ar, "araddr", "arid", "arlen", "arsize", "arburst")
-    connectFields(io.arbiter.ar, io.clint.axi.ar, "araddr", "arid", "arlen", "arsize", "arburst")
-    connectFields(io.arbiter.ar, io.addrErr.ar, "araddr", "arid", "arlen", "arsize", "arburst")
+    connectFields(io.arbiter.ar, io.clint.ar, "araddr", "arid", "arlen", "arsize", "arburst")
+    connectFields(io.arbiter.ar, io.addrerr.ar, "araddr", "arid", "arlen", "arsize", "arburst")
     io.soc.arvalid := io.arbiter.arvalid && hit_soc_r && !ar_fire_after
-    io.clint.axi.arvalid := io.arbiter.arvalid && hit_clint_r && !ar_fire_after
-    io.addrErr.arvalid := io.arbiter.arvalid && hit_addrErr_r && !ar_fire_after
-    io.arbiter.arready := !ar_fire_after && Mux(hit_clint_r, io.clint.axi.arready, Mux(hit_soc_r, io.soc.arready, io.addrErr.arready))
+    io.clint.arvalid := io.arbiter.arvalid && hit_clint_r && !ar_fire_after
+    io.addrerr.arvalid := io.arbiter.arvalid && hit_addrerr_r && !ar_fire_after
+    io.arbiter.arready := !ar_fire_after && Mux(hit_clint_r, io.clint.arready, Mux(hit_soc_r, io.soc.arready, io.addrerr.arready))
 
     // R
     io.soc.rready := false.B
-    io.clint.axi.rready := false.B
-    io.addrErr.rready := false.B
+    io.clint.rready := false.B
+    io.addrerr.rready := false.B
     when(read_owner === owner_clint) {
-        connectFields(io.clint.axi.r, io.arbiter.r, "rvalid", "rdata", "rresp", "rid", "rlast", "rready")
+        connectFields(io.clint.r, io.arbiter.r, "rvalid", "rdata", "rresp", "rid", "rlast", "rready")
     }.elsewhen(read_owner === owner_soc) {
         connectFields(io.soc.r, io.arbiter.r, "rvalid", "rdata", "rresp", "rid", "rlast", "rready")
-    }.otherwise {
-        connectFields(io.addrErr.r, io.arbiter.r, "rvalid", "rdata", "rresp", "rid", "rlast", "rready")
+    }.otherwise {   // read_owner === owner_addrerr
+        connectFields(io.addrerr.r, io.arbiter.r, "rvalid", "rdata", "rresp", "rid", "rlast", "rready")
     }
-    io.r_need_skip_ref := Mux(read_owner === owner_clint, io.clint.r_need_skip_ref, false.B)
+    io.r_need_skip_ref := Mux(read_owner === owner_clint, io.clint_r_need_skip_ref, false.B)
 
     // AW
     connectFields(io.arbiter.aw, io.soc.aw, "awaddr", "awid", "awlen", "awsize", "awburst")
-    connectFields(io.arbiter.aw, io.clint.axi.aw, "awaddr", "awid", "awlen", "awsize", "awburst")
-    connectFields(io.arbiter.aw, io.addrErr.aw, "awaddr", "awid", "awlen", "awsize", "awburst")
+    connectFields(io.arbiter.aw, io.clint.aw, "awaddr", "awid", "awlen", "awsize", "awburst")
+    connectFields(io.arbiter.aw, io.addrerr.aw, "awaddr", "awid", "awlen", "awsize", "awburst")
     io.soc.awvalid := io.arbiter.awvalid && hit_soc_w && !aw_fire_after
-    io.clint.axi.awvalid := io.arbiter.awvalid && hit_clint_w && !aw_fire_after
-    io.addrErr.awvalid := io.arbiter.awvalid && hit_addrErr_w && !aw_fire_after
-    io.arbiter.awready := !aw_fire_after && Mux(hit_clint_w, io.clint.axi.awready, Mux(hit_soc_w, io.soc.awready, io.addrErr.awready))
+    io.clint.awvalid := io.arbiter.awvalid && hit_clint_w && !aw_fire_after
+    io.addrerr.awvalid := io.arbiter.awvalid && hit_addrerr_w && !aw_fire_after
+    io.arbiter.awready := !aw_fire_after && Mux(hit_clint_w, io.clint.awready, Mux(hit_soc_w, io.soc.awready, io.addrerr.awready))
 
     // W
     connectFields(io.arbiter.w, io.soc.w, "wdata", "wstrb", "wlast")
-    connectFields(io.arbiter.w, io.clint.axi.w, "wdata", "wstrb", "wlast")
-    connectFields(io.arbiter.w, io.addrErr.w, "wdata", "wstrb", "wlast")
+    connectFields(io.arbiter.w, io.clint.w, "wdata", "wstrb", "wlast")
+    connectFields(io.arbiter.w, io.addrerr.w, "wdata", "wstrb", "wlast")
     io.soc.wvalid := io.arbiter.wvalid && hit_soc_w && !w_fire_after
-    io.clint.axi.wvalid := io.arbiter.wvalid && hit_clint_w && !w_fire_after
-    io.addrErr.wvalid := io.arbiter.wvalid && hit_addrErr_w && !w_fire_after
-    io.arbiter.wready := !w_fire_after && Mux(hit_clint_w, io.clint.axi.wready, Mux(hit_soc_w, io.soc.wready, io.addrErr.wready))
+    io.clint.wvalid := io.arbiter.wvalid && hit_clint_w && !w_fire_after
+    io.addrerr.wvalid := io.arbiter.wvalid && hit_addrerr_w && !w_fire_after
+    io.arbiter.wready := !w_fire_after && Mux(hit_clint_w, io.clint.wready, Mux(hit_soc_w, io.soc.wready, io.addrerr.wready))
 
     // B
     io.soc.bready := false.B
-    io.clint.axi.bready := false.B
-    io.addrErr.bready := false.B
+    io.clint.bready := false.B
+    io.addrerr.bready := false.B
     when(write_owner === owner_clint) {
-        connectFields(io.clint.axi.b, io.arbiter.b, "bvalid", "bresp", "bid", "bready")
+        connectFields(io.clint.b, io.arbiter.b, "bvalid", "bresp", "bid", "bready")
     }.elsewhen(write_owner === owner_soc) {
         connectFields(io.soc.b, io.arbiter.b, "bvalid", "bresp", "bid", "bready")
     }.otherwise {
-        connectFields(io.addrErr.b, io.arbiter.b, "bvalid", "bresp", "bid", "bready")
+        connectFields(io.addrerr.b, io.arbiter.b, "bvalid", "bresp", "bid", "bready")
     }
     io.b_need_skip_ref := write_owner === owner_soc && write_skip_ref
 }
