@@ -124,6 +124,7 @@ class CPU extends Module with HasYsyxModuleName {
     StageConnect(lsu.io.out, lswu.io.in, arch, lswu.io.flush.flush) // LSWU能flush（仅对!mem_access的指令能）
     lswu.io.mem.r_need_skip_ref := io.data_mem_r_need_skip_ref
     lswu.io.mem.b_need_skip_ref := io.data_mem_b_need_skip_ref
+    lswu.io.flush.ex_found_in := false.B
 
     // WBU's input
     StageConnect(lswu.io.out, wbu.io.in, arch, wbu.io.flush.flush)
