@@ -582,7 +582,7 @@ package object cpu {
         reg
     }
 
-    def resp_error(resp: UInt(2.W)): Bool = {
+    def resp_error(resp: UInt): Bool = {
         resp === AXI4Resp.SLVERR || resp === AXI4Resp.DEVERR
     }
 }
