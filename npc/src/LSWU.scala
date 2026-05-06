@@ -50,6 +50,7 @@ class LSWU extends Module with HasYsyxModuleName {
     // 这时年轻访存虽然可以先进入LSU，但不能启动新的AR/AW/W。
     // 原因是：如果更老指令在这一拍的R/B响应里检测到resp_ex，年轻访存必须不能先把自己的请求发到总线上，
     // 否则请求将不可撤回，而这可能产生副作用。
+    // IFU/IWU不存在这样的机制，是因为为了取指令而发的访存请求都不存在副作用（一不会访问内存以外的设备，二不会有写操作）。
 
     val r_need_skip_ref = r_fire && io.mem.r_need_skip_ref
     val b_need_skip_ref = b_fire && io.mem.b_need_skip_ref

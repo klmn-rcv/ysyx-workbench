@@ -51,8 +51,9 @@ class LSU extends Module with HasYsyxModuleName {
 
 
     io.mem.ar.arvalid := io.in.bits.rd_mem && !ar_fire_after && allow_side_effect && !io.ctrl.older_mem_pending
-    // 只有在LSWU里不存在更老、结果未定的访存时，年轻load才允许真正把AR发出去。
+    // 只有在LSWU里不存在更老、且未完成握手的访存时，年轻load才允许真正把AR发出去。
     // 这是因为如果更老访存这拍在LSWU的R响应里报fault，处于LSU的年轻的load由于已经发出了arvalid，无法撤销，必须进行完这次请求，而load在访问设备时可能造成外部副作用。
+    // IFU/IWU不存在这样的机制，是因为为了取指令而发的访存请求都不存在副作用（一不会访问内存以外的设备，二不会有写操作）。
     io.mem.ar.araddr := io.in.bits.result
     io.mem.ar.arid := AXI4Id.LSU
     io.mem.ar.arlen := 0.U
