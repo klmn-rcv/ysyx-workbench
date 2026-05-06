@@ -44,8 +44,8 @@ class LSWU extends Module with HasYsyxModuleName {
     val (r_fire_preserved, load_data_preserved, r_fire_after, _) = valid_and_data_preserve(r_fire, load_data, io.out.fire, false.B)
     val (b_fire_preserved, b_fire_after) = bool_preserve(b_fire, io.out.fire, false.B)
 
-    io.ctrl.older_mem_pending := (io.in.bits.rd_mem && !r_fire_after) ||
-                                 (io.in.bits.wr_mem && !b_fire_after)
+    io.ctrl.older_mem_pending := ((io.in.bits.rd_mem && !r_fire_after) ||
+                                 (io.in.bits.wr_mem && !b_fire_after)) && valid
     // older_mem_pending表示：LSWU当前还持有一条更老的访存指令，并且它的最终 R/B 握手还没完成。
     // 这时年轻访存虽然可以先进入LSU，但不能启动新的AR/AW/W。
     // 原因是：如果更老指令在这一拍的R/B响应里检测到resp_ex，年轻访存必须不能先把自己的请求发到总线上，
