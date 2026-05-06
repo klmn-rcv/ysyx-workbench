@@ -46,6 +46,34 @@ word_t get_pc() {
   return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__wbu__DOT__submit_dnpc;
 }
 
+word_t get_if_pc() {
+  return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__ifu__DOT__pc;
+}
+
+word_t get_iw_pc() {
+  return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__bitsReg_pc;
+}
+
+word_t get_id_pc() {
+  return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__bitsReg_1_pc;
+}
+
+word_t get_ex_pc() {
+  return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__bitsReg_2_pc;
+}
+
+word_t get_ls_pc() {
+  return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__bitsReg_3_pc;
+}
+
+word_t get_lsw_pc() {
+  return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__bitsReg_4_pc;
+}
+
+word_t get_wb_pc() {
+  return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__bitsReg_5_pc;
+}
+
 word_t get_csr(int i) {
   switch (i) {
     case 0: return (word_t)top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__core__DOT__csr__DOT__mstatus;

@@ -96,31 +96,36 @@ class CPU extends Module with HasYsyxModuleName {
     ifu.io.ctrl.jump_target := idu.io.ctrl.jump_target
     ifu.io.ctrl.br_taken := exu.io.ctrl.br_taken
     ifu.io.ctrl.br_target := exu.io.ctrl.br_target
-    ifu.io.ctrl.ex_found := idu.io.ctrl.ex_found
+    ifu.io.ctrl.ex_found_in := iwu.io.ctrl.ex_found_out || idu.io.ctrl.ex_found_out || lswu.io.ctrl.ex_found_out
 
     // IWU's input
     StageConnect(ifu.io.out, iwu.io.in, arch) // IWU不能flush
     iwu.io.flush.br_taken := exu.io.ctrl.br_taken
     iwu.io.flush.jump_valid := idu.io.ctrl.jump_valid
-    iwu.io.flush.ex_found := idu.io.ctrl.ex_found
-    
+    iwu.io.flush.ex_found_in := idu.io.ctrl.ex_found_out || lswu.io.ctrl.ex_found_out
+
     // IDU's input
     StageConnect(iwu.io.out, idu.io.in, arch, idu.io.flush.flush)
     idu.io.rf.rdata1 := regfile.io.out.rdata1
     idu.io.rf.rdata2 := regfile.io.out.rdata2
     idu.io.raw_info.isRAW := isRAW
     idu.io.flush.br_taken := exu.io.ctrl.br_taken
+    idu.io.flush.ex_found_in := lswu.io.ctrl.ex_found_out
 
     // EXU's input
     StageConnect(idu.io.out, exu.io.in, arch)
+    exu.io.flush.ex_found_in := lswu.io.ctrl.ex_found_out
 
     // LSU's input
-    StageConnect(exu.io.out, lsu.io.in, arch) // LSU不能flush
+    StageConnect(exu.io.out, lsu.io.in, arch, lsu.io.flush.flush) // LSU能flush（仅对!mem_access的指令能）
+    lsu.io.ctrl.older_mem_pending := lswu.io.ctrl.older_mem_pending
+    lsu.io.flush.ex_found_in := lswu.io.ctrl.ex_found_out
 
     // LSWU's input
-    StageConnect(lsu.io.out, lswu.io.in, arch) // LSWU不能flush
+    StageConnect(lsu.io.out, lswu.io.in, arch, lswu.io.flush.flush) // LSWU能flush（仅对!mem_access的指令能）
     lswu.io.mem.r_need_skip_ref := io.data_mem_r_need_skip_ref
     lswu.io.mem.b_need_skip_ref := io.data_mem_b_need_skip_ref
+    lswu.io.flush.ex_found_in := false.B
 
     // WBU's input
     StageConnect(lswu.io.out, wbu.io.in, arch, wbu.io.flush.flush)

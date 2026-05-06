@@ -236,6 +236,9 @@ package object cpu {
     }
 
     object ExceptionCode {
+        val instruction_access_fault = 1
+        val load_access_fault = 5
+        val store_AMO_access_fault = 7
         val ecall_from_u = 8
         val ecall_from_s = 9
         val ecall_from_m = 11
@@ -245,6 +248,8 @@ package object cpu {
         val need_flush_in_IF = Bool()
         val pc = UInt(32.W)
         val dnpc = UInt(32.W)
+        val has_exception = Bool()
+        val exception_code = UInt(32.W)
     }
 
     class IWUOut extends Bundle {
@@ -252,6 +257,8 @@ package object cpu {
         val inst = UInt(32.W)
         val pc = UInt(32.W)
         val dnpc = UInt(32.W)
+        val has_exception = Bool()
+        val exception_code = UInt(32.W)
     }
 
     class IDUOut extends Bundle {
@@ -276,6 +283,8 @@ package object cpu {
         val inv = Bool()
         val ecall = Bool()
         val mret = Bool()
+        val has_exception = Bool()
+        val exception_code = UInt(32.W)
     }
 
     class EXUOut extends Bundle {
@@ -295,10 +304,12 @@ package object cpu {
         val inv = Bool()
         val ecall = Bool()
         val mret = Bool()
+        val has_exception = Bool()
+        val exception_code = UInt(32.W)
     }
 
     class LSUOut extends Bundle {
-        val need_flush_in_LSU = Bool()
+        // val need_flush_in_LSU = Bool()
         val raddr = UInt(32.W)      // 为了LSWU提取load得到的数据
         val bit_width = BitWidth()  // 为了LSWU提取load得到的数据
         val sign = Sign()           // 为了LSWU提取load得到的数据
@@ -315,10 +326,12 @@ package object cpu {
         val inv = Bool()
         val ecall = Bool()
         val mret = Bool()
+        val has_exception = Bool()
+        val exception_code = UInt(32.W)
     }
 
     class LSWUOut extends Bundle {
-        val need_flush_in_LSU_or_LSWU = Bool()
+        // val need_flush_in_LSU_or_LSWU = Bool()
         val data = UInt(32.W)
         val wr_reg = Bool()
         val rd = UInt(5.W)
@@ -330,6 +343,8 @@ package object cpu {
         val inv = Bool()
         val ecall = Bool()
         val mret = Bool()
+        val has_exception = Bool()
+        val exception_code = UInt(32.W)
         val need_skip_ref = Bool()
     }
 
@@ -574,5 +589,9 @@ package object cpu {
         }
 
         reg
+    }
+
+    def resp_error(resp: UInt): Bool = {
+        resp === AXI4Resp.SLVERR || resp === AXI4Resp.DECERR
     }
 }

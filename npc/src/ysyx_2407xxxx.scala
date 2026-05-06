@@ -14,6 +14,7 @@ class ysyx_2407xxxx extends Module {
     val arbiter = Module(new AXI4Arbiter)
     val xbar = Module(new Xbar)
     val clint = Module(new CLINT)
+    val addrerr = Module(new AddressErrorHandler)
 
     core.io.inst_mem_axi <> arbiter.io.ifu
     core.io.data_mem_axi <> arbiter.io.lsu
@@ -24,8 +25,9 @@ class ysyx_2407xxxx extends Module {
     arbiter.io.xbar_r_need_skip_ref := xbar.io.r_need_skip_ref
     arbiter.io.xbar_b_need_skip_ref := xbar.io.b_need_skip_ref
 
-    clint.io.axi <> xbar.io.clint.axi
-    xbar.io.clint.r_need_skip_ref := clint.io.r_need_skip_ref
+    clint.io.axi <> xbar.io.clint
+    xbar.io.clint_r_need_skip_ref := clint.io.r_need_skip_ref
+    addrerr.io.axi <> xbar.io.addrerr
 
     xbar.io.soc <> io.master
 
