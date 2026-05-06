@@ -70,5 +70,5 @@ class LSWU extends Module with HasYsyxModuleName {
     io.out.bits.csrReq := io.in.bits.csrReq
     io.out.bits.ecall := io.in.bits.ecall
     io.out.bits.mret := io.in.bits.mret
-    io.out.bits.has_exception := io.in.bits.exception || resp_ex_preserved
+    io.out.bits.has_exception := io.in.bits.has_exception || resp_ex_preserved
 }

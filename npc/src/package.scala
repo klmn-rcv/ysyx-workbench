@@ -583,6 +583,6 @@ package object cpu {
     }
 
     def resp_error(resp: UInt): Bool = {
-        resp === AXI4Resp.SLVERR || resp === AXI4Resp.DEVERR
+        resp === AXI4Resp.SLVERR || resp === AXI4Resp.DECERR
     }
 }
