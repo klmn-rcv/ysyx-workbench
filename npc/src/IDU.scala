@@ -32,8 +32,10 @@ class IDU extends Module with HasYsyxModuleName {
     })
 
     val flush = Wire(Bool())
+    val has_exception = io.in.bits.has_exception
 
     val valid = io.in.valid && !flush
+    val allow_side_effect = valid && !has_exception
     val ready_go = !valid || !io.raw_info.isRAW
     io.in.ready := !reset.asBool && (!valid || ready_go && io.out.ready)
     io.out.valid := valid && ready_go
@@ -96,13 +98,13 @@ class IDU extends Module with HasYsyxModuleName {
         io.out.bits.src2 := imm
     }
 
-    io.out.bits.wr_reg := needRd
-    io.out.bits.rd_mem := funcType === FuncType.ld
-    io.out.bits.wr_mem := funcType === FuncType.st
+    io.out.bits.wr_reg := needRd && allow_side_effect
+    io.out.bits.rd_mem := funcType === FuncType.ld && allow_side_effect
+    io.out.bits.wr_mem := funcType === FuncType.st && allow_side_effect
     io.out.bits.bit_width := bitWidth
     io.out.bits.sign := sign
 
-    io.ctrl.jump_valid := funcType === FuncType.jplk && io.out.fire // 在本流水级处理完时才发跳转信号。如果这里只与一个valid，那isRAW为高时也会发跳转信号，此时jump_target还没拿到，会导致IF拿到错误的jump_target。
+    io.ctrl.jump_valid := funcType === FuncType.jplk && io.out.fire && allow_side_effect // 在本流水级处理完时才发跳转信号。如果这里只与一个valid，那isRAW为高时也会发跳转信号，此时jump_target还没拿到，会导致IF拿到错误的jump_target。
                                                                     // 之前这里与上的是io.out.valid，这是错的，因为这样flush可能持续多拍，而因为IW被flush掉了，IF里的跳转后的指令可以流到IW，此时如果flush还为高，IW里这条跳转后的指令也会被flush，导致多flush了一些指令。
     io.ctrl.jump_target := Mux(
         instType === InstType.J,
@@ -111,14 +113,14 @@ class IDU extends Module with HasYsyxModuleName {
     )
 
     io.out.bits.br_target := io.in.bits.pc + imm
-    io.out.bits.br_valid := funcType === FuncType.br
+    io.out.bits.br_valid := funcType === FuncType.br && allow_side_effect
     io.out.bits.br_expect_0 := (funcType === FuncType.br) &&
         ((io.in.bits.inst(14, 12) === "b000".U) || (io.in.bits.inst(14, 12) === "b101".U) || (io.in.bits.inst(14, 12) === "b111".U))
 
     // printf("src1: %x, imm: %x, bj_valid: %b, bj_pc: %x\n", src1, imm, io.bj_valid, io.bj_pc)
 
-    io.out.bits.ebreak := funcType === FuncType.ebreak
-    io.out.bits.inv := funcType === FuncType.inv // && io.in.valid
+    io.out.bits.ebreak := funcType === FuncType.ebreak && allow_side_effect
+    io.out.bits.inv := funcType === FuncType.inv && allow_side_effect // && io.in.valid
 
     io.out.bits.inst := io.in.bits.inst
     io.out.bits.pc := io.in.bits.pc
@@ -132,7 +134,7 @@ class IDU extends Module with HasYsyxModuleName {
     val csr_src1 = Mux(io.in.bits.inst(14) === 0.U, io.rf.rdata1, Cat(0.U(27.W), io.in.bits.inst(19, 15)))  // io.in.bits.inst(19, 15) is uimm, zero-extend to 32 bits
     val csr_sc_we = Mux(io.in.bits.inst(19, 15) === 0.U, false.B, true.B)
 
-    when(funcType === FuncType.csr) {
+    when(funcType === FuncType.csr && allow_side_effect) {
         io.out.bits.csrReq.addr := io.in.bits.inst(31, 20)
         io.out.bits.csrReq.re := true.B
         switch(io.in.bits.inst(13, 12)) {
@@ -154,12 +156,13 @@ class IDU extends Module with HasYsyxModuleName {
         }
     }
 
-    io.out.bits.ecall := funcType === FuncType.ecall
-    io.out.bits.mret := funcType === FuncType.mret
+    io.out.bits.ecall := funcType === FuncType.ecall && allow_side_effect
+    io.out.bits.mret := funcType === FuncType.mret && allow_side_effect
 
     io.ctrl.ex_found_out := (io.out.bits.ebreak || io.out.bits.inv || io.out.bits.ecall || io.out.bits.mret) && io.out.fire
 
     io.out.bits.has_exception := io.in.bits.has_exception
+    io.out.bits.exception_code := io.in.bits.exception_code
 
     // ftrace（由于流水线阻塞的存在，ftrace内的DPI-C函数可能会被多次调用，所以给is_jal和is_jalr信号加上了io.out.fire）
     val ftrace = Module(new Ftrace)

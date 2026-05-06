@@ -18,6 +18,8 @@ class EXU extends Module with HasYsyxModuleName {
     })
 
     val valid = io.in.valid // && !flush   // 这里的flush也需要持久化
+    val has_exception = io.in.bits.has_exception
+    val allow_side_effect = valid && !has_exception
     val ready_go = true.B
     io.in.ready := !reset.asBool && (!valid || ready_go && io.out.ready)
     io.out.valid := valid && ready_go
@@ -30,7 +32,7 @@ class EXU extends Module with HasYsyxModuleName {
     alu.io.in.op := io.in.bits.alu_op
 
     val br_alu_zero = alu.io.out.result === 0.U
-    io.ctrl.br_taken := io.in.bits.br_valid && (br_alu_zero === io.in.bits.br_expect_0) && io.out.fire
+    io.ctrl.br_taken := io.in.bits.br_valid && (br_alu_zero === io.in.bits.br_expect_0) && io.out.fire && allow_side_effect
     io.ctrl.br_target := io.in.bits.br_target
 
     io.out.bits.result := alu.io.out.result
@@ -56,4 +58,5 @@ class EXU extends Module with HasYsyxModuleName {
     io.out.bits.ecall := io.in.bits.ecall
     io.out.bits.mret := io.in.bits.mret
     io.out.bits.has_exception := io.in.bits.has_exception
+    io.out.bits.exception_code := io.in.bits.exception_code
 }

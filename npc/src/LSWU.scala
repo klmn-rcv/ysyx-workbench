@@ -19,8 +19,8 @@ class LSWU extends Module with HasYsyxModuleName {
         }
     })
 
-    assert(!io.mem.r.rvalid || (io.mem.r.rresp === AXI4Resp.OKAY && io.mem.r.rlast))
-    assert(!io.mem.b.bvalid || io.mem.b.bresp === AXI4Resp.OKAY)
+    // assert(!io.mem.r.rvalid || (io.mem.r.rresp === AXI4Resp.OKAY && io.mem.r.rlast))
+    // assert(!io.mem.b.bvalid || io.mem.b.bresp === AXI4Resp.OKAY)
 
     val mem_access = io.in.bits.rd_mem || io.in.bits.wr_mem
 
@@ -45,14 +45,18 @@ class LSWU extends Module with HasYsyxModuleName {
     io.in.ready := !reset.asBool && (!valid || ready_go && io.out.ready)
     io.out.valid := valid && ready_go
 
-    val resp_ex = io.in.bits.rd_mem && resp_error(io.mem.r.rresp) && r_fire
+    val resp_ex = io.in.bits.rd_mem && resp_error(io.mem.r.rresp) && r_fire ||
+                  io.in.bits.wr_mem && resp_error(io.mem.b.bresp) && b_fire
     val resp_ex_preserved = bool_preserve(resp_ex, io.out.fire, false.B)._1
     io.ctrl.ex_found_out := resp_ex
 
     load_data := ExtractLoadData(io.mem.r.rdata, io.in.bits.raddr, io.in.bits.bit_width, io.in.bits.sign)
 
-    io.mem.r.rready := valid && io.in.bits.rd_mem && !r_fire_after
-    io.mem.b.bready := valid && io.in.bits.wr_mem && !b_fire_after
+    io.mem.r.rready := valid && io.in.bits.rd_mem && !r_fire_after && !io.in.bits.has_exception
+    // 这里看 io.in.bits.has_exception，而不是 allow_side_effect。
+    // 原因是本级新异常 resp_ex 正是由当前这次 R 握手定义出来的，不能再反过来阻止这次握手本身。
+    io.mem.b.bready := valid && io.in.bits.wr_mem && !b_fire_after && !io.in.bits.has_exception
+    // B 通道同理：这里只看上级已经带下来的异常，不看本级由当前 B 握手才得出的 resp_ex。
 
     val need_flush_in_LSWU_preserved = bool_preserve(need_flush_in_LSWU, io.out.fire, false.B)._1
     io.out.bits.need_flush_in_LSU_or_LSWU := io.in.bits.need_flush_in_LSU || need_flush_in_LSWU_preserved
@@ -71,4 +75,8 @@ class LSWU extends Module with HasYsyxModuleName {
     io.out.bits.ecall := io.in.bits.ecall
     io.out.bits.mret := io.in.bits.mret
     io.out.bits.has_exception := io.in.bits.has_exception || resp_ex_preserved
+    io.out.bits.exception_code := Mux(io.in.bits.has_exception, io.in.bits.exception_code,
+                                    Mux(resp_ex_preserved,
+                                      Mux(io.in.bits.rd_mem, ExceptionCode.load_access_fault.U, ExceptionCode.store_AMO_access_fault.U), 
+                                      0.U(32.W)))
 }

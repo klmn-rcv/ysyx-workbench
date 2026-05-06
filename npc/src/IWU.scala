@@ -60,7 +60,8 @@ class IWU extends Module with HasYsyxModuleName {
     // io.flush.flush := false.B // 这里不能接need_flush_in_IW，否则io.in.valid就会在下一拍被无效掉，导致之前在val valid信号定义处那个注释提到的问题。因此这里io.flush.flush必须是false.B。
 
 
-    io.mem.r.rready := valid && !r_fire_after // 不管在什么情况下io.out.fire，下一拍inst_resp_ready都为1，不会有性能损失
+    io.mem.r.rready := valid && !r_fire_after && !io.in.bits.has_exception // 这里看 io.in.bits.has_exception，而不是 allow_side_effect。
+                                                                          // 原因是本级新异常 resp_ex 正是由当前这次 R 握手定义出来的，不能再反过来阻止这次握手本身。
                                               // 之前在!valid的时候置rready为1，这在现在的设计中是不好的，因为既然现在IW不会真正flush指令，那valid为0只可能是IW流走，而IF还没流过来，此时如果IF的AR握手成功但继续卡在IF（虽然好像暂时不可能出现这种情况），就会导致IW假握手并丢掉这条实际上不该丢的指令
 
     io.out.bits.need_flush_in_IF_or_IW := io.in.bits.need_flush_in_IF || need_flush_in_IW_preserved // 这条在IF/IW就应当被flush掉的指令，为了完成握手，必须等到进入ID的同时flush
@@ -68,6 +69,8 @@ class IWU extends Module with HasYsyxModuleName {
     io.out.bits.pc := io.in.bits.pc
     io.out.bits.dnpc := io.in.bits.dnpc
     io.out.bits.has_exception := io.in.bits.has_exception || resp_ex_preserved
+    io.out.bits.exception_code := Mux(io.in.bits.has_exception, io.in.bits.exception_code,
+                                    Mux(resp_ex_preserved, ExceptionCode.instruction_access_fault.U, 0.U(32.W)))
 
     // B通道输出全置0
     io.mem.b.bready := false.B

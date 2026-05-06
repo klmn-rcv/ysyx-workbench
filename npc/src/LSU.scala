@@ -18,6 +18,8 @@ class LSU extends Module with HasYsyxModuleName {
     val mem_access = io.in.bits.rd_mem || io.in.bits.wr_mem
 
     val valid = io.in.valid // && !flush  // 不能在LSU直接flush指令
+    val has_exception = io.in.bits.has_exception
+    val allow_side_effect = valid && !has_exception
 
     val need_flush_in_LSU = (!mem_access && false.B) && valid  // !mem_access是因为，如果是访存指令，我们认为它不能在LSU被flush，因为需要完成握手，并且还需要让它流到下一级（LSWU）去完成flush的动作；如果不是访存指令，可以直接flush。
 
@@ -37,19 +39,19 @@ class LSU extends Module with HasYsyxModuleName {
     io.out.valid := valid && ready_go   // io.out.valid不会放行非load/store指令流到下一级，但会放行被flush掉的load/store指令流到下一级，交给LSWU来彻底flush掉。
 
 
-    io.mem.ar.arvalid := io.in.bits.rd_mem && valid && !ar_fire_after
+    io.mem.ar.arvalid := io.in.bits.rd_mem && !ar_fire_after && allow_side_effect
     io.mem.ar.araddr := io.in.bits.result
     io.mem.ar.arid := AXI4Id.LSU
     io.mem.ar.arlen := 0.U
     io.mem.ar.arsize := AXI4Size.fromBitWidth(io.in.bits.bit_width)
     io.mem.ar.arburst := AXI4Burst.INCR
-    io.mem.aw.awvalid := io.in.bits.wr_mem && valid && !aw_fire_after
+    io.mem.aw.awvalid := io.in.bits.wr_mem && !aw_fire_after && allow_side_effect
     io.mem.aw.awaddr := io.in.bits.result
     io.mem.aw.awid := AXI4Id.LSU
     io.mem.aw.awlen := 0.U
     io.mem.aw.awsize := AXI4Size.fromBitWidth(io.in.bits.bit_width)
     io.mem.aw.awburst := AXI4Burst.INCR
-    io.mem.w.wvalid := io.in.bits.wr_mem && valid && !w_fire_after
+    io.mem.w.wvalid := io.in.bits.wr_mem && !w_fire_after && allow_side_effect
     io.mem.w.wdata := io.in.bits.rs2_data << (io.mem.aw.awaddr(1, 0) << 3) // 这里要左移来对齐到正确的字节位置
     io.mem.w.wstrb := MaskGen(io.in.bits.result, io.in.bits.bit_width)
     io.mem.w.wlast := true.B
@@ -75,4 +77,5 @@ class LSU extends Module with HasYsyxModuleName {
     io.out.bits.ecall := io.in.bits.ecall
     io.out.bits.mret := io.in.bits.mret
     io.out.bits.has_exception := io.in.bits.has_exception
+    io.out.bits.exception_code := io.in.bits.exception_code
 }

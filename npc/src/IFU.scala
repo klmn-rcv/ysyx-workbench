@@ -69,6 +69,7 @@ class IFU extends Module with HasYsyxModuleName {
     io.out.bits.need_flush_in_IF := need_flush_in_IF_preserved // 这条指令是否在IF阶段被flush掉了。由于在IF被flush掉的指令仍需要在IW完成握手，所以需要流到ID再彻底flush掉，而不像正常情况下一旦被flush就不会流到下个阶段了
 
     io.out.bits.has_exception := false.B  // IF阶段暂时不会有异常产生
+    io.out.bits.exception_code := 0.U(32.W)
 
     // AW和W通道输出全置0
     io.mem.aw.awvalid := false.B

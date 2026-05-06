@@ -236,6 +236,9 @@ package object cpu {
     }
 
     object ExceptionCode {
+        val instruction_access_fault = 1
+        val load_access_fault = 5
+        val store_AMO_access_fault = 7
         val ecall_from_u = 8
         val ecall_from_s = 9
         val ecall_from_m = 11
@@ -246,6 +249,7 @@ package object cpu {
         val pc = UInt(32.W)
         val dnpc = UInt(32.W)
         val has_exception = Bool()
+        val exception_code = UInt(32.W)
     }
 
     class IWUOut extends Bundle {
@@ -254,6 +258,7 @@ package object cpu {
         val pc = UInt(32.W)
         val dnpc = UInt(32.W)
         val has_exception = Bool()
+        val exception_code = UInt(32.W)
     }
 
     class IDUOut extends Bundle {
@@ -279,6 +284,7 @@ package object cpu {
         val ecall = Bool()
         val mret = Bool()
         val has_exception = Bool()
+        val exception_code = UInt(32.W)
     }
 
     class EXUOut extends Bundle {
@@ -299,6 +305,7 @@ package object cpu {
         val ecall = Bool()
         val mret = Bool()
         val has_exception = Bool()
+        val exception_code = UInt(32.W)
     }
 
     class LSUOut extends Bundle {
@@ -320,6 +327,7 @@ package object cpu {
         val ecall = Bool()
         val mret = Bool()
         val has_exception = Bool()
+        val exception_code = UInt(32.W)
     }
 
     class LSWUOut extends Bundle {
@@ -336,6 +344,7 @@ package object cpu {
         val ecall = Bool()
         val mret = Bool()
         val has_exception = Bool()
+        val exception_code = UInt(32.W)
         val need_skip_ref = Bool()
     }
 
