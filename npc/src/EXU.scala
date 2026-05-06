@@ -13,18 +13,21 @@ class EXU extends Module with HasYsyxModuleName {
             val br_target = Output(UInt(32.W))
         }
         val flush = new Bundle {
+            val ex_found_in = Input(Bool())
             val flush = Output(Bool())
         }
     })
 
-    val valid = io.in.valid // && !flush   // 这里的flush也需要持久化
+    val flush = Wire(Bool())
+    val valid = io.in.valid && !flush
     val has_exception = io.in.bits.has_exception
     val allow_side_effect = valid && !has_exception
     val ready_go = true.B
     io.in.ready := !reset.asBool && (!valid || ready_go && io.out.ready)
     io.out.valid := valid && ready_go
 
-    io.flush.flush := false.B
+    flush := io.flush.ex_found_in
+    io.flush.flush := flush
 
     val alu = Module(new ALU)
     alu.io.in.src1 := io.in.bits.src1

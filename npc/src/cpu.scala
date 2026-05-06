@@ -110,15 +110,18 @@ class CPU extends Module with HasYsyxModuleName {
     idu.io.rf.rdata2 := regfile.io.out.rdata2
     idu.io.raw_info.isRAW := isRAW
     idu.io.flush.br_taken := exu.io.ctrl.br_taken
+    idu.io.flush.ex_found_in := lsu.io.ctrl.ex_found_out || lswu.io.ctrl.ex_found_out
 
     // EXU's input
     StageConnect(idu.io.out, exu.io.in, arch)
+    exu.io.flush.ex_found_in := lsu.io.ctrl.ex_found_out || lswu.io.ctrl.ex_found_out
 
     // LSU's input
-    StageConnect(exu.io.out, lsu.io.in, arch) // LSU不能flush
+    StageConnect(exu.io.out, lsu.io.in, arch, lsu.io.flush.flush) // LSU能flush（仅对!mem_access的指令能）
+    lsu.io.flush.ex_found_in := lswu.io.ctrl.ex_found_out
 
     // LSWU's input
-    StageConnect(lsu.io.out, lswu.io.in, arch) // LSWU不能flush
+    StageConnect(lsu.io.out, lswu.io.in, arch, lswu.io.flush.flush) // LSWU能flush（仅对!mem_access的指令能）
     lswu.io.mem.r_need_skip_ref := io.data_mem_r_need_skip_ref
     lswu.io.mem.b_need_skip_ref := io.data_mem_b_need_skip_ref
 

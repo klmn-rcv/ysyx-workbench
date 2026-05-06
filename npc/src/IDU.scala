@@ -27,6 +27,7 @@ class IDU extends Module with HasYsyxModuleName {
         }
         val flush = new Bundle {
             val br_taken = Input(Bool())
+            val ex_found_in = Input(Bool())
             val flush = Output(Bool())
         }
     })
@@ -40,8 +41,7 @@ class IDU extends Module with HasYsyxModuleName {
     io.in.ready := !reset.asBool && (!valid || ready_go && io.out.ready)
     io.out.valid := valid && ready_go
 
-    val br_flush = io.flush.br_taken
-    flush := br_flush || io.in.bits.need_flush_in_IF_or_IW // need_flush_in_IF_or_IW如果有效，立刻让当前指令无效
+    flush := io.flush.br_flush || io.flush.ex_found_in || io.in.bits.need_flush_in_IF_or_IW // need_flush_in_IF_or_IW如果有效，立刻让当前指令无效
     io.flush.flush := flush
 
     val default = List(InstType.N, FuncType.inv, ALUOp.add, BitWidth.w32, Sign.signed)

@@ -17,6 +17,10 @@ class LSWU extends Module with HasYsyxModuleName {
         val ctrl = new Bundle {
             val ex_found_out = Output(Bool())
         }
+        val flush = new Bundle {
+            val ex_found_in = Input(Bool())
+            val flush = Output(Bool())
+        }
     })
 
     // assert(!io.mem.r.rvalid || (io.mem.r.rresp === AXI4Resp.OKAY && io.mem.r.rlast))
@@ -24,15 +28,19 @@ class LSWU extends Module with HasYsyxModuleName {
 
     val mem_access = io.in.bits.rd_mem || io.in.bits.wr_mem
 
-    val valid = io.in.valid // && !flush  // 不能在LSWU直接flush指令
+    val flush = Wire(Bool())  // 仅对!mem_access的指令才可能flush
+    val valid = io.in.valid && !flush
 
-    val need_flush_in_LSWU = (!mem_access && false.B) && valid  // !mem_access是因为，如果是访存指令，我们认为它不能在LSWU被flush，因为需要完成握手，并且还需要让它流到下一级（LSWU）去完成flush的动作；如果不是访存指令，可以直接flush。
+    flush:= !mem_access && io.flush.ex_found_in
+    io.flush.flush := flush
+
+    val need_flush_in_LSWU = (mem_access && io.flush.ex_found_in) && valid  // !mem_access是因为，如果是访存指令，我们认为它不能在LSWU被flush，因为需要完成握手，并且还需要让它流到下一级（LSWU）去完成flush的动作；如果不是访存指令，可以直接flush。
 
     val load_data = Wire(UInt(32.W))
     val r_fire = io.mem.r.rvalid && io.mem.r.rready  // 对于非load指令，r_fire永远为0（因为rready为0）
     val b_fire = io.mem.b.bvalid && io.mem.b.bready  // 对于非store指令，b_fire永远为0（因为bready为0）
                 // 上面两个fire信号都不能接valid信号（虽然接不接不影响逻辑），因为现在不允许在内容无效的时候假握手了，原因是LSU随时可能流过来，导致错位
-    val (r_fire_preserved, load_data_preserved, r_fire_after, _) = valid_and_data_preserve(r_fire, load_data, io.out.fire, false.B) // 在flush的时候立刻把r_fire_reg置为0（注意不是把r_fire_preserved置为0！），这里的立刻是异步的意思
+    val (r_fire_preserved, load_data_preserved, r_fire_after, _) = valid_and_data_preserve(r_fire, load_data, io.out.fire, false.B)
     val (b_fire_preserved, b_fire_after) = bool_preserve(b_fire, io.out.fire, false.B)
 
     val r_need_skip_ref = r_fire && io.mem.r_need_skip_ref
