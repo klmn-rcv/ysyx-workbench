@@ -40,10 +40,10 @@ static void trace_and_difftest() {
     IFDEF(CONFIG_DIFFTEST, difftest_skip_ref());
   }
 
-  if(submit.pc == 0x200000dc) { // temporarily for debugging
-    printf("DEBUG: Hit breakpoint at pc = 0x%08" PRIx32 "\n", submit.pc);
-    end_wave();
-  }
+  // if(submit.pc == 0x200000dc) { // temporarily for debugging
+  //   printf("DEBUG: Hit breakpoint at pc = 0x%08" PRIx32 "\n", submit.pc);
+  //   end_wave();
+  // }
 
   IFDEF(CONFIG_DIFFTEST, difftest_step(submit.pc, submit.dnpc));
 
