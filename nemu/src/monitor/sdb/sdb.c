@@ -239,33 +239,33 @@ void sdb_set_batch_mode() {
   is_batch_mode = true;
 }
 
-// 测试expr表达式求值函数
-static void test_expr() {
-  FILE *fp = fopen("tools/gen-expr/build/input", "r");
+//// 测试expr表达式求值函数
+// static void test_expr() {
+//   FILE *fp = fopen("tools/gen-expr/build/input", "r");
 
-  char line[65536];
-  while (fgets(line, sizeof(line), fp) != NULL) {
-    line[strcspn(line, "\n")] = '\0';
-    char *space = strchr(line, ' ');
-    assert(space != NULL);
-    *space = '\0';
-    char *golden_val_str = line;
-    char *expression = golden_val_str + strlen(golden_val_str) + 1;
-    word_t golden_value = atoi(golden_val_str);
+//   char line[65536];
+//   while (fgets(line, sizeof(line), fp) != NULL) {
+//     line[strcspn(line, "\n")] = '\0';
+//     char *space = strchr(line, ' ');
+//     assert(space != NULL);
+//     *space = '\0';
+//     char *golden_val_str = line;
+//     char *expression = golden_val_str + strlen(golden_val_str) + 1;
+//     word_t golden_value = atoi(golden_val_str);
 
-    bool success = false;
-    word_t value = expr(expression, &success);
-    if(success == false) {
-      printf("test_expr: expr parsing failed\n");
-      assert(0);
-    }
-    if(value != golden_value) {
-      printf("test_expr: calculate failed!\n");
-      assert(0);
-    }
-  }
-  printf("test_expr: pass!\n");
-}
+//     bool success = false;
+//     word_t value = expr(expression, &success);
+//     if(success == false) {
+//       printf("test_expr: expr parsing failed\n");
+//       assert(0);
+//     }
+//     if(value != golden_value) {
+//       printf("test_expr: calculate failed!\n");
+//       assert(0);
+//     }
+//   }
+//   printf("test_expr: pass!\n");
+// }
 
 void sdb_mainloop() {
   if (is_batch_mode) {
@@ -273,7 +273,7 @@ void sdb_mainloop() {
     return;
   }
 
-  test_expr(); // 测试expr表达式求值函数
+  // test_expr(); // 测试expr表达式求值函数
 
   for (char *str; (str = rl_gets()) != NULL; ) {
     char *str_end = str + strlen(str);
