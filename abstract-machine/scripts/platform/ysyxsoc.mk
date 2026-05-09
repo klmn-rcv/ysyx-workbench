@@ -10,7 +10,9 @@ AM_SRCS := riscv/ysyxsoc/start.S \
 
 CFLAGS    += -fdata-sections -ffunction-sections
 LDSCRIPTS += $(AM_HOME)/scripts/linker-ysyxsoc.ld
-LDFLAGS   += --defsym=_mrom_start=0x20000000 --defsym=_sram_start=0x0f000000 --defsym=_sram_end=0x0f002000 --defsym=_entry_offset=0x0
+LDFLAGS   += --defsym=_mrom_base=0x20000000 --defsym=_mrom_size=0x1000 \
+             --defsym=_sram_base=0x0f000000 --defsym=_sram_size=0x2000 \
+             --defsym=_entry_offset=0x0
 LDFLAGS   += --gc-sections -e _start
 
 MAINARGS_MAX_LEN = 64
