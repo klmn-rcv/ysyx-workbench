@@ -17,12 +17,12 @@ class Xbar extends Module with HasYsyxModuleName {
 
     val clint_mtime_lo = "h0200bff8".U(32.W)
     val clint_mtime_hi = "h0200bffc".U(32.W)
-    val mrom_base = "h20000000".U(32.W)
-    val mrom_end  = "h20000fff".U(32.W)
-    val sram_base = "h0f000000".U(32.W)
-    val sram_end  = "h0f001fff".U(32.W)
-    val uart_base = "h10000000".U(32.W)
-    val uart_end = "h10000fff".U(32.W)
+    val soc_mrom_base = "h20000000".U(32.W)
+    val soc_mrom_end  = "h20000fff".U(32.W)
+    val soc_sram_base = "h0f000000".U(32.W)
+    val soc_sram_end  = "h0f001fff".U(32.W)
+    val soc_uart_base = "h10000000".U(32.W)
+    val soc_uart_end = "h10000fff".U(32.W)
 
     val ar_fire = io.arbiter.arvalid && io.arbiter.arready
     val r_fire = io.arbiter.rvalid && io.arbiter.rready
@@ -38,12 +38,12 @@ class Xbar extends Module with HasYsyxModuleName {
 
     val hit_clint_r = io.arbiter.araddr === clint_mtime_lo || io.arbiter.araddr === clint_mtime_hi
     val hit_clint_w = io.arbiter.awaddr === clint_mtime_lo || io.arbiter.awaddr === clint_mtime_hi
-    val hit_soc_mrom_r = inRange(io.arbiter.araddr, mrom_base, mrom_end)
-    val hit_soc_mrom_w = inRange(io.arbiter.awaddr, mrom_base, mrom_end) // 这个虽然不对，但不是地址错误，所以还是需要发给SoC
-    val hit_soc_sram_r = inRange(io.arbiter.araddr, sram_base, sram_end)
-    val hit_soc_sram_w = inRange(io.arbiter.awaddr, sram_base, sram_end)
-    val hit_soc_uart_r = inRange(io.arbiter.araddr, uart_base, uart_end)
-    val hit_soc_uart_w = inRange(io.arbiter.awaddr, uart_base, uart_end)
+    val hit_soc_mrom_r = inRange(io.arbiter.araddr, soc_mrom_base, soc_mrom_end)
+    val hit_soc_mrom_w = inRange(io.arbiter.awaddr, soc_mrom_base, soc_mrom_end) // 这个虽然不对，但不是地址错误，所以还是需要发给SoC
+    val hit_soc_sram_r = inRange(io.arbiter.araddr, soc_sram_base, soc_sram_end)
+    val hit_soc_sram_w = inRange(io.arbiter.awaddr, soc_sram_base, soc_sram_end)
+    val hit_soc_uart_r = inRange(io.arbiter.araddr, soc_uart_base, soc_uart_end)
+    val hit_soc_uart_w = inRange(io.arbiter.awaddr, soc_uart_base, soc_uart_end)
     val hit_soc_r = hit_soc_mrom_r || hit_soc_sram_r || hit_soc_uart_r
     val hit_soc_w = hit_soc_mrom_w || hit_soc_sram_w || hit_soc_uart_w
     val hit_addrerr_r = !hit_clint_r && !hit_soc_r
