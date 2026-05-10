@@ -79,6 +79,7 @@ void iringbuf_backfill_inst(uint32_t pc, uint32_t inst) {
   char line[128];
 
   uint8_t *code = (uint8_t *)&inst;
+  printf("DEBUG: Here 2\n");
   disassemble(asm_buf, sizeof(asm_buf), pc, code, 4);
 
   // 为了指令码在视觉上对齐，将反汇编中的制表符替换成空格

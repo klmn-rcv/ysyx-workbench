@@ -53,11 +53,11 @@ void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte) {
   // printf("DEBUG: disassemble: pc = 0x%lx, code = %02x %02x %02x %02x\n", (unsigned long)pc, code[3], code[2], code[1], code[0]);
   cs_insn *insn;
   size_t count = cs_disasm_dl(handle, code, nbyte, pc, 0, &insn);
-  printf("DEBUG: count = %lu, pc = 0x%lx, code = ", count, (unsigned long)pc);
-  for (int i = 0; i < nbyte; i++) {
-    printf("%02x ", code[i]);
-  }
-  printf("\n");
+  // printf("DEBUG: count = %lu, pc = 0x%lx, code = ", count, (unsigned long)pc);
+  // for (int i = 0; i < nbyte; i++) {
+  //   printf("%02x ", code[i]);
+  // }
+  // printf("\n");
   extern char flash[];
   printf("DEBUG: flash's first inst is 0x%08x\n", *(uint32_t *)flash);
   assert(count == 1);

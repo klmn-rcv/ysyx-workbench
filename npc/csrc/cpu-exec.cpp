@@ -109,6 +109,7 @@ static void exec_once() {
   p += 1;
 
   void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
+  printf("DEBUG: Here 1\n");
   disassemble(p, submit.logbuf + sizeof(submit.logbuf) - p,
       submit.pc, reinterpret_cast<uint8_t*>(&submit.inst), 4);
 #endif
