@@ -60,6 +60,7 @@ void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte) {
   // printf("\n");
   extern char flash[];
   printf("DEBUG: flash's first inst is 0x%08x\n", *(uint32_t *)flash);
+  IFDEF(CONFIG_GEN_WAVE, end_wave());
   assert(count == 1);
   int ret = snprintf(str, size, "%s", insn->mnemonic);
   if (insn->op_str[0] != '\0') {
