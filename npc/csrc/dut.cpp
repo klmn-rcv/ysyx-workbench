@@ -33,7 +33,7 @@ static inline T load_difftest_symbol(void *handle, const char *symbol) {
   return reinterpret_cast<T>(dlsym(handle, symbol));
 }
 
-static const paddr_t RESET_VECTOR = 0x20000000;
+static const paddr_t RESET_VECTOR = _flash_base;
 
 static bool is_skip_ref = false;
 static int skip_dut_nr_inst = 0;

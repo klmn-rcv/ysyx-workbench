@@ -15,6 +15,7 @@ void init_disasm();
 void sdb_set_batch_mode();
 
 char mrom[MROM_SIZE]; // mask rom
+char flash[FLASH_SIZE]; // flash memory
 
 char pmem[MEM_SIZE];  // memory
 

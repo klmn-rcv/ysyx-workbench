@@ -6,7 +6,8 @@
 
 #include "VysyxSoCFull.h"
 
-#define MROM_SIZE 0x1000
+#define MROM_SIZE _mrom_size
+#define FLASH_SIZE _flash_size
 
 #define MEM_SIZE 0x8000000
 

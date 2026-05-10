@@ -4,24 +4,25 @@ PHDRS { text PT_LOAD; data PT_LOAD; }
 MEMORY {
   mrom (rx)  : ORIGIN = _mrom_base, LENGTH = _mrom_size
   sram (rwx) : ORIGIN = _sram_base, LENGTH = _sram_size
+  flash (rx) : ORIGIN = _flash_base, LENGTH = _flash_size
 }
 
 SECTIONS {
   /* MROM stores the image; SRAM holds writable runtime data. */
-  . = ORIGIN(mrom) + _entry_offset;
+  . = ORIGIN(flash) + _entry_offset;
   .text : {
     *(entry)
     *(.text*)
-  } > mrom AT> mrom : text
+  } > flash AT> flash : text
   .rodata : {
     *(.rodata*)
-  } > mrom AT> mrom : text
+  } > flash AT> flash : text
 
   .data ORIGIN(sram) : {
     _data_vma_start = .;
     *(.data*)
     *(.sdata*)
-  } > sram AT> mrom : data
+  } > sram AT> flash : data
   _data_lma_start = LOADADDR(.data);
   _data_vma_end = .;
 
