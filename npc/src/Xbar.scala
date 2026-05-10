@@ -21,6 +21,8 @@ class Xbar extends Module with HasYsyxModuleName {
     val soc_mrom_end  = "h20000fff".U(32.W)
     val soc_sram_base = "h0f000000".U(32.W)
     val soc_sram_end  = "h0f001fff".U(32.W)
+    val soc_flash_base = "h30000000".U(32.W)
+    val soc_flash_end  = "h3fffffff".U(32.W)
     val soc_uart_base = "h10000000".U(32.W)
     val soc_uart_end = "h10000fff".U(32.W)
 
@@ -42,24 +44,28 @@ class Xbar extends Module with HasYsyxModuleName {
     val hit_soc_mrom_w = inRange(io.arbiter.awaddr, soc_mrom_base, soc_mrom_end) // 这个虽然不对，但不是地址错误，所以还是需要发给SoC
     val hit_soc_sram_r = inRange(io.arbiter.araddr, soc_sram_base, soc_sram_end)
     val hit_soc_sram_w = inRange(io.arbiter.awaddr, soc_sram_base, soc_sram_end)
+    val hit_soc_flash_r = inRange(io.arbiter.araddr, soc_flash_base, soc_flash_end)
+    val hit_soc_flash_w = inRange(io.arbiter.awaddr, soc_flash_base, soc_flash_end)
     val hit_soc_uart_r = inRange(io.arbiter.araddr, soc_uart_base, soc_uart_end)
     val hit_soc_uart_w = inRange(io.arbiter.awaddr, soc_uart_base, soc_uart_end)
-    val hit_soc_r = hit_soc_mrom_r || hit_soc_sram_r || hit_soc_uart_r
-    val hit_soc_w = hit_soc_mrom_w || hit_soc_sram_w || hit_soc_uart_w
+    val hit_soc_r = hit_soc_mrom_r || hit_soc_sram_r || hit_soc_flash_r || hit_soc_uart_r
+    val hit_soc_w = hit_soc_mrom_w || hit_soc_sram_w || hit_soc_flash_w || hit_soc_uart_w
     val hit_addrerr_r = !hit_clint_r && !hit_soc_r
     val hit_addrerr_w = !hit_clint_w && !hit_soc_w
 
     val owner_soc :: owner_clint :: owner_addrerr :: Nil = Enum(3)
     val read_owner = RegInit(owner_soc)
     val write_owner = RegInit(owner_soc)
-    val write_skip_ref = RegInit(false.B)
+    val hit_soc_uart_r_preserved = bool_preserve(ar_fire && hit_soc_uart_r, r_fire, false.B)._1
+    val hit_soc_uart_w_preserved = bool_preserve(aw_fire && hit_soc_uart_w, b_fire, false.B)._1
 
     when(ar_fire) {
         read_owner := Mux(hit_clint_r, owner_clint, Mux(hit_soc_r, owner_soc, owner_addrerr))
+        // uart_r_skip_ref := hit_soc_uart_r // 仅暂时用于skip_ref逻辑，不用于Xbar分发逻辑（uart实际上在soc里）
     }
     when(aw_fire) {
         write_owner := Mux(hit_clint_w, owner_clint, Mux(hit_soc_w, owner_soc, owner_addrerr))
-        write_skip_ref := io.arbiter.awaddr === "h10000000".U(32.W) // 仅暂时用于skip_ref逻辑，不用于Xbar分发逻辑（uart实际上在soc里）
+        // uart_w_skip_ref := hit_soc_uart_w // 仅暂时用于skip_ref逻辑，不用于Xbar分发逻辑（uart实际上在soc里）
     }
 
     // AR
@@ -82,7 +88,8 @@ class Xbar extends Module with HasYsyxModuleName {
     }.otherwise {   // read_owner === owner_addrerr
         connectFields(io.addrerr.r, io.arbiter.r, "rvalid", "rdata", "rresp", "rid", "rlast", "rready")
     }
-    io.r_need_skip_ref := Mux(read_owner === owner_clint, io.clint_r_need_skip_ref, false.B)
+    io.r_need_skip_ref := Mux(read_owner === owner_clint, io.clint_r_need_skip_ref,
+                            Mux(read_owner === owner_soc, hit_soc_uart_r_preserved, false.B))
 
     // AW
     connectFields(io.arbiter.aw, io.soc.aw, "awaddr", "awid", "awlen", "awsize", "awburst")
@@ -113,5 +120,5 @@ class Xbar extends Module with HasYsyxModuleName {
     }.otherwise {
         connectFields(io.addrerr.b, io.arbiter.b, "bvalid", "bresp", "bid", "bready")
     }
-    io.b_need_skip_ref := write_owner === owner_soc && write_skip_ref
+    io.b_need_skip_ref := write_owner === owner_soc && hit_soc_uart_w_preserved
 }

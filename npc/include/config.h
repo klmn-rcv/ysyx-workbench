@@ -12,4 +12,14 @@
 #define CONFIG_RV32 1
 #define CONFIG_RVE 1
 
+#define MROM_BASE 0x20000000
+#define SRAM_BASE 0x0f000000
+#define FLASH_BASE 0x30000000
+#define MROM_SIZE 0x1000
+#define SRAM_SIZE 0x2000
+#define FLASH_SIZE 0x10000000
+
+#define MEM_BASE 0x80000000
+#define MEM_SIZE 0x8000000
+
 #endif

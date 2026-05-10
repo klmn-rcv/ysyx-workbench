@@ -15,6 +15,7 @@ void init_disasm();
 void sdb_set_batch_mode();
 
 char mrom[MROM_SIZE]; // mask rom
+char flash[FLASH_SIZE]; // flash memory
 
 char pmem[MEM_SIZE];  // memory
 
@@ -32,7 +33,8 @@ static long load_image(const char* path) {
   }
 
   // const long n = std::fread(pmem, 1, MEM_SIZE, fp);
-  const long n = std::fread(mrom, 1, MROM_SIZE, fp);
+  // const long n = std::fread(mrom, 1, MROM_SIZE, fp);
+  const long n = std::fread(flash, 1, FLASH_SIZE, fp);
 
   // printf("DEBUG: In load_image, mrom's first inst is 0x%08x\n", *(uint32_t *)mrom);
 
@@ -42,7 +44,7 @@ static long load_image(const char* path) {
     std::exit(1);
   }
   std::fclose(fp);
-  printf("[sim] loaded %ld bytes from %s to mrom\n", n, path);
+  printf("[sim] loaded %ld bytes from %s to flash\n", n, path);
   return n;
 }
 
@@ -137,6 +139,7 @@ int main(int argc, char** argv) {
   init_log(log_file);
 
   std::memset(mrom, 0, sizeof(mrom));
+  std::memset(flash, 0, sizeof(flash));
 
   std::memset(pmem, 0, sizeof(pmem));
 

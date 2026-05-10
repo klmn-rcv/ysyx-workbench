@@ -46,7 +46,7 @@ class IFU extends Module with HasYsyxModuleName {
     val need_flush_in_IF_preserved = jump_valid_preserved || br_taken_preserved || ex_redirect_valid_preserved || ex_found_in_preserved
 
     val dnpc = Wire(UInt(32.W))
-    val pc = RegEnable(dnpc, "h20000000".U(32.W), io.out.fire)
+    val pc = RegEnable(dnpc, "h30000000".U(32.W), io.out.fire)
     val snpc = pc + 4.U
     dnpc := Mux(ex_redirect_valid_preserved, ex_redirect_target_preserved,
                Mux(br_taken_preserved, br_target_preserved,

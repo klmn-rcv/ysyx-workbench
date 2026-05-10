@@ -11,12 +11,13 @@
 #endif
 
 extern char mrom[];  // mask rom
+extern char flash[];
 
 extern char pmem[];  // memory
 
 static uint64_t rtc_snapshot = 0; // 防止直接读系统时间可能导致的高32位和低32位不一致
 static auto boot_time = std::chrono::steady_clock::now();
-static const uint32_t start_pc = 0x20000000;
+static const uint32_t start_pc = FLASH_BASE;
 // static const uint32_t start_pmem = 0x80000000;
 
 extern "C" void sim_halt(int exit_code, uint32_t exit_pc) {
@@ -168,7 +169,14 @@ extern "C" void ftrace(uint32_t pc, uint32_t target_pc, bool is_jalr, int rd, in
 #endif
 }
 
-extern "C" void flash_read(int32_t addr, int32_t *data) { assert(0); }
+extern "C" void flash_read(int32_t addr, int32_t *data) {
+  // const uint32_t flash_addr = (addr - FLASH_BASE) & ~0x3u;
+  assert((addr & 0x3u) == 0);
+  Assert(addr + 4 <= FLASH_SIZE, "flash_read out of bounds at address 0x%x", addr); // at pc 0x%x", addr, get_ls_pc());
+  *data = *reinterpret_cast<int32_t *>(flash + addr);
+  IFDEF(CONFIG_MTRACE, _Log("[mtrace] flash_read: addr = 0x%08x, data = 0x%08x\n", addr, *data));
+}
+
 extern "C" void mrom_read(int32_t addr, int32_t *data) {
   // *data = 0x00100073;  // ebreak
   // static int times = 0;
@@ -176,8 +184,8 @@ extern "C" void mrom_read(int32_t addr, int32_t *data) {
   // if(times < 10) {  // 只打印前10次调用
   //   printf("DEBUG: mrom_read called with addr = 0x%08x, mrom[addr - start_pc] = 0x%08x\n", addr, static_cast<uint32_t>(mrom[addr - start_pc]));
   // }
-  const uint32_t mrom_addr = (addr - start_pc) & ~0x3u;
-  Assert(mrom_addr + 4 <= MROM_SIZE, "mrom_read out of bounds at address 0x%x at pc 0x%x", addr, get_ls_pc());
+  const uint32_t mrom_addr = (addr - MROM_BASE) & ~0x3u;
+  Assert(mrom_addr + 4 <= MROM_SIZE, "mrom_read out of bounds at address 0x%x", addr); // at pc 0x%x", addr, get_ls_pc());
   *data = *reinterpret_cast<int32_t *>(mrom + mrom_addr);
   IFDEF(CONFIG_MTRACE, _Log("[mtrace] mrom_read: addr = 0x%08x, data = 0x%08x\n", addr, *data));
 }
