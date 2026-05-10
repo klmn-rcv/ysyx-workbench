@@ -171,7 +171,7 @@ extern "C" void ftrace(uint32_t pc, uint32_t target_pc, bool is_jalr, int rd, in
 
 extern "C" void flash_read(int32_t addr, int32_t *data) {
   const uint32_t flash_addr = (addr - FLASH_BASE) & ~0x3u;
-  Assert(flash_addr + 4 <= FLASH_SIZE, "flash_read out of bounds at address 0x%x at pc 0x%x", addr, get_ls_pc());
+  Assert(flash_addr + 4 <= FLASH_SIZE, "flash_read out of bounds at address 0x%x", addr); // at pc 0x%x", addr, get_ls_pc());
   *data = *reinterpret_cast<int32_t *>(flash + flash_addr);
   IFDEF(CONFIG_MTRACE, _Log("[mtrace] flash_read: addr = 0x%08x, data = 0x%08x\n", addr, *data));
 }
@@ -184,7 +184,7 @@ extern "C" void mrom_read(int32_t addr, int32_t *data) {
   //   printf("DEBUG: mrom_read called with addr = 0x%08x, mrom[addr - start_pc] = 0x%08x\n", addr, static_cast<uint32_t>(mrom[addr - start_pc]));
   // }
   const uint32_t mrom_addr = (addr - MROM_BASE) & ~0x3u;
-  Assert(mrom_addr + 4 <= MROM_SIZE, "mrom_read out of bounds at address 0x%x at pc 0x%x", addr, get_ls_pc());
+  Assert(mrom_addr + 4 <= MROM_SIZE, "mrom_read out of bounds at address 0x%x", addr); // at pc 0x%x", addr, get_ls_pc());
   *data = *reinterpret_cast<int32_t *>(mrom + mrom_addr);
   IFDEF(CONFIG_MTRACE, _Log("[mtrace] mrom_read: addr = 0x%08x, data = 0x%08x\n", addr, *data));
 }
