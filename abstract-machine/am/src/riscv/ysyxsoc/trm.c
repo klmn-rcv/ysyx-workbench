@@ -33,6 +33,8 @@ void init_uart(void) {
 }
 
 void putch(char ch) {
+  while ((*(volatile uint8_t *)(UART_BASE + UART_LSR) & (1 << 5)) == 0)
+    ;
   *(volatile uint8_t *)(UART_BASE + UART_TX) = ch;
 }
 
