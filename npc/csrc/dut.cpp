@@ -20,6 +20,7 @@
 #include "sdb.h"
 
 extern char mrom[];
+extern char flash[];
 
 void (*ref_difftest_memcpy)(paddr_t addr, void *buf, size_t n, bool direction) = NULL;
 void (*ref_difftest_regcpy)(void *dut, bool direction) = NULL;
@@ -33,7 +34,7 @@ static inline T load_difftest_symbol(void *handle, const char *symbol) {
   return reinterpret_cast<T>(dlsym(handle, symbol));
 }
 
-static const paddr_t RESET_VECTOR = _flash_base;
+static const paddr_t RESET_VECTOR = FLASH_BASE;
 
 static bool is_skip_ref = false;
 static int skip_dut_nr_inst = 0;
@@ -99,7 +100,7 @@ void init_difftest(const char *ref_so_file, long img_size, int port) {
       "If it is not necessary, you can turn it off in menuconfig.", ref_so_file);
 
   ref_difftest_init(port);
-  ref_difftest_memcpy(RESET_VECTOR, mrom, MROM_SIZE, DIFFTEST_TO_REF);
+  ref_difftest_memcpy(RESET_VECTOR, flash, FLASH_SIZE, DIFFTEST_TO_REF);
 
   CPU_state cpu;
   update_cpu_state(&cpu);

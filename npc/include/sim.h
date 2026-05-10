@@ -6,10 +6,10 @@
 
 #include "VysyxSoCFull.h"
 
-#define MROM_SIZE _mrom_size
-#define FLASH_SIZE _flash_size
+// #define MROM_SIZE 0x1000
+// #define FLASH_SIZE 0x10000000
 
-#define MEM_SIZE 0x8000000
+// #define MEM_SIZE 0x8000000
 
 extern VysyxSoCFull* top;
 

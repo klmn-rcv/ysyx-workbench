@@ -62,6 +62,10 @@ static inline bool in_sram(paddr_t addr) {
   return addr - CONFIG_SRAMBASE < CONFIG_SRAMSIZE;
 }
 
+static inline bool in_flash(paddr_t addr) {
+  return addr - CONFIG_FLASHBASE < CONFIG_FLASHSIZE;
+}
+
 word_t paddr_read(paddr_t addr, int len, mem_read_t read_type);
 void paddr_write(paddr_t addr, int len, word_t data);
 
