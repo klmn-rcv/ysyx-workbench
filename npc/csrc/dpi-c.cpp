@@ -130,7 +130,7 @@ extern "C" void iringbuf_before_ifetch(uint32_t pc) {
 
 extern "C" void iringbuf_after_ifetch(uint32_t pc, uint32_t inst) {
 #ifdef CONFIG_ITRACE
-  // printf("DEBUG: iringbuf_backfill_inst called with pc = 0x%08x, inst = 0x%08x\n", pc, inst);
+  printf("DEBUG: iringbuf_backfill_inst called with pc = 0x%08x, inst = 0x%08x\n", pc, inst);
   iringbuf_backfill_inst(pc, inst);
 #endif
 }
