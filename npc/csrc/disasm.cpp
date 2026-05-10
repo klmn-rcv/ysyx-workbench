@@ -58,8 +58,9 @@ void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte) {
   //   printf("%02x ", code[i]);
   // }
   // printf("\n");
-  // extern char mrom[];
-  // printf("DEBUG: mrom's first inst is 0x%08x\n", *(uint32_t *)mrom);
+  // extern char flash[];
+  // printf("DEBUG: flash's first inst is 0x%08x\n", *(uint32_t *)flash);
+  // IFDEF(CONFIG_GEN_WAVE, end_wave());
   assert(count == 1);
   int ret = snprintf(str, size, "%s", insn->mnemonic);
   if (insn->op_str[0] != '\0') {
