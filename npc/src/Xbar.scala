@@ -52,8 +52,8 @@ class Xbar extends Module with HasYsyxModuleName {
     val owner_soc :: owner_clint :: owner_addrerr :: Nil = Enum(3)
     val read_owner = RegInit(owner_soc)
     val write_owner = RegInit(owner_soc)
-    val hit_soc_uart_r_preserved = bool_preserve(ar_fire && hit_soc_uart_r, r_fire, false.B)
-    val hit_soc_uart_w_preserved = bool_preserve(aw_fire && hit_soc_uart_w, b_fire, false.B)
+    val hit_soc_uart_r_preserved = bool_preserve(ar_fire && hit_soc_uart_r, r_fire, false.B)._1
+    val hit_soc_uart_w_preserved = bool_preserve(aw_fire && hit_soc_uart_w, b_fire, false.B)._1
 
     when(ar_fire) {
         read_owner := Mux(hit_clint_r, owner_clint, Mux(hit_soc_r, owner_soc, owner_addrerr))
