@@ -21,6 +21,8 @@ class Xbar extends Module with HasYsyxModuleName {
     val soc_mrom_end  = "h20000fff".U(32.W)
     val soc_sram_base = "h0f000000".U(32.W)
     val soc_sram_end  = "h0f001fff".U(32.W)
+    val soc_flash_base = "h30000000".U(32.W)
+    val soc_flash_end  = "h3fffffff".U(32.W)
     val soc_uart_base = "h10000000".U(32.W)
     val soc_uart_end = "h10000fff".U(32.W)
 
@@ -42,10 +44,12 @@ class Xbar extends Module with HasYsyxModuleName {
     val hit_soc_mrom_w = inRange(io.arbiter.awaddr, soc_mrom_base, soc_mrom_end) // 这个虽然不对，但不是地址错误，所以还是需要发给SoC
     val hit_soc_sram_r = inRange(io.arbiter.araddr, soc_sram_base, soc_sram_end)
     val hit_soc_sram_w = inRange(io.arbiter.awaddr, soc_sram_base, soc_sram_end)
+    val hit_soc_flash_r = inRange(io.arbiter.araddr, soc_flash_base, soc_flash_end)
+    val hit_soc_flash_w = inRange(io.arbiter.awaddr, soc_flash_base, soc_flash_end)
     val hit_soc_uart_r = inRange(io.arbiter.araddr, soc_uart_base, soc_uart_end)
     val hit_soc_uart_w = inRange(io.arbiter.awaddr, soc_uart_base, soc_uart_end)
-    val hit_soc_r = hit_soc_mrom_r || hit_soc_sram_r || hit_soc_uart_r
-    val hit_soc_w = hit_soc_mrom_w || hit_soc_sram_w || hit_soc_uart_w
+    val hit_soc_r = hit_soc_mrom_r || hit_soc_sram_r || hit_soc_flash_r || hit_soc_uart_r
+    val hit_soc_w = hit_soc_mrom_w || hit_soc_sram_w || hit_soc_flash_w || hit_soc_uart_w
     val hit_addrerr_r = !hit_clint_r && !hit_soc_r
     val hit_addrerr_w = !hit_clint_w && !hit_soc_w
 
