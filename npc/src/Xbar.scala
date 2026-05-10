@@ -52,14 +52,16 @@ class Xbar extends Module with HasYsyxModuleName {
     val owner_soc :: owner_clint :: owner_addrerr :: Nil = Enum(3)
     val read_owner = RegInit(owner_soc)
     val write_owner = RegInit(owner_soc)
-    val write_skip_ref = RegInit(false.B)
+    val hit_soc_uart_r_preserved = bool_preserve(ar_fire && hit_soc_uart_r, r_fire, false.B)
+    val hit_soc_uart_w_preserved = bool_preserve(aw_fire && hit_soc_uart_w, b_fire, false.B)
 
     when(ar_fire) {
         read_owner := Mux(hit_clint_r, owner_clint, Mux(hit_soc_r, owner_soc, owner_addrerr))
+        // uart_r_skip_ref := hit_soc_uart_r // 仅暂时用于skip_ref逻辑，不用于Xbar分发逻辑（uart实际上在soc里）
     }
     when(aw_fire) {
         write_owner := Mux(hit_clint_w, owner_clint, Mux(hit_soc_w, owner_soc, owner_addrerr))
-        write_skip_ref := hit_soc_uart_w // 仅暂时用于skip_ref逻辑，不用于Xbar分发逻辑（uart实际上在soc里）
+        // uart_w_skip_ref := hit_soc_uart_w // 仅暂时用于skip_ref逻辑，不用于Xbar分发逻辑（uart实际上在soc里）
     }
 
     // AR
@@ -82,7 +84,8 @@ class Xbar extends Module with HasYsyxModuleName {
     }.otherwise {   // read_owner === owner_addrerr
         connectFields(io.addrerr.r, io.arbiter.r, "rvalid", "rdata", "rresp", "rid", "rlast", "rready")
     }
-    io.r_need_skip_ref := Mux(read_owner === owner_clint, io.clint_r_need_skip_ref, false.B)
+    io.r_need_skip_ref := Mux(read_owner === owner_clint, io.clint_r_need_skip_ref,
+                            Mux(read_owner === owner_soc, hit_soc_uart_r_preserved, false.B))
 
     // AW
     connectFields(io.arbiter.aw, io.soc.aw, "awaddr", "awid", "awlen", "awsize", "awburst")
@@ -113,5 +116,5 @@ class Xbar extends Module with HasYsyxModuleName {
     }.otherwise {
         connectFields(io.addrerr.b, io.arbiter.b, "bvalid", "bresp", "bid", "bready")
     }
-    io.b_need_skip_ref := write_owner === owner_soc && write_skip_ref
+    io.b_need_skip_ref := write_owner === owner_soc && hit_soc_uart_w_preserved
 }
