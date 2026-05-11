@@ -31,12 +31,11 @@ class ysyx_26050145 extends Module {
 
     xbar.io.soc <> io.master
 
-    // io.slave.elements.foreach { case (_, port) =>
-    //     if (DataMirror.directionOf(port) == ActualDirection.Output) {
-    //         port := 0.U.asTypeOf(chiselTypeOf(port))
-    //     }
-    // }
-    io.slave :<= 0.U.asTypeOf(chiselTypeOf(io.slave))
+    io.slave.elements.foreach { case (_, port) =>
+        if (DataMirror.directionOf(port) == ActualDirection.Output) {
+            port := 0.U.asTypeOf(chiselTypeOf(port))
+        }
+    }
 
     dontTouch(io.interrupt)
 }
