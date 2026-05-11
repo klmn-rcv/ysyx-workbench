@@ -27,7 +27,7 @@
 unsigned char byte_data = 0b10111010;
 
 void init_spi_master(void) {
-    *(volatile unsigned int *)(SPI_MASTER_BASE + Tx0) = (unsigned int)byte_data;
+    *(volatile unsigned int *)(SPI_MASTER_BASE + Tx0) = (unsigned int)byte_data << 8; // MSB first
     *(volatile unsigned int *)(SPI_MASTER_BASE + DIVIDER) = 1;
     *(volatile unsigned int *)(SPI_MASTER_BASE + SS) = 1 << 7;  // 选中bitrev
     *(volatile unsigned int *)(SPI_MASTER_BASE + CTRL) = (16 << CTRL_CHAR_LEN) | (1 << CTRL_GO_BSY) | (0 << CTRL_Rx_NEG) | (1 << CTRL_Tx_NEG) | (0 << CTRL_LSB) | (0 << CTRL_IE) | (1 << CTRL_ASS);
@@ -37,7 +37,7 @@ int main() {
     init_spi_master();
     while(*(volatile unsigned int *)(SPI_MASTER_BASE + CTRL) & (1 << CTRL_GO_BSY))
         ;
-    unsigned char rx_data = *(volatile unsigned int *)(SPI_MASTER_BASE + Rx0) & 0xF;
+    unsigned char rx_data = *(volatile unsigned int *)(SPI_MASTER_BASE + Rx0) & 0xFF;
     check(rx_data == 0b01011101);
     return 0;
 }
