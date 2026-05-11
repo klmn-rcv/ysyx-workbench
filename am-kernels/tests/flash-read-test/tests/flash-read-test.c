@@ -54,8 +54,8 @@ uint32_t flash_read(uint32_t addr) {
   mmio_write(SPI_MASTER_BASE + Tx1, (0x03u << 24) | (addr & 0x00ffffffu));
   mmio_write(SPI_MASTER_BASE + CTRL, ctrl);
 
-  while (mmio_read(SPI_MASTER_BASE + CTRL) & (1u << CTRL_GO_BSY)) {
-  }
+  while (mmio_read(SPI_MASTER_BASE + CTRL) & (1u << CTRL_GO_BSY))
+    ;
 
   return bswap32(mmio_read(SPI_MASTER_BASE + Rx0));
 }

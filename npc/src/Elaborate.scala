@@ -10,5 +10,5 @@ object Elaborate extends App {
     ).mkString(",")
   )
 
-  circt.stage.ChiselStage.emitSystemVerilogFile(new cpu.ysyx_2407xxxx(), args, firtoolOptions)
+  circt.stage.ChiselStage.emitSystemVerilogFile(new cpu.ysyx_26050145(), args, firtoolOptions)
 }
