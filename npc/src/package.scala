@@ -4,7 +4,7 @@ import chisel3.experimental.dataview._
 
 package object cpu {
     object YsyxName {
-        val prefix = "ysyx_2407xxxx"
+        val prefix = "ysyx_26050145"
     }
 
     trait HasYsyxModuleName { this: Module =>

@@ -3,7 +3,7 @@ package cpu
 import chisel3._
 import chisel3.reflect.DataMirror
 
-class ysyx_2407xxxx extends Module {
+class ysyx_26050145 extends Module {
     val io = IO(new Bundle {
         val interrupt = Input(Bool())
         val master = new AXI4(32, 32, 4)
@@ -31,11 +31,12 @@ class ysyx_2407xxxx extends Module {
 
     xbar.io.soc <> io.master
 
-    io.slave.elements.foreach { case (_, port) =>
-    if (DataMirror.directionOf(port) == ActualDirection.Output) {
-        port := 0.U.asTypeOf(chiselTypeOf(port))
-    }
-    }
+    // io.slave.elements.foreach { case (_, port) =>
+    //     if (DataMirror.directionOf(port) == ActualDirection.Output) {
+    //         port := 0.U.asTypeOf(chiselTypeOf(port))
+    //     }
+    // }
+    io.slave :<= 0.U.asTypeOf(chiselTypeOf(io.slave))
 
     dontTouch(io.interrupt)
 }
