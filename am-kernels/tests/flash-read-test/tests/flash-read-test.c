@@ -39,19 +39,21 @@ static inline uint32_t bswap32(uint32_t data) {
 static inline void init_spi_master(void) {
   mmio_write(SPI_MASTER_BASE + DIVIDER, 1);
   mmio_write(SPI_MASTER_BASE + SS, 1u << 0);
-  mmio_write(SPI_MASTER_BASE + Tx0, 0);
-  mmio_write(SPI_MASTER_BASE + Tx1, (0x03u << 24) | (addr & 0x00ffffffu));
-  uint32_t ctrl = (64u << CTRL_CHAR_LEN) |
-                (0u  << CTRL_Rx_NEG)   |
-                (1u  << CTRL_Tx_NEG)   |
-                (0u  << CTRL_LSB)      |
-                (0u  << CTRL_IE)       |
-                (1u  << CTRL_ASS)      |
-                (1u  << CTRL_GO_BSY);
-  mmio_write(SPI_MASTER_BASE + CTRL, ctrl);
 }
 
 uint32_t flash_read(uint32_t addr) {
+  uint32_t ctrl = (64u << CTRL_CHAR_LEN) |
+                  (0u  << CTRL_Rx_NEG)   |
+                  (1u  << CTRL_Tx_NEG)   |
+                  (0u  << CTRL_LSB)      |
+                  (0u  << CTRL_IE)       |
+                  (1u  << CTRL_ASS)      |
+                  (1u  << CTRL_GO_BSY);
+
+  mmio_write(SPI_MASTER_BASE + Tx0, 0);
+  mmio_write(SPI_MASTER_BASE + Tx1, (0x03u << 24) | (addr & 0x00ffffffu));
+  mmio_write(SPI_MASTER_BASE + CTRL, ctrl);
+
   while (mmio_read(SPI_MASTER_BASE + CTRL) & (1u << CTRL_GO_BSY))
     ;
 
