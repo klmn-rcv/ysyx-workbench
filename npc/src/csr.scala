@@ -61,7 +61,7 @@ class CSR extends Module with HasYsyxModuleName {
   val mcycle = RegInit(0.U(32.W))
   val mcycleh = RegInit(0.U(32.W))
   val mvendorid = RegInit("h79737978".U(32.W))  // "ysyx"的ASCII码
-  val marchid = RegInit("hC0F18E2".U(32.W))  // 26050145，是我学号的一部分（ysyx_26050145）
+  val marchid = RegInit("h18D7E61".U(32.W))  // 26050145，是我学号的一部分（ysyx_26050145）
 
   io.out.mtvec := mtvec
   io.out.mepc := mepc
