@@ -192,5 +192,7 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
   checkregs(&ref_r, pc);
 }
 #else
-void init_difftest(const char *ref_so_file, long img_size, int port) { }
+void init_difftest(const char *ref_so_file, long img_size, int port) {
+  Log("Differential testing: %s", ANSI_FMT("OFF", ANSI_FG_RED));
+}
 #endif
