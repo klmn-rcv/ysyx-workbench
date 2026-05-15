@@ -116,7 +116,7 @@ extern "C" void itrace(uint32_t pc, uint32_t inst, uint32_t dnpc, uint8_t need_s
 }
 
 extern "C" void iringbuf_reset(void) {
-#ifndef CONFIG_ITRACE
+#ifdef CONFIG_ITRACE
   iringbuf_clear_all();
 #endif
 }
