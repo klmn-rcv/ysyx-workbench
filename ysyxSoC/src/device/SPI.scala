@@ -85,6 +85,7 @@ class APBSPI(address: Seq[AddressSet])(implicit p: Parameters) extends LazyModul
     object SPICTRLBitField {
       val spi_ctrl_go_bsy = 8
       val spi_ctrl_tx_neg = 10
+      val spi_ctrl_ie = 12
       val spi_ctrl_ass = 13
     }
 
@@ -95,9 +96,10 @@ class APBSPI(address: Seq[AddressSet])(implicit p: Parameters) extends LazyModul
       val flash_tx0_value = 0.U(32.W)
       val flash_ctrl_value =
         (64.U(32.W) << 0) |
+        (1.U(32.W) << SPICTRLBitField.spi_ctrl_go_bsy) |
         (1.U(32.W) << SPICTRLBitField.spi_ctrl_tx_neg) |
-        (1.U(32.W) << SPICTRLBitField.spi_ctrl_ass) |
-        (1.U(32.W) << SPICTRLBitField.spi_ctrl_go_bsy)
+        (1.U(32.W) << SPICTRLBitField.spi_ctrl_ie) |
+        (1.U(32.W) << SPICTRLBitField.spi_ctrl_ass)
     }
 
     def bswap32(data: UInt): UInt = Cat(data(7, 0), data(15, 8), data(23, 16), data(31, 24))
@@ -187,7 +189,7 @@ class APBSPI(address: Seq[AddressSet])(implicit p: Parameters) extends LazyModul
         }
 
         is(XipFlashState.Transmit) {
-          when(XipApbLink.resp_valid && !XipApbLink.resp_rdata(SPICTRLBitField.spi_ctrl_go_bsy)) {
+          when(mspi.io.spi_irq_out) {
             state := XipFlashState.Load
           }
         }
@@ -266,11 +268,11 @@ class APBSPI(address: Seq[AddressSet])(implicit p: Parameters) extends LazyModul
         XipApbLink.req.wdata := init_req.data
       }
 
-      is(XipFlashFSM.XipFlashState.Transmit) {
-        XipApbLink.req_valid := true.B
-        XipApbLink.req.write := false.B
-        XipApbLink.req.addr := SPIRegAddr.spi_ctrl_addr
-      }
+      // is(XipFlashFSM.XipFlashState.Transmit) {
+      //   XipApbLink.req_valid := true.B
+      //   XipApbLink.req.write := false.B
+      //   XipApbLink.req.addr := SPIRegAddr.spi_ctrl_addr
+      // }
 
       is(XipFlashFSM.XipFlashState.Load) {
         XipApbLink.req_valid := true.B

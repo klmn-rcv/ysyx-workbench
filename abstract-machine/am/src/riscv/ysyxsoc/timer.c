@@ -1,7 +1,7 @@
 #include <am.h>
 
-#define TIMER_ADDR_LOW  0x10000004
-#define TIMER_ADDR_HIGH 0x10000008
+#define TIMER_ADDR_LOW  0x0200bff8
+#define TIMER_ADDR_HIGH 0x0200bffc
 
 void __am_timer_init() {
 }
