@@ -268,12 +268,6 @@ class APBSPI(address: Seq[AddressSet])(implicit p: Parameters) extends LazyModul
         XipApbLink.req.wdata := init_req.data
       }
 
-      // is(XipFlashFSM.XipFlashState.Transmit) {
-      //   XipApbLink.req_valid := true.B
-      //   XipApbLink.req.write := false.B
-      //   XipApbLink.req.addr := SPIRegAddr.spi_ctrl_addr
-      // }
-
       is(XipFlashFSM.XipFlashState.Load) {
         XipApbLink.req_valid := true.B
         XipApbLink.req.write := false.B
