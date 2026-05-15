@@ -169,16 +169,12 @@ extern "C" void ftrace(uint32_t pc, uint32_t target_pc, bool is_jalr, int rd, in
 #endif
 }
 
-// extern "C" void flash_read(int32_t addr, int32_t *data) {
-//   // const uint32_t flash_addr = (addr - FLASH_BASE) & ~0x3u;
-//   assert((addr & 0x3u) == 0);
-//   Assert(addr + 4 <= FLASH_SIZE, "flash_read out of bounds at address 0x%x", addr); // at pc 0x%x", addr, get_ls_pc());
-//   *data = *reinterpret_cast<int32_t *>(flash + addr);
-//   IFDEF(CONFIG_MTRACE, _Log("[mtrace] flash_read: addr = 0x%08x, data = 0x%08x\n", addr, *data));
-// }
-
 extern "C" void flash_read(int32_t addr, int32_t *data) {
-  assert(0);
+  // const uint32_t flash_addr = (addr - FLASH_BASE) & ~0x3u;
+  assert((addr & 0x3u) == 0);
+  Assert(addr + 4 <= FLASH_SIZE, "flash_read out of bounds at address 0x%x", addr); // at pc 0x%x", addr, get_ls_pc());
+  *data = *reinterpret_cast<int32_t *>(flash + addr);
+  IFDEF(CONFIG_MTRACE, _Log("[mtrace] flash_read: addr = 0x%08x, data = 0x%08x\n", addr, *data));
 }
 
 extern "C" void mrom_read(int32_t addr, int32_t *data) {
