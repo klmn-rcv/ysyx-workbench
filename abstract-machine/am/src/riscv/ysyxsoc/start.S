@@ -6,7 +6,7 @@ _start:
   mv s0, zero
   la sp, _stack_pointer
 
-  # copy .data from its LMA in MROM to its VMA in SRAM
+  # copy .data from its LMA in MROM to its VMA in PSRAM
   la t0, _data_lma_start
   la t1, _data_vma_start
   la t2, _data_vma_end
@@ -18,7 +18,7 @@ _start:
   addi t1, t1, 1
   j 1b
 
-  # zero .bss in SRAM before entering C code
+  # zero .bss in PSRAM before entering C code
 2:
   la t1, _bss_vma_start
   la t2, _bss_vma_end
