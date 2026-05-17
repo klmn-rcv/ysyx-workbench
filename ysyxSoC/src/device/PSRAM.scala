@@ -65,7 +65,7 @@ class psramChisel extends RawModule {
     val addr_begin = cmd_end + 1.U
     val addr_end = addr_begin + 5.U
     val rd_dummy_begin = addr_end + 1.U
-    val rd_dummy_end = rd_dummy_begin + 5.U
+    val rd_dummy_end = rd_dummy_begin + 6.U  // 7拍空等，比规定的6拍空等多出一拍，这是为了让slave的时钟沿总是先于master的时钟沿
     val rd_data_begin = rd_dummy_end + 1.U
     val wr_data_begin = addr_end + 1.U
     val rd_final_count = Mux(qpi_mode, RD_FINAL_COUNT_QPI, RD_FINAL_COUNT_SPI)
@@ -81,6 +81,8 @@ class psramChisel extends RawModule {
     val wr_data_trasmitting = (counter >= wr_data_begin) && (counter <= wr_final_count) && wr
 
     out_en := rd_data_trasmitting
+    dontTouch(rd_data_trasmitting)
+    dontTouch(out_en)
 
     when(counter === cmd_end) {
       when(cmd_next === Cmd.QUAD_IO_READ) {
