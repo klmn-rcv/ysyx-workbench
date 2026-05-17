@@ -67,7 +67,7 @@ class psramChisel extends RawModule {
       }.elsewhen(cmd === Cmd.QUAD_IO_WRITE) {
         wr := true.B
       }.otherwise {
-        assert(false, "Unsupported command")
+        assert(false.B, "Unsupported command")
       }
     }
 
