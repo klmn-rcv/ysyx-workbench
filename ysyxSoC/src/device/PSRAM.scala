@@ -30,6 +30,7 @@ class psram extends BlackBox {
 
 class psramChisel extends RawModule {
   val io = IO(Flipped(new QSPIIO))
+  val reset = IO(Input(Reset()))
   withClockAndReset(io.sck.asClock, io.ce_n.asAsyncReset) {
     val dout = Wire(UInt(4.W))
     val out_en = Wire(Bool())
@@ -37,15 +38,18 @@ class psramChisel extends RawModule {
 
     val mem = Mem(0x400000, UInt(8.W))
 
-    val counter = RegInit(0.U(5.W))
-    val RD_FINAL_COUNT = 28  // 读的时候多一拍，因为slave比master的counter更新更快
-    val WR_FINAL_COUNT = 21
-
-    when(counter <= RD_FINAL_COUNT.U) {
-      counter := counter + 1.U
+    val qpi_mode = withReset(reset) {
+      RegInit(false.B)
     }
 
+    val counter = RegInit(0.U(5.W))
+    val RD_FINAL_COUNT_SPI = 28.U(5.W)
+    val WR_FINAL_COUNT_SPI = 21.U(5.W)
+    val RD_FINAL_COUNT_QPI = 22.U(5.W)
+    val WR_FINAL_COUNT_QPI = 15.U(5.W)
+
     object Cmd {
+      val ENTER_QPI = "h35".U(8.W)
       val QUAD_IO_READ = "heb".U(8.W)
       val QUAD_IO_WRITE = "h38".U(8.W)
     }
@@ -54,18 +58,34 @@ class psramChisel extends RawModule {
     val addr = RegInit(0.U(24.W))
     val wr = RegInit(false.B)  // write
 
-    val cmd_trasmitting = counter <= 7.U && !io.ce_n // && FSM.state === FSM.State.BUSY
-    val addr_trasmitting = (counter >= 8.U) && (counter <= 13.U)
-    val rd_data_trasmitting = (counter >= 21.U) && (counter <= RD_FINAL_COUNT.U) && !wr
-    val wr_data_trasmitting = (counter >= 14.U) && (counter <= WR_FINAL_COUNT.U) && wr
+    val cmd_cycles = Mux(qpi_mode, 2.U, 8.U)
+    val addr_begin = cmd_cycles
+    val addr_end = cmd_cycles + 5.U
+    val rd_dummy_begin = addr_end + 1.U
+    val rd_dummy_end = rd_dummy_begin + 5.U
+    val rd_data_begin = rd_dummy_end + 1.U
+    val wr_data_begin = addr_end + 1.U
+    val rd_final_count = Mux(qpi_mode, RD_FINAL_COUNT_QPI, RD_FINAL_COUNT_SPI)
+    val wr_final_count = Mux(qpi_mode, WR_FINAL_COUNT_QPI, WR_FINAL_COUNT_SPI)
+
+    when(counter <= rd_final_count) {
+      counter := counter + 1.U
+    }
+
+    val cmd_trasmitting = (counter < cmd_cycles) && !io.ce_n
+    val addr_trasmitting = (counter >= addr_begin) && (counter <= addr_end)
+    val rd_data_trasmitting = (counter >= rd_data_begin) && (counter <= rd_final_count) && !wr
+    val wr_data_trasmitting = (counter >= wr_data_begin) && (counter <= wr_final_count) && wr
 
     out_en := rd_data_trasmitting
 
-    when(counter === 8.U) {
+    when(counter === cmd_cycles) {
       when(cmd === Cmd.QUAD_IO_READ) {
         wr := false.B
       }.elsewhen(cmd === Cmd.QUAD_IO_WRITE) {
         wr := true.B
+      }.elsewhen(cmd === Cmd.ENTER_QPI) {
+        qpi_mode := true.B
       }.otherwise {
         assert(false.B, "Unsupported command")
       }
@@ -77,7 +97,11 @@ class psramChisel extends RawModule {
     val rd_data = Cat(rd_bytes.reverse)
 
     when(cmd_trasmitting) {
-      cmd := Cat(cmd(6, 0), din(0))
+      when(!qpi_mode) {
+        cmd := Cat(cmd(6, 0), din(0))
+      }.otherwise {
+        cmd := Cat(cmd(3, 0), din)
+      }
     }
 
     when(addr_trasmitting) {
@@ -87,15 +111,15 @@ class psramChisel extends RawModule {
     val wr_higher_half_byte = RegInit(0.U(4.W))
 
     when(wr_data_trasmitting) {
-      when(!counter(0)) {  // 从counter == 14开始，偶数拍暂存高半字节，奇数拍把低半字节和之前的高半字节合并写入mem
+      when(!counter(0)) {
         wr_higher_half_byte := din
       }.otherwise {
-        val wr_byte_offset = (counter - 15.U) >> 1
+        val wr_byte_offset = (counter - wr_data_begin - 1.U) >> 1
         mem.write(offset2addr(wr_byte_offset), Cat(wr_higher_half_byte, din))
       }
     }
 
-    dout := MuxLookup(counter - 21.U, rd_data(3,0))(Seq(
+    dout := MuxLookup(counter - rd_data_begin, rd_data(3,0))(Seq(
       0.U -> rd_data(7,4),
       1.U -> rd_data(3,0),
       2.U -> rd_data(15,12),
