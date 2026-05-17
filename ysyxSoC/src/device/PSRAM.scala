@@ -87,7 +87,8 @@ class psramChisel extends RawModule {
       }.elsewhen(cmd === Cmd.ENTER_QPI) {
         qpi_mode := true.B
       }.otherwise {
-        assert(false.B, "Unsupported command")
+        printf("Unsupported command: %x\n", cmd)
+        assert(false.B)
       }
     }
 
