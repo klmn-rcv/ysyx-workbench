@@ -58,9 +58,12 @@ class psramChisel extends RawModule {
     val addr = RegInit(0.U(24.W))
     val wr = RegInit(false.B)  // write
 
+    val cmd_next = WireDefault(0.U(8.W))
+
     val cmd_cycles = Mux(qpi_mode, 2.U, 8.U)
-    val addr_begin = cmd_cycles
-    val addr_end = cmd_cycles + 5.U
+    val cmd_end = cmd_cycles - 1.U
+    val addr_begin = cmd_end + 1.U
+    val addr_end = addr_begin + 5.U
     val rd_dummy_begin = addr_end + 1.U
     val rd_dummy_end = rd_dummy_begin + 5.U
     val rd_data_begin = rd_dummy_end + 1.U
@@ -72,22 +75,22 @@ class psramChisel extends RawModule {
       counter := counter + 1.U
     }
 
-    val cmd_trasmitting = (counter < cmd_cycles) && !io.ce_n
+    val cmd_trasmitting = (counter <= cmd_end) && !io.ce_n
     val addr_trasmitting = (counter >= addr_begin) && (counter <= addr_end)
     val rd_data_trasmitting = (counter >= rd_data_begin) && (counter <= rd_final_count) && !wr
     val wr_data_trasmitting = (counter >= wr_data_begin) && (counter <= wr_final_count) && wr
 
     out_en := rd_data_trasmitting
 
-    when(counter === cmd_cycles) {
-      when(cmd === Cmd.QUAD_IO_READ) {
+    when(counter === cmd_end) {
+      when(cmd_next === Cmd.QUAD_IO_READ) {
         wr := false.B
-      }.elsewhen(cmd === Cmd.QUAD_IO_WRITE) {
+      }.elsewhen(cmd_next === Cmd.QUAD_IO_WRITE) {
         wr := true.B
-      }.elsewhen(cmd === Cmd.ENTER_QPI) {
+      }.elsewhen(cmd_next === Cmd.ENTER_QPI) {
         qpi_mode := true.B
       }.otherwise {
-        printf("Unsupported command: %x\n", cmd)
+        printf("Unsupported command: %x\n", cmd_next)
         assert(false.B)
       }
     }
@@ -99,9 +102,11 @@ class psramChisel extends RawModule {
 
     when(cmd_trasmitting) {
       when(!qpi_mode) {
-        cmd := Cat(cmd(6, 0), din(0))
+        cmd_next := Cat(cmd(6, 0), din(0))
+        cmd := cmd_next
       }.otherwise {
-        cmd := Cat(cmd(3, 0), din)
+        cmd_next := Cat(cmd(3, 0), din)
+        cmd := cmd_next
       }
     }
 
