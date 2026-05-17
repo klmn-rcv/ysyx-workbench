@@ -39,8 +39,9 @@ module EF_PSRAM_CTRL_wb (
     output  wire [3:0]      douten
 );
 
-    localparam  ST_IDLE = 1'b0,
-                ST_WAIT = 1'b1;
+    localparam  ST_INIT = 2'b00,
+                ST_IDLE = 2'b01,
+                ST_WAIT = 2'b10;
 
     wire        mr_sck;
     wire        mr_ce_n;
@@ -69,15 +70,21 @@ module EF_PSRAM_CTRL_wb (
     //wire[3:0]   wb_byte_sel     =   sel_i & {4{wb_we}};
 
     // The FSM
-    reg         state, nstate;
+    reg [1:0]   state, nstate;
     always @ (posedge clk_i or posedge rst_i)
         if(rst_i)
-            state <= ST_IDLE;
+            state <= ST_INIT;
         else
             state <= nstate;
 
     always @* begin
         case(state)
+            ST_INIT :
+                if(mq_done)
+                    nstate = ST_IDLE;
+                else
+                    nstate = ST_INIT;
+
             ST_IDLE :
                 if(wb_valid)
                     nstate = ST_WAIT;
@@ -91,6 +98,23 @@ module EF_PSRAM_CTRL_wb (
                     nstate = ST_WAIT;
         endcase
     end
+
+    wire        mq_done;
+    wire        mq_sck;
+    wire        mq_ce_n;
+    wire [3:0]  mq_dout;
+    wire        mq_doe;
+
+    PSRAM_ENTER_QPI MQ (
+        .clk(clk_i),
+        .rst_n(~rst_i),
+        .start(state == ST_INIT),
+        .done(mq_done),
+        .sck(mq_sck),
+        .ce_n(mq_ce_n),
+        .dout(mq_dout),
+        .douten(mq_doe)
+    );
 
     wire [2:0]  size =  (sel_i == 4'b0001) ? 1 :
                         (sel_i == 4'b0010) ? 1 :
@@ -161,12 +185,18 @@ module EF_PSRAM_CTRL_wb (
         .douten(mw_doe)
     );
 
-    assign sck  = wb_we ? mw_sck  : mr_sck;
-    assign ce_n = wb_we ? mw_ce_n : mr_ce_n;
-    assign dout = wb_we ? mw_dout : mr_dout;
-    assign douten  = wb_we ? {4{mw_doe}}  : {4{mr_doe}};
+    assign sck  = (state == ST_INIT) ? mq_sck  :
+                  wb_we              ? mw_sck  : mr_sck;
+    assign ce_n = (state == ST_INIT) ? mq_ce_n :
+                  wb_we              ? mw_ce_n : mr_ce_n;
+    assign dout = (state == ST_INIT) ? mq_dout :
+                  wb_we              ? mw_dout : mr_dout;
+    assign douten = (state == ST_INIT) ? {4{mq_doe}} :
+                    wb_we              ? {4{mw_doe}} :
+                                         {4{mr_doe}};
 
     assign mw_din = din;
     assign mr_din = din;
-    assign ack_o = wb_we ? mw_done :mr_done ;
+    assign ack_o = (state == ST_INIT) ? 1'b0 :
+                   (wb_we ? mw_done : mr_done) ;
 endmodule

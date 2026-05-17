@@ -30,25 +30,6 @@ extern "C" int pmem_read(uint32_t raddr, mem_read_t read_type) {//, uint8_t *nee
 #if defined (CONFIG_MTRACE) || defined (CONFIG_DTRACE)
   const char *str_type[] = { "inst", "data", "debug" };
 #endif
-  // *need_skip_ref = 0;
-  // 总是读取地址为`raddr & ~0x3u`的4字节返回
-  // if (raddr == 0x10000004) { // 时钟低32位
-  //   // IFDEF(CONFIG_DIFFTEST, difftest_skip_ref());
-  //   *need_skip_ref = 1;
-
-  //   IFDEF(CONFIG_DTRACE, _Log("[dtrace] rtc read: addr = " FMT_PADDR ", low 32 bits\n", raddr));
-  //   return static_cast<uint32_t>(rtc_snapshot);
-  // }
-  // if (raddr == 0x10000008) { // 时钟高32位
-  //   // IFDEF(CONFIG_DIFFTEST, difftest_skip_ref());
-  //   *need_skip_ref = 1;
-
-  //   IFDEF(CONFIG_DTRACE, _Log("[dtrace] rtc read: addr = " FMT_PADDR ", high 32 bits\n", raddr));
-  //   auto now = std::chrono::steady_clock::now();
-  //   rtc_snapshot = std::chrono::duration_cast<std::chrono::microseconds>(now - boot_time).count();
-  //   return static_cast<uint32_t>(rtc_snapshot >> 32);
-  // }
-
   const uint32_t mem_addr = static_cast<uint32_t>(raddr - start_pc) & ~0x3u;
 
   if(read_type == MEM_READ_INST || read_type == MEM_READ_DATA) {
@@ -84,17 +65,6 @@ extern "C" void pmem_write(uint32_t waddr, int wdata, uint8_t wmask) {//, uint8_
   if (wmask & 0x4) byte_mask |= 0x00FF0000;
   if (wmask & 0x8) byte_mask |= 0xFF000000;
 
-  // *need_skip_ref = 0;
-  // if(waddr == 0x10000000) { // 串口
-  //   // IFDEF(CONFIG_DIFFTEST, difftest_skip_ref()) ;
-  //   *need_skip_ref = 1;
-  //
-  //   uint8_t uart_data = wdata & byte_mask & 0xFF;
-  //   IFDEF(CONFIG_DTRACE, _Log("[dtrace] uart write: addr = " FMT_PADDR ", data = 0x%02x\n", waddr, uart_data));
-  //   fputc(uart_data, stderr);
-  //   return;
-  // }
-
   const uint32_t mem_addr = static_cast<uint32_t>(waddr - start_pc) & ~0x3u;
   Assert(mem_addr + 4 <= MEM_SIZE, "pmem_write out of bounds at address 0x%x", waddr);
 
@@ -116,7 +86,7 @@ extern "C" void itrace(uint32_t pc, uint32_t inst, uint32_t dnpc, uint8_t need_s
 }
 
 extern "C" void iringbuf_reset(void) {
-#ifndef CONFIG_ITRACE
+#ifdef CONFIG_ITRACE
   iringbuf_clear_all();
 #endif
 }

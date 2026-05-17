@@ -151,7 +151,7 @@ int main(int argc, char** argv) {
 
   init_sim();
 
-  IFDEF(CONFIG_DIFFTEST, init_difftest(diff_so_file, img_size, difftest_port));
+  init_difftest(diff_so_file, img_size, difftest_port);
 
   init_sdb();
 
