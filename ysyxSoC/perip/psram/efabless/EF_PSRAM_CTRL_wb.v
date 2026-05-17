@@ -69,23 +69,6 @@ module EF_PSRAM_CTRL_wb (
     wire        wb_re           =   ~we_i & wb_valid;
     //wire[3:0]   wb_byte_sel     =   sel_i & {4{wb_we}};
 
-    wire        mq_done;
-    wire        mq_sck;
-    wire        mq_ce_n;
-    wire [3:0]  mq_dout;
-    wire        mq_doe;
-
-    PSRAM_ENTER_QPI MQ (
-        .clk(clk_i),
-        .rst_n(~rst_i),
-        .start(state == ST_INIT),
-        .done(mq_done),
-        .sck(mq_sck),
-        .ce_n(mq_ce_n),
-        .dout(mq_dout),
-        .douten(mq_doe)
-    );
-
     // The FSM
     reg [1:0]   state, nstate;
     always @ (posedge clk_i or posedge rst_i)
@@ -115,6 +98,23 @@ module EF_PSRAM_CTRL_wb (
                     nstate = ST_WAIT;
         endcase
     end
+
+    wire        mq_done;
+    wire        mq_sck;
+    wire        mq_ce_n;
+    wire [3:0]  mq_dout;
+    wire        mq_doe;
+
+    PSRAM_ENTER_QPI MQ (
+        .clk(clk_i),
+        .rst_n(~rst_i),
+        .start(state == ST_INIT),
+        .done(mq_done),
+        .sck(mq_sck),
+        .ce_n(mq_ce_n),
+        .dout(mq_dout),
+        .douten(mq_doe)
+    );
 
     wire [2:0]  size =  (sel_i == 4'b0001) ? 1 :
                         (sel_i == 4'b0010) ? 1 :
