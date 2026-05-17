@@ -50,15 +50,15 @@ class psramChisel extends RawModule {
       val QUAD_IO_WRITE = "h38".U(8.W)
     }
 
+    val cmd = RegInit(0.U(8.W))
+    val addr = RegInit(0.U(24.W))
+    val wr = RegInit(false.B)  // write
+
     val cmd_trasmitting = counter <= 7.U && !io.ce_n // && FSM.state === FSM.State.BUSY
     val addr_trasmitting = (counter >= 8.U) && (counter <= 13.U)
     val rd_data_trasmitting = (counter >= 21.U) && (counter <= RD_FINAL_COUNT.U) && !wr
     val wr_data_trasmitting = (counter >= 14.U) && (counter <= WR_FINAL_COUNT.U) && wr
 
-    val cmd = RegInit(0.U(8.W))
-    val addr = RegInit(0.U(24.W))
-
-    val wr = RegInit(false.B)  // write
     out_en := rd_data_trasmitting
 
     when(counter === 8.U) {
