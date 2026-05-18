@@ -1,5 +1,5 @@
 ENTRY(_start)
-PHDRS { text PT_LOAD; data PT_LOAD; }
+PHDRS { boot PT_LOAD; text PT_LOAD; data PT_LOAD; }
 
 MEMORY {
   mrom (rx)  : ORIGIN = _mrom_base, LENGTH = _mrom_size
@@ -15,8 +15,8 @@ SECTIONS {
   .entry : {
     . = ALIGN(4);
     *(entry)
-  } > flash : text
-  
+  } > flash : boot
+
   /* Program text/rodata run from SRAM, but are stored in flash image. */
   .text ORIGIN(sram) : {
     . = ALIGN(4);
