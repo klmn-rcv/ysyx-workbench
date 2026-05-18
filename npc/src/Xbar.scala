@@ -29,12 +29,10 @@ class Xbar extends Module with HasYsyxModuleName {
     val soc_psram_end = "h803fffff".U(32.W)
 
     val ar_fire = io.arbiter.arvalid && io.arbiter.arready
-    val r_fire = io.arbiter.rvalid && io.arbiter.rready
     val aw_fire = io.arbiter.awvalid && io.arbiter.awready
     val w_fire = io.arbiter.wvalid && io.arbiter.wready
     val b_fire = io.arbiter.bvalid && io.arbiter.bready
 
-    val (_, ar_fire_after) = bool_preserve(ar_fire, r_fire, false.B)
     val (aw_fire_preserved, aw_fire_after) = bool_preserve(aw_fire, b_fire, false.B)
     val (w_fire_preserved, w_fire_after) = bool_preserve(w_fire, b_fire, false.B)
 
@@ -58,44 +56,52 @@ class Xbar extends Module with HasYsyxModuleName {
     val hit_addrerr_w = !hit_clint_w && !hit_soc_w
 
     val owner_soc :: owner_clint :: owner_addrerr :: Nil = Enum(3)
-    val read_owner = RegInit(owner_soc)
     val write_owner = RegInit(owner_soc)
-    val hit_soc_uart_r_preserved = bool_preserve(ar_fire && hit_soc_uart_r, r_fire, false.B)._1
     val hit_soc_uart_w_preserved = bool_preserve(aw_fire && hit_soc_uart_w, b_fire, false.B)._1
+    val soc_uart_r_pending_lsu = RegInit(false.B)
 
-    when(ar_fire) {
-        read_owner := Mux(hit_clint_r, owner_clint, Mux(hit_soc_r, owner_soc, owner_addrerr))
-        // uart_r_skip_ref := hit_soc_uart_r // 仅暂时用于skip_ref逻辑，不用于Xbar分发逻辑（uart实际上在soc里）
-    }
     when(aw_fire) {
         write_owner := Mux(hit_clint_w, owner_clint, Mux(hit_soc_w, owner_soc, owner_addrerr))
         // uart_w_skip_ref := hit_soc_uart_w // 仅暂时用于skip_ref逻辑，不用于Xbar分发逻辑（uart实际上在soc里）
+    }
+    
+    when(ar_fire && hit_soc_uart_r && io.arbiter.arid === AXI4Id.LSU) {
+        soc_uart_r_pending_lsu := true.B
+    }
+    when(io.soc.r.rvalid && io.soc.r.rready && io.soc.r.rid === AXI4Id.LSU) {
+        soc_uart_r_pending_lsu := false.B
     }
 
     // AR
     connectFields(io.arbiter.ar, io.soc.ar, "araddr", "arid", "arlen", "arsize", "arburst")
     connectFields(io.arbiter.ar, io.clint.ar, "araddr", "arid", "arlen", "arsize", "arburst")
     connectFields(io.arbiter.ar, io.addrerr.ar, "araddr", "arid", "arlen", "arsize", "arburst")
-    io.soc.arvalid := io.arbiter.arvalid && hit_soc_r && !ar_fire_after
-    io.clint.arvalid := io.arbiter.arvalid && hit_clint_r && !ar_fire_after
-    io.addrerr.arvalid := io.arbiter.arvalid && hit_addrerr_r && !ar_fire_after
-    io.arbiter.arready := !ar_fire_after && Mux(hit_clint_r, io.clint.arready, Mux(hit_soc_r, io.soc.arready, io.addrerr.arready))
-
-    dontTouch(ar_fire_after)
+    io.soc.arvalid := io.arbiter.arvalid && hit_soc_r
+    io.clint.arvalid := io.arbiter.arvalid && hit_clint_r
+    io.addrerr.arvalid := io.arbiter.arvalid && hit_addrerr_r
+    io.arbiter.arready := Mux(hit_clint_r, io.clint.arready, Mux(hit_soc_r, io.soc.arready, io.addrerr.arready))
 
     // R
-    io.soc.rready := false.B
-    io.clint.rready := false.B
-    io.addrerr.rready := false.B
-    when(read_owner === owner_clint) {
-        connectFields(io.clint.r, io.arbiter.r, "rvalid", "rdata", "rresp", "rid", "rlast", "rready")
-    }.elsewhen(read_owner === owner_soc) {
-        connectFields(io.soc.r, io.arbiter.r, "rvalid", "rdata", "rresp", "rid", "rlast", "rready")
-    }.otherwise {   // read_owner === owner_addrerr
-        connectFields(io.addrerr.r, io.arbiter.r, "rvalid", "rdata", "rresp", "rid", "rlast", "rready")
-    }
-    io.r_need_skip_ref := Mux(read_owner === owner_clint, io.clint_r_need_skip_ref,
-                            Mux(read_owner === owner_soc, hit_soc_uart_r_preserved, false.B))
+    val soc_r_sel = io.soc.r.rvalid
+    val clint_r_sel = !soc_r_sel && io.clint.r.rvalid
+    val addrerr_r_sel = !soc_r_sel && !clint_r_sel && io.addrerr.r.rvalid
+
+    io.soc.rready := soc_r_sel && io.arbiter.r.rready
+    io.clint.rready := clint_r_sel && io.arbiter.r.rready
+    io.addrerr.rready := addrerr_r_sel && io.arbiter.r.rready
+
+    io.arbiter.r.rvalid := soc_r_sel || clint_r_sel || addrerr_r_sel
+    io.arbiter.r.rdata := Mux(soc_r_sel, io.soc.r.rdata,
+                          Mux(clint_r_sel, io.clint.r.rdata, io.addrerr.r.rdata))
+    io.arbiter.r.rresp := Mux(soc_r_sel, io.soc.r.rresp,
+                          Mux(clint_r_sel, io.clint.r.rresp, io.addrerr.r.rresp))
+    io.arbiter.r.rid := Mux(soc_r_sel, io.soc.r.rid,
+                        Mux(clint_r_sel, io.clint.r.rid, io.addrerr.r.rid))
+    io.arbiter.r.rlast := Mux(soc_r_sel, io.soc.r.rlast,
+                          Mux(clint_r_sel, io.clint.r.rlast, io.addrerr.r.rlast))
+
+    io.r_need_skip_ref := Mux(soc_r_sel && io.soc.r.rid === AXI4Id.LSU, soc_uart_r_pending_lsu,
+                          Mux(clint_r_sel, io.clint_r_need_skip_ref, false.B))
 
     // AW
     connectFields(io.arbiter.aw, io.soc.aw, "awaddr", "awid", "awlen", "awsize", "awburst")

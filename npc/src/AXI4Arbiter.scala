@@ -17,7 +17,6 @@ class AXI4Arbiter extends Module with HasYsyxModuleName {
 
     val lsu_req = io.lsu.arvalid || io.lsu.awvalid || io.lsu.wvalid
     val grant_ifu_read = io.ifu.arvalid && !lsu_req
-    val read_owner_is_ifu = RegInit(false.B)
 
     assert(!io.ifu.awvalid && !io.ifu.wvalid && !io.ifu.bready)
     assert(!(io.lsu.arvalid && (io.lsu.awvalid || io.lsu.wvalid)))
@@ -34,26 +33,25 @@ class AXI4Arbiter extends Module with HasYsyxModuleName {
         io.ifu.arready := io.xbar.arready && grant_ifu_read
     }
 
-    when(io.xbar.arvalid && io.xbar.arready) {
-        read_owner_is_ifu := grant_ifu_read
-    }
-
     // R
-    when(read_owner_is_ifu) {
-        connectFields(io.xbar.r, io.ifu.r, "rvalid", "rdata", "rresp", "rid", "rlast", "rready")
-        io.lsu.rvalid := false.B
-        io.lsu.rdata := 0.U
-        io.lsu.rresp := 0.U
-        io.lsu.rid := 0.U
-        io.lsu.rlast := false.B
-    }.otherwise {
-        connectFields(io.xbar.r, io.lsu.r, "rvalid", "rdata", "rresp", "rid", "rlast", "rready")
-        io.ifu.rvalid := false.B
-        io.ifu.rdata := 0.U
-        io.ifu.rresp := 0.U
-        io.ifu.rid := 0.U
-        io.ifu.rlast := false.B
-    }
+    val xbar_r_to_ifu = io.xbar.r.rvalid && io.xbar.r.rid === AXI4Id.IFU
+    val xbar_r_to_lsu = io.xbar.r.rvalid && io.xbar.r.rid === AXI4Id.LSU
+    assert(!io.xbar.r.rvalid || xbar_r_to_ifu || xbar_r_to_lsu)
+
+    io.ifu.r.rvalid := xbar_r_to_ifu
+    io.ifu.r.rdata := io.xbar.r.rdata
+    io.ifu.r.rresp := io.xbar.r.rresp
+    io.ifu.r.rid := io.xbar.r.rid
+    io.ifu.r.rlast := io.xbar.r.rlast
+
+    io.lsu.r.rvalid := xbar_r_to_lsu
+    io.lsu.r.rdata := io.xbar.r.rdata
+    io.lsu.r.rresp := io.xbar.r.rresp
+    io.lsu.r.rid := io.xbar.r.rid
+    io.lsu.r.rlast := io.xbar.r.rlast
+
+    io.xbar.r.rready := Mux(xbar_r_to_ifu, io.ifu.r.rready,
+                        Mux(xbar_r_to_lsu, io.lsu.r.rready, false.B))
 
     // AW
     io.xbar.awvalid := io.lsu.awvalid
