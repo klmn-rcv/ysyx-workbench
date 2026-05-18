@@ -81,6 +81,8 @@ class Xbar extends Module with HasYsyxModuleName {
     io.addrerr.arvalid := io.arbiter.arvalid && hit_addrerr_r && !ar_fire_after
     io.arbiter.arready := !ar_fire_after && Mux(hit_clint_r, io.clint.arready, Mux(hit_soc_r, io.soc.arready, io.addrerr.arready))
 
+    dontTouch(ar_fire_after)
+
     // R
     io.soc.rready := false.B
     io.clint.rready := false.B
