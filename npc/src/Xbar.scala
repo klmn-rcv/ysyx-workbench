@@ -64,7 +64,7 @@ class Xbar extends Module with HasYsyxModuleName {
         write_owner := Mux(hit_clint_w, owner_clint, Mux(hit_soc_w, owner_soc, owner_addrerr))
         // uart_w_skip_ref := hit_soc_uart_w // 仅暂时用于skip_ref逻辑，不用于Xbar分发逻辑（uart实际上在soc里）
     }
-    
+
     when(ar_fire && hit_soc_uart_r && io.arbiter.arid === AXI4Id.LSU) {
         soc_uart_r_pending_lsu := true.B
     }
@@ -99,6 +99,13 @@ class Xbar extends Module with HasYsyxModuleName {
                         Mux(clint_r_sel, io.clint.r.rid, io.addrerr.r.rid))
     io.arbiter.r.rlast := Mux(soc_r_sel, io.soc.r.rlast,
                           Mux(clint_r_sel, io.clint.r.rlast, io.addrerr.r.rlast))
+
+    dontTouch(soc_r_sel)
+    dontTouch(clint_r_sel)
+    dontTouch(addrerr_r_sel)
+    dontTouch(io.soc.r.rresp)
+    dontTouch(io.clint.r.rresp)
+    dontTouch(io.addrerr.r.rresp)
 
     io.r_need_skip_ref := Mux(soc_r_sel && io.soc.r.rid === AXI4Id.LSU, soc_uart_r_pending_lsu,
                           Mux(clint_r_sel, io.clint_r_need_skip_ref, false.B))
