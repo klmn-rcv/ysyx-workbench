@@ -92,13 +92,17 @@ class Xbar extends Module with HasYsyxModuleName {
 
     io.arbiter.r.rvalid := soc_r_sel || clint_r_sel || addrerr_r_sel
     io.arbiter.r.rdata := Mux(soc_r_sel, io.soc.r.rdata,
-                          Mux(clint_r_sel, io.clint.r.rdata, io.addrerr.r.rdata))
+                          Mux(clint_r_sel, io.clint.r.rdata, 
+                          Mux(addrerr_r_sel, io.addrerr.r.rdata, 0.U(32.W))))
     io.arbiter.r.rresp := Mux(soc_r_sel, io.soc.r.rresp,
-                          Mux(clint_r_sel, io.clint.r.rresp, io.addrerr.r.rresp))
+                          Mux(clint_r_sel, io.clint.r.rresp, 
+                          Mux(addrerr_r_sel, io.addrerr.r.rresp, 0.U(2.W))))
     io.arbiter.r.rid := Mux(soc_r_sel, io.soc.r.rid,
-                        Mux(clint_r_sel, io.clint.r.rid, io.addrerr.r.rid))
+                        Mux(clint_r_sel, io.clint.r.rid, 
+                        Mux(addrerr_r_sel, io.addrerr.r.rid, 0.U(4.W))))
     io.arbiter.r.rlast := Mux(soc_r_sel, io.soc.r.rlast,
-                          Mux(clint_r_sel, io.clint.r.rlast, io.addrerr.r.rlast))
+                          Mux(clint_r_sel, io.clint.r.rlast,
+                          Mux(addrerr_r_sel, io.addrerr.r.rlast, false.B)))
 
     dontTouch(soc_r_sel)
     dontTouch(clint_r_sel)
