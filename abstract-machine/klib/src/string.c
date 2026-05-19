@@ -88,6 +88,7 @@ void *memcpy(void *out, const void *in, size_t n) {
   unsigned char *out_ch = (unsigned char *)out;
   unsigned char *in_ch = (unsigned char *)in;
   for(size_t i = 0; i < n; i++) {
+    printf("memcpy: out_ch[%zu] = in_ch[%zu]\n", i, i);
     out_ch[i] = in_ch[i];
   }
   return out;
