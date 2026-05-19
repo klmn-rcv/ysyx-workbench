@@ -9,6 +9,7 @@
 #ifdef CONFIG_DIFFTEST
 #include "difftest.h"
 #endif
+#include "VysyxSoCFull___024root.h"
 
 extern char mrom[];  // mask rom
 extern char flash[];
@@ -20,34 +21,92 @@ static auto boot_time = std::chrono::steady_clock::now();
 static const uint32_t start_pc = FLASH_BASE;
 // static const uint32_t start_pmem = 0x80000000;
 
+static inline bool in_range(uint32_t addr, uint32_t base, uint32_t size) {
+  return addr >= base && addr + 4 <= base + size;
+}
+
+template <typename Mem>
+static inline uint32_t load_le_u32(const Mem &mem, uint32_t offset) {
+  return static_cast<uint32_t>(static_cast<uint8_t>(mem[offset])) |
+         (static_cast<uint32_t>(static_cast<uint8_t>(mem[offset + 1])) << 8) |
+         (static_cast<uint32_t>(static_cast<uint8_t>(mem[offset + 2])) << 16) |
+         (static_cast<uint32_t>(static_cast<uint8_t>(mem[offset + 3])) << 24);
+}
+
+static uint32_t debug_mem_read(uint32_t raddr) {
+  const uint32_t aligned_addr = raddr & ~0x3u;
+  auto *root = top->rootp;
+
+  if (in_range(aligned_addr, MROM_BASE, MROM_SIZE)) {
+    return load_le_u32(mrom, aligned_addr - MROM_BASE);
+  }
+
+  if (in_range(aligned_addr, SRAM_BASE, SRAM_SIZE)) {
+    const uint32_t word_index = (aligned_addr - SRAM_BASE) >> 2;
+    return root->ysyxSoCFull__DOT__asic__DOT__axi4ram__DOT__mem_ext__DOT__Memory[word_index];
+  }
+
+  if (in_range(aligned_addr, FLASH_BASE, FLASH_SIZE)) {
+    return load_le_u32(flash, aligned_addr - FLASH_BASE);
+  }
+
+  if (in_range(aligned_addr, PSRAM_BASE, PSRAM_SIZE)) {
+    return load_le_u32(root->ysyxSoCFull__DOT__psram__DOT__mem_ext__DOT__Memory,
+                       aligned_addr - PSRAM_BASE);
+  }
+
+  Assert(0, "debug_mem_read out of bounds at address 0x%x", raddr);
+  return 0;
+}
+
 extern "C" void sim_halt(int exit_code, uint32_t exit_pc) {
   npc_state.state = NPC_END;
   npc_state.halt_ret = exit_code;
   npc_state.halt_pc = exit_pc;
 }
 
+// extern "C" int pmem_read(uint32_t raddr, mem_read_t read_type) {//, uint8_t *need_skip_ref) {
+// #if defined (CONFIG_MTRACE) || defined (CONFIG_DTRACE)
+//   const char *str_type[] = { "inst", "data", "debug" };
+// #endif
+//   const uint32_t mem_addr = static_cast<uint32_t>(raddr - start_pc) & ~0x3u;
+
+//   if(read_type == MEM_READ_INST || read_type == MEM_READ_DATA) {
+//     Assert(mem_addr + 4 <= MEM_SIZE, "pmem_read out of bounds at address 0x%x, read type is %d", raddr, read_type);
+//   }
+//   else {
+//     if(read_type != MEM_READ_DEBUG) {
+//       printf(ANSI_FG_RED "pmem_read invalid read_type %d at address 0x%x" ANSI_NONE "\n", read_type, raddr);
+//       IFDEF(CONFIG_GEN_WAVE, end_wave());
+//       assert(false);
+//     }
+//     // assert(read_type == MEM_READ_DEBUG);
+//     if(mem_addr + 4 > MEM_SIZE){
+//       printf(ANSI_FG_RED "pmem_read out of bounds at address 0x%x, read type is %d" ANSI_NONE "\n", raddr, read_type);
+//       IFDEF(CONFIG_GEN_WAVE, end_wave());
+//       assert(false);
+//     }
+//   }
+
+//   IFDEF(CONFIG_MTRACE, _Log("[mtrace] pmem_read (%s): addr = " FMT_PADDR "\n", str_type[read_type], raddr));
+
+//   return *reinterpret_cast<int*>(pmem + mem_addr);
+// }
+
 extern "C" int pmem_read(uint32_t raddr, mem_read_t read_type) {//, uint8_t *need_skip_ref) {
 #if defined (CONFIG_MTRACE) || defined (CONFIG_DTRACE)
   const char *str_type[] = { "inst", "data", "debug" };
 #endif
+  if (read_type == MEM_READ_DEBUG) {
+    IFDEF(CONFIG_MTRACE, _Log("[mtrace] pmem_read (debug): addr = " FMT_PADDR "\n", raddr));
+    return debug_mem_read(raddr);
+  }
+
   const uint32_t mem_addr = static_cast<uint32_t>(raddr - start_pc) & ~0x3u;
 
-  if(read_type == MEM_READ_INST || read_type == MEM_READ_DATA) {
-    Assert(mem_addr + 4 <= MEM_SIZE, "pmem_read out of bounds at address 0x%x, read type is %d", raddr, read_type);
-  }
-  else {
-    if(read_type != MEM_READ_DEBUG) {
-      printf(ANSI_FG_RED "pmem_read invalid read_type %d at address 0x%x" ANSI_NONE "\n", read_type, raddr);
-      IFDEF(CONFIG_GEN_WAVE, end_wave());
-      assert(false);
-    }
-    // assert(read_type == MEM_READ_DEBUG);
-    if(mem_addr + 4 > MEM_SIZE){
-      printf(ANSI_FG_RED "pmem_read out of bounds at address 0x%x, read type is %d" ANSI_NONE "\n", raddr, read_type);
-      IFDEF(CONFIG_GEN_WAVE, end_wave());
-      assert(false);
-    }
-  }
+  Assert(read_type == MEM_READ_INST || read_type == MEM_READ_DATA,
+         "pmem_read invalid read_type %d at address 0x%x", read_type, raddr);
+  Assert(mem_addr + 4 <= MEM_SIZE, "pmem_read out of bounds at address 0x%x, read type is %d", raddr, read_type);
 
   IFDEF(CONFIG_MTRACE, _Log("[mtrace] pmem_read (%s): addr = " FMT_PADDR "\n", str_type[read_type], raddr));
 
