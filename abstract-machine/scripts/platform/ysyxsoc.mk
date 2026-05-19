@@ -9,7 +9,6 @@ AM_SRCS := riscv/ysyxsoc/start.S \
            platform/dummy/mpe.c
 
 CFLAGS    += -fdata-sections -ffunction-sections
-PRELDSCRIPTS += $(AM_HOME)/scripts/linker-ysyxsoc-defs.ld
 LDSCRIPTS += $(AM_HOME)/scripts/linker-ysyxsoc.ld
 LDFLAGS   += --defsym=_mrom_base=0x20000000 --defsym=_mrom_size=0x1000 \
              --defsym=_sram_base=0x0f000000 --defsym=_sram_size=0x2000 \
