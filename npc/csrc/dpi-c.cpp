@@ -4,12 +4,12 @@
 #include "cpu-exec.h"
 #include "dpi-c.h"
 #include "sim.h"
-#include "VysyxSoCFull___024root.h"
 #include "state.h"
 #include "debug.h"
 #ifdef CONFIG_DIFFTEST
 #include "difftest.h"
 #endif
+#include "VysyxSoCFull___024root.h"
 
 extern char mrom[];  // mask rom
 extern char flash[];
