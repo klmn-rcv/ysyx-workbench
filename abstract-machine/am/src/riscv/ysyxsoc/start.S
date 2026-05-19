@@ -68,7 +68,7 @@ load_data:
   j load_data
 load_data_end:
 
-  # copy optional extra .data region from flash to PSRAM
+  # copy optional .data.extra (in RT-Thread) section from flash to PSRAM
   la t0, _extra_data_lma_start
   la t1, _extra_data_vma_start
   la t2, _extra_data_vma_end
@@ -91,7 +91,7 @@ clear_bss:
   j clear_bss
 clear_bss_end:
 
-  # zero optional extra .bss region in PSRAM
+  # zero optional .bss.extra (in RT-Thread) section in PSRAM
   la t1, _extra_bss_vma_start
   la t2, _extra_bss_vma_end
 clear_extra_bss:

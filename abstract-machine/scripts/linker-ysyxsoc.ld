@@ -68,16 +68,16 @@ SECTIONS {
   } > psram /*: data*/
   _bss_vma_end = .;
 
-  /* PSRAM holds data/bss/heap, but stack is in SRAM. */
-  PROVIDE(_extra_data_lma_start = 0);
-  PROVIDE(_extra_data_vma_start = 0);
-  PROVIDE(_extra_data_vma_end = 0);
-  PROVIDE(_extra_bss_vma_start = 0);
-  PROVIDE(_extra_bss_vma_end = 0);
-
   _heap_start = ALIGN(8);
   _heap_end = ORIGIN(psram) + LENGTH(psram);
   /* _stack_top = ORIGIN(sram);
   _stack_base = ORIGIN(sram) + LENGTH(sram);
   _stack_pointer = _stack_base; */
+
+  /* 这些专门用于RT-Thread的extra.ld里定义的额外.data.extra和.bss.extra段 */
+  PROVIDE(_extra_data_lma_start = 0);
+  PROVIDE(_extra_data_vma_start = 0);
+  PROVIDE(_extra_data_vma_end = 0);
+  PROVIDE(_extra_bss_vma_start = 0);
+  PROVIDE(_extra_bss_vma_end = 0);
 }
