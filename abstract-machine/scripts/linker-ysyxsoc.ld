@@ -48,10 +48,6 @@ SECTIONS {
   _rodata_lma_start = LOADADDR(.rodata);
   _rodata_vma_end = .;
 
-  /* _stack_top = ALIGN(4);
-  _stack_base = ORIGIN(sram) + LENGTH(sram);
-  _stack_pointer = _stack_base; */
-
   .data : {
     . = ALIGN(4);
     _data_vma_start = .;
