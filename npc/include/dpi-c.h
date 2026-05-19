@@ -11,6 +11,8 @@ enum {
 
 typedef uint8_t mem_read_t;
 
+uint32_t debug_mem_read(uint32_t raddr);
+
 extern "C" void sim_halt(int exit_code, uint32_t exit_pc);
 extern "C" int pmem_read(uint32_t raddr, mem_read_t read_type);//, uint8_t *need_skip_ref);
 extern "C" void pmem_write(uint32_t waddr, int wdata, uint8_t wmask);//, uint8_t *need_skip_ref);
