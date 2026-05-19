@@ -7,14 +7,14 @@ SECTIONS {
   .fsbl : {
     . = ALIGN(4);
     *(.fsbl)
-  } > flash : fsbl
+  } > flash
 
   /* Second Stage Bootloader runs from SRAM, but are stored in flash image. */
   .ssbl ORIGIN(sram) : {
     . = ALIGN(4);
     _ssbl_vma_start = .;
     *(.ssbl)
-  } > sram AT> flash : ssbl
+  } > sram AT> flash
   _ssbl_lma_start = LOADADDR(.ssbl);
   _ssbl_vma_end = .;
 
@@ -28,7 +28,7 @@ SECTIONS {
     . = ALIGN(4);
     _text_vma_start = .;
     *(.text*)
-  } > psram AT> flash : text
+  } > psram AT> flash
   _text_lma_start = LOADADDR(.text);
   _text_vma_end = .;
 
@@ -37,7 +37,7 @@ SECTIONS {
     _rodata_vma_start = .;
     *(.rodata*)
     *(.srodata*)
-  } > psram AT> flash : text
+  } > psram AT> flash
   _rodata_lma_start = LOADADDR(.rodata);
   _rodata_vma_end = .;
 
@@ -46,7 +46,7 @@ SECTIONS {
     _data_vma_start = .;
     *(.data*)
     *(.sdata*)
-  } > psram AT> flash : data
+  } > psram AT> flash
   _data_lma_start = LOADADDR(.data);
   _data_vma_end = .;
 
@@ -56,7 +56,7 @@ SECTIONS {
     *(.bss*)
     *(.sbss*)
     *(.scommon)
-  } > psram : data
+  } > psram
   _bss_vma_end = .;
 
   /* PSRAM holds data/bss/heap, but stack is in SRAM. */

@@ -1,5 +1,3 @@
-PHDRS { fsbl PT_LOAD; ssbl PT_LOAD; text PT_LOAD; data PT_LOAD; }
-
 MEMORY {
   mrom (rx)  : ORIGIN = _mrom_base, LENGTH = _mrom_size
   sram (rwx) : ORIGIN = _sram_base, LENGTH = _sram_size
