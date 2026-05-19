@@ -59,7 +59,6 @@ class IWU extends Module with HasYsyxModuleName {
     val need_flush_in_IW_preserved = bool_preserve(need_flush_in_IW, io.out.fire, false.B)._1
     // io.flush.flush := false.B // 这里不能接need_flush_in_IW，否则io.in.valid就会在下一拍被无效掉，导致之前在val valid信号定义处那个注释提到的问题。因此这里io.flush.flush必须是false.B。
 
-    dontTouch(r_fire_after)
 
     io.mem.r.rready := valid && !r_fire_after && !io.in.bits.has_exception // 这里看 io.in.bits.has_exception，而不是 allow_side_effect。
                                                                           // 原因是本级新异常 resp_ex 正是由当前这次 R 握手定义出来的，不能再反过来阻止这次握手本身。
