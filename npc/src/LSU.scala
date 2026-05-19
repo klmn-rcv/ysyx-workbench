@@ -20,6 +20,7 @@ class LSU extends Module with HasYsyxModuleName {
             val ex_found_in = Input(Bool())
             val flush = Output(Bool())
         }
+        val load = Output(Bool())
     })
 
     val mem_access = io.in.bits.rd_mem || io.in.bits.wr_mem
@@ -28,6 +29,8 @@ class LSU extends Module with HasYsyxModuleName {
     val valid = io.in.valid && !flush
     val has_exception = io.in.bits.has_exception
     val allow_side_effect = valid && !has_exception
+
+    io.load := io.in.bits.rd_mem && valid
 
     flush := io.flush.ex_found_in
     io.flush.flush := flush

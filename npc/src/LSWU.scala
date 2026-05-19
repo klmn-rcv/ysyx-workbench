@@ -22,6 +22,7 @@ class LSWU extends Module with HasYsyxModuleName {
             val ex_found_in = Input(Bool())
             val flush = Output(Bool())
         }
+        val load = Output(Bool())
     })
 
     // assert(!io.mem.r.rvalid || (io.mem.r.rresp === AXI4Resp.OKAY && io.mem.r.rlast))
@@ -31,6 +32,8 @@ class LSWU extends Module with HasYsyxModuleName {
 
     val flush = Wire(Bool())  // 仅对!mem_access的指令才可能flush
     val valid = io.in.valid && !flush
+
+    io.load := io.in.bits.rd_mem && valid
 
     flush:= !mem_access && io.flush.ex_found_in
     io.flush.flush := flush

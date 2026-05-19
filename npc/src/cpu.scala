@@ -43,6 +43,7 @@ class CPU extends Module with HasYsyxModuleName {
     val io = IO(new Bundle {
         val inst_mem_axi = new AXI4(32, 32, 4)
         val data_mem_axi = new AXI4(32, 32, 4)
+        val ls_lsw_load = Output(Bool())
         val data_mem_r_need_skip_ref = Input(Bool())
         val data_mem_b_need_skip_ref = Input(Bool())
     })
@@ -74,6 +75,8 @@ class CPU extends Module with HasYsyxModuleName {
     io.data_mem_axi.aw <> lsu.io.mem.aw
     io.data_mem_axi.w <> lsu.io.mem.w
     io.data_mem_axi.b <> lswu.io.mem.b
+    // LSU/LSWU中存在load指令，这会限制arbiter处理IFU的AR请求
+    io.ls_lsw_load := lsu.io.load || lswu.io.load
 
     // CSR's input
     csr.io.in.req := wbu.io.csr.csrReq
