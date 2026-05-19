@@ -18,8 +18,8 @@ load_ssbl:
   j load_ssbl
 load_ssbl_end:
   # 不能直接用j _ssbl_start，因为j指令只能跳转到-2^21~2^21-1范围内的相对地址，而_ssbl_start不在这个范围内
-  la t0, _ssbl_start
-  jr t0
+  la t1, _ssbl_start
+  jr t1
 
 .size _start, . - _start
 
