@@ -20,8 +20,10 @@ class LSU extends Module with HasYsyxModuleName {
             val ex_found_in = Input(Bool())
             val flush = Output(Bool())
         }
+        val load = Output(Bool())
     })
 
+    io.load := io.in.bits.rd_mem
     val mem_access = io.in.bits.rd_mem || io.in.bits.wr_mem
 
     val flush = Wire(Bool())
