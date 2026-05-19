@@ -68,6 +68,19 @@ load_data:
   j load_data
 load_data_end:
 
+  # copy optional extra .data region from flash to PSRAM
+  la t0, _extra_data_lma_start
+  la t1, _extra_data_vma_start
+  la t2, _extra_data_vma_end
+load_extra_data:
+  beq t1, t2, load_extra_data_end
+  lbu a0, 0(t0)
+  sb a0, 0(t1)
+  addi t0, t0, 1
+  addi t1, t1, 1
+  j load_extra_data
+load_extra_data_end:
+
   # zero .bss in PSRAM before entering C code
   la t1, _bss_vma_start
   la t2, _bss_vma_end
@@ -77,6 +90,16 @@ clear_bss:
   addi t1, t1, 1
   j clear_bss
 clear_bss_end:
+
+  # zero optional extra .bss region in PSRAM
+  la t1, _extra_bss_vma_start
+  la t2, _extra_bss_vma_end
+clear_extra_bss:
+  beq t1, t2, clear_extra_bss_end
+  sb zero, 0(t1)
+  addi t1, t1, 1
+  j clear_extra_bss
+clear_extra_bss_end:
 
   call _trm_init
 
