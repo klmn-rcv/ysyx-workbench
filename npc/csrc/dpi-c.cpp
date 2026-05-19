@@ -33,7 +33,7 @@ static inline uint32_t load_le_u32(const Mem &mem, uint32_t offset) {
          (static_cast<uint32_t>(static_cast<uint8_t>(mem[offset + 3])) << 24);
 }
 
-uint32_t debug_mem_read(uint32_t raddr) {
+static uint32_t debug_mem_read(uint32_t raddr) {
   const uint32_t aligned_addr = raddr & ~0x3u;
   auto *root = top->rootp;
 
