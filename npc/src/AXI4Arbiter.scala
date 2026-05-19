@@ -16,9 +16,13 @@ class AXI4Arbiter extends Module with HasYsyxModuleName {
         val ls_lsw_b_need_skip_ref = Output(Bool())
     })
 
+    val if_iw_ar_fire = io.if_iw.arvalid && io.if_iw.arready
+    val if_iw_r_fire = io.if_iw.rvalid && io.if_iw.rready
+
     // val ls_lsw_req = io.ls_lsw.arvalid || io.ls_lsw.awvalid || io.ls_lsw.wvalid
     val grant_if_iw_read = io.if_iw.arvalid && !io.ls_lsw_load
-    val read_owner_is_if_iw = bool_preserve(grant_if_iw_read, io.if_iw.rvalid && io.if_iw.rready, false.B)._1
+    val grant_if_iw_read_preserved = bool_preserve(grant_if_iw_read, if_iw_r_fire, false.B)._1
+    val read_owner_is_if_iw = boolreg_set_clear(if_iw_ar_fire, if_iw_r_fire)
 
     assert(!io.if_iw.awvalid && !io.if_iw.wvalid && !io.if_iw.bready)
     assert(!(io.ls_lsw.arvalid && (io.ls_lsw.awvalid || io.ls_lsw.wvalid)))
@@ -29,7 +33,7 @@ class AXI4Arbiter extends Module with HasYsyxModuleName {
     // 但这不会造成跟之前一样的死锁，因为“IFU的AR请求发到一半，突然LSU来了个load”意味着一定有空泡，IFU一定能进入IWU完成R握手，不会被LSU/LSWU卡住形成死锁
     // AR
     io.xbar.arvalid := io.ls_lsw.arvalid || grant_if_iw_read
-    when(read_owner_is_if_iw) {
+    when(grant_if_iw_read_preserved) {
         connectFields(io.if_iw.ar, io.xbar.ar, "araddr", "arid", "arlen", "arsize", "arburst")
         io.ls_lsw.arready := false.B
         io.if_iw.arready := io.xbar.arready && grant_if_iw_read
@@ -38,10 +42,6 @@ class AXI4Arbiter extends Module with HasYsyxModuleName {
         io.ls_lsw.arready := io.xbar.arready
         io.if_iw.arready := false.B
     }
-
-    // when(io.xbar.arvalid && io.xbar.arready) {
-    //     read_owner_is_if_iw := grant_if_iw_read
-    // }
 
     // R
     when(read_owner_is_if_iw) {
