@@ -1,5 +1,5 @@
 ENTRY(_start)
-PHDRS { boot PT_LOAD; text PT_LOAD; data PT_LOAD; }
+PHDRS { fsbl PT_LOAD; ssbl PT_LOAD; text PT_LOAD; data PT_LOAD; }
 
 MEMORY {
   mrom (rx)  : ORIGIN = _mrom_base, LENGTH = _mrom_size
@@ -11,11 +11,25 @@ MEMORY {
 SECTIONS {
   . = ORIGIN(flash) + _entry_offset;
 
-  /* Bootloader stays in flash and runs directly after reset. */
-  .entry : {
+  /* First Stage Bootloader stays in flash and runs directly after reset. */
+  .fsbl : {
     . = ALIGN(4);
-    *(entry)
-  } > flash : boot
+    *(.fsbl)
+  } > flash : fsbl
+
+  /* Second Stage Bootloader runs from SRAM, but are stored in flash image. */
+  .ssbl ORIGIN(sram) : {
+    . = ALIGN(4);
+    _ssbl_vma_start = .;
+    *(.ssbl)
+  } > sram AT> flash : ssbl
+  _ssbl_lma_start = LOADADDR(.ssbl);
+  _ssbl_vma_end = .;
+
+  /* Stack uses the reserved space in SRAM. */
+  _stack_top = ALIGN(4);
+  _stack_base = ORIGIN(sram) + LENGTH(sram);
+  _stack_pointer = _stack_base;
 
   /* Program text/rodata run from SRAM, but are stored in flash image. */
   .text ORIGIN(psram) : {
@@ -59,7 +73,7 @@ SECTIONS {
   /* PSRAM holds data/bss/heap, but stack is in SRAM. */
   _heap_start = ALIGN(8);
   _heap_end = ORIGIN(psram) + LENGTH(psram);
-  _stack_top = ORIGIN(sram);
+  /* _stack_top = ORIGIN(sram);
   _stack_base = ORIGIN(sram) + LENGTH(sram);
-  _stack_pointer = _stack_base;
+  _stack_pointer = _stack_base; */
 }
