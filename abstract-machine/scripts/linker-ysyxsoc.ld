@@ -18,11 +18,11 @@ SECTIONS {
   } > flash : boot
 
   /* Program text/rodata run from SRAM, but are stored in flash image. */
-  .text ORIGIN(sram) : {
+  .text ORIGIN(psram) : {
     . = ALIGN(4);
     _text_vma_start = .;
     *(.text*)
-  } > sram AT> flash : text
+  } > psram AT> flash : text
   _text_lma_start = LOADADDR(.text);
   _text_vma_end = .;
 
@@ -30,15 +30,15 @@ SECTIONS {
     . = ALIGN(4);
     _rodata_vma_start = .;
     *(.rodata*)
-  } > sram AT> flash : text
+  } > psram AT> flash : text
   _rodata_lma_start = LOADADDR(.rodata);
   _rodata_vma_end = .;
 
-  _stack_top = ALIGN(4);
+  /* _stack_top = ALIGN(4);
   _stack_base = ORIGIN(sram) + LENGTH(sram);
-  _stack_pointer = _stack_base;
+  _stack_pointer = _stack_base; */
 
-  .data ORIGIN(psram) : {
+  .data : {
     . = ALIGN(4);
     _data_vma_start = .;
     *(.data*)
@@ -59,7 +59,7 @@ SECTIONS {
   /* PSRAM holds data/bss/heap, but stack is in SRAM. */
   _heap_start = ALIGN(8);
   _heap_end = ORIGIN(psram) + LENGTH(psram);
-  /* _stack_top = ORIGIN(sram); */
-  /* _stack_base = ORIGIN(sram) + LENGTH(sram); */
-  /* _stack_pointer = _stack_base; */
+  _stack_top = ORIGIN(sram);
+  _stack_base = ORIGIN(sram) + LENGTH(sram);
+  _stack_pointer = _stack_base;
 }

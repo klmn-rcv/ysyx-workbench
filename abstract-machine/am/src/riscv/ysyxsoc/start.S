@@ -6,7 +6,7 @@ _start:
   mv s0, zero
   la sp, _stack_pointer
 
-  # copy .text from its LMA in flash to its VMA in SRAM
+  # copy .text from its LMA in flash to its VMA in PSRAM
   la t0, _text_lma_start
   la t1, _text_vma_start
   la t2, _text_vma_end
@@ -19,7 +19,7 @@ load_text:
   j load_text
 load_text_end:
 
-  # copy .rodata from its LMA in flash to its VMA in SRAM
+  # copy .rodata from its LMA in flash to its VMA in PSRAM
   la t0, _rodata_lma_start
   la t1, _rodata_vma_start
   la t2, _rodata_vma_end
