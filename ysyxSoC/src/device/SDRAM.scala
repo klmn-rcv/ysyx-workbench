@@ -218,7 +218,7 @@ class sdramChisel extends RawModule {
       for (bank_idx <- 0 until BANK_COUNT) {
         when(bank_sel === bank_idx.U) {
           for (col_idx <- 0 until BANK_COL_COUNT) {
-            bank_row_buffer(bank_idx)(col_idx) := bank_mem(bank_idx)(bankRc2FlatAddr(row_addr, col_idx.U))
+            bank_row_buffer(bank_idx)(col_idx) := bank_mem(bank_idx)(bankRc2FlatAddr(row_addr, col_idx.U(COL_ADDR_LEN.W)))
           }
         }
       }
