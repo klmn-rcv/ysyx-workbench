@@ -63,7 +63,7 @@ static uint32_t debug_mem_read(uint32_t raddr) {
     constexpr uint32_t kSdramRowBits = 13;
     constexpr uint32_t kSdramWordIndexBits = kSdramColBits - 1;
 
-    // Match sdram_axi_core address slicing (SDRAM_ADDR_W=24, SDRAM_COL_W=9).
+    // Match sdram_axi_core address slicing (SDRAM_ADDR_W=25, SDRAM_COL_W=9).
     const uint32_t bank = (sdram_addr >> (kSdramColBits + 1)) & ((1u << kSdramBankBits) - 1);
     const uint32_t row = (sdram_addr >> (kSdramColBits + 2 + 1)) & ((1u << kSdramRowBits) - 1);
     const uint32_t col = ((sdram_addr >> 2) & ((1u << kSdramWordIndexBits) - 1)) << 1;
