@@ -10,6 +10,7 @@
 #include "difftest.h"
 #endif
 #include "VysyxSoCFull___024root.h"
+#include "VysyxSoCFull_bank_mem_4194304x16.h"
 
 extern char mrom[];  // mask rom
 extern char flash[];
@@ -53,6 +54,44 @@ static uint32_t debug_mem_read(uint32_t raddr) {
   if (in_range(aligned_addr, PSRAM_BASE, PSRAM_SIZE)) {
     return load_le_u32(root->ysyxSoCFull__DOT__psram__DOT__mem_ext__DOT__Memory,
                        aligned_addr - PSRAM_BASE);
+  }
+
+  if (in_range(aligned_addr, SDRAM_BASE, SDRAM_SIZE)) {
+    const uint32_t sdram_addr = aligned_addr - SDRAM_BASE;
+    constexpr uint32_t kSdramColBits = 9;
+    constexpr uint32_t kSdramBankBits = 2;
+    constexpr uint32_t kSdramRowBits = 13;
+    constexpr uint32_t kSdramWordIndexBits = kSdramColBits - 1;
+
+    // Match sdram_axi_core address slicing (SDRAM_ADDR_W=24, SDRAM_COL_W=9).
+    const uint32_t bank = (sdram_addr >> (kSdramColBits + 1)) & ((1u << kSdramBankBits) - 1);
+    const uint32_t row = (sdram_addr >> (kSdramColBits + 2 + 1)) & ((1u << kSdramRowBits) - 1);
+    const uint32_t col = ((sdram_addr >> 2) & ((1u << kSdramWordIndexBits) - 1)) << 1;
+    const uint32_t index = (row << kSdramColBits) | col;
+
+    VysyxSoCFull_bank_mem_4194304x16 *bank_mem = nullptr;
+    switch (bank) {
+      case 0:
+        bank_mem = root->__PVT__ysyxSoCFull__DOT__sdram__DOT__bank_mem_0_ext;
+        break;
+      case 1:
+        bank_mem = root->__PVT__ysyxSoCFull__DOT__sdram__DOT__bank_mem_1_ext;
+        break;
+      case 2:
+        bank_mem = root->__PVT__ysyxSoCFull__DOT__sdram__DOT__bank_mem_2_ext;
+        break;
+      case 3:
+        bank_mem = root->__PVT__ysyxSoCFull__DOT__sdram__DOT__bank_mem_3_ext;
+        break;
+      default:
+        bank_mem = nullptr;
+        break;
+    }
+
+    Assert(bank_mem != nullptr, "debug_mem_read SDRAM bank invalid: %u", bank);
+    const uint32_t lo = bank_mem->__PVT__Memory[index];
+    const uint32_t hi = bank_mem->__PVT__Memory[index + 1];
+    return lo | (hi << 16);
   }
 
   Assert(0, "debug_mem_read out of bounds at address 0x%x", raddr);
