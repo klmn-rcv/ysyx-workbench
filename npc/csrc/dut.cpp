@@ -100,7 +100,7 @@ void init_difftest(const char *ref_so_file, long img_size, int port) {
       "If it is not necessary, you can turn it off in menuconfig.", ref_so_file);
 
   ref_difftest_init(port);
-  ref_difftest_memcpy(RESET_VECTOR, flash, FLASH_SIZE, DIFFTEST_TO_REF);
+  ref_difftest_memcpy(RESET_VECTOR, flash, img_size, DIFFTEST_TO_REF);
 
   CPU_state cpu;
   update_cpu_state(&cpu);
