@@ -18,204 +18,216 @@
 #include <device/mmio.h>
 #include <isa.h>
 
-#if   defined(CONFIG_PMEM_MALLOC)
+#if defined(CONFIG_PMEM_MALLOC) && !defined(CONFIG_TARGET_SHARE)
 static uint8_t *pmem = NULL;
-#else // CONFIG_PMEM_GARRAY
+#elif !defined(CONFIG_TARGET_SHARE)
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
+#endif
+
+#ifdef CONFIG_TARGET_SHARE
 static uint8_t mrom[CONFIG_MROMSIZE] PG_ALIGN = {};
 static uint8_t sram[CONFIG_SRAMSIZE] PG_ALIGN = {};
 static uint8_t flash[CONFIG_FLASHSIZE] PG_ALIGN = {};
+static uint8_t psram[CONFIG_PSRAMSIZE] PG_ALIGN = {};
 static uint8_t sdram[CONFIG_SDRAMSIZE] PG_ALIGN = {};
+
+typedef enum {
+  REGION_MROM,
+  REGION_SRAM,
+  REGION_FLASH,
+  REGION_PSRAM,
+  REGION_SDRAM,
+} region_kind_t;
+
+typedef struct {
+  region_kind_t kind;
+  const char *name;
+  paddr_t left;
+  size_t size;
+  uint8_t *space;
+} mem_region_t;
+
+int flag_mrom_init = 1;
+
+static mem_region_t soc_regions[] = {
+  { REGION_MROM,  "mrom",  MROM_LEFT,  CONFIG_MROMSIZE,  mrom  },
+  { REGION_SRAM,  "sram",  SRAM_LEFT,  CONFIG_SRAMSIZE,  sram  },
+  { REGION_FLASH, "flash", FLASH_LEFT, CONFIG_FLASHSIZE, flash },
+  { REGION_PSRAM, "psram", PSRAM_LEFT, CONFIG_PSRAMSIZE, psram },
+  { REGION_SDRAM, "sdram", SDRAM_LEFT, CONFIG_SDRAMSIZE, sdram },
+};
+
+static inline uint8_t *region_ptr(mem_region_t *r, paddr_t addr) {
+  return r->space + addr - r->left;
+}
+
+static mem_region_t *find_region(paddr_t addr) {
+  for (int i = 0; i < ARRLEN(soc_regions); i++) {
+    mem_region_t *r = &soc_regions[i];
+    if (addr - r->left < r->size) {
+      return r;
+    }
+  }
+  return NULL;
+}
+
+static word_t region_read(mem_region_t *r, paddr_t addr, int len) {
+  return host_read(region_ptr(r, addr), len);
+}
+
+static void region_write(mem_region_t *r, paddr_t addr, int len, word_t data) {
+  if (r->kind == REGION_MROM && !flag_mrom_init) {
+    panic("MROM is read-only");
+  }
+  host_write(region_ptr(r, addr), len, data);
+}
 #endif
 
+#ifdef CONFIG_TARGET_SHARE
+uint8_t* guest_to_host(paddr_t paddr) {
+  (void)paddr;
+  panic("guest_to_host() should not be used in CONFIG_TARGET_SHARE");
+  return NULL;
+}
+
+paddr_t host_to_guest(uint8_t *haddr) {
+  (void)haddr;
+  panic("host_to_guest() is not supported in CONFIG_TARGET_SHARE");
+  return 0;
+}
+#else
 uint8_t* guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }
 paddr_t host_to_guest(uint8_t *haddr) { return haddr - pmem + CONFIG_MBASE; }
-uint8_t* guest_to_mrom(paddr_t paddr) { return mrom + paddr - CONFIG_MROMBASE; }
-paddr_t mrom_to_guest(uint8_t *maddr) { return maddr - mrom + CONFIG_MROMBASE; }
-uint8_t* guest_to_sram(paddr_t paddr) { return sram + paddr - CONFIG_SRAMBASE; }
-paddr_t sram_to_guest(uint8_t *saddr) { return saddr - sram + CONFIG_SRAMBASE; }
-uint8_t* guest_to_flash(paddr_t paddr) { return flash + paddr - CONFIG_FLASHBASE; }
-paddr_t flash_to_guest(uint8_t *faddr) { return faddr - flash + CONFIG_FLASHBASE; }
-uint8_t* guest_to_sdram(paddr_t paddr) { return sdram + paddr - CONFIG_SDRAMBASE; }
-paddr_t sdram_to_guest(uint8_t *sdaddr) { return sdaddr - sdram + CONFIG_SDRAMBASE; }
-
-int flag_mrom_init = 1; // 完成MROM初始化之后就将它置为0，此后不再允许对MROM的写入
 
 static word_t pmem_read(paddr_t addr, int len) {
-  word_t ret = host_read(guest_to_host(addr), len);
-  return ret;
+  return host_read(guest_to_host(addr), len);
 }
 
 static void pmem_write(paddr_t addr, int len, word_t data) {
   host_write(guest_to_host(addr), len, data);
 }
-
-static word_t mrom_read(paddr_t addr, int len) {
-  // printf("DEBUG: In mrom_read, addr = 0x%08x, len = %d\n", addr, len);
-  word_t ret = host_read(guest_to_mrom(addr), len);
-  return ret;
-}
-
-static void mrom_write(paddr_t addr, int len, word_t data) {
-  if(flag_mrom_init) {
-    host_write(guest_to_mrom(addr), len, data);
-  }
-  else {
-    printf("Error: MROM is read-only\n");
-    assert(0);
-  }
-}
-
-static word_t sram_read(paddr_t addr, int len) {
-  word_t ret = host_read(guest_to_sram(addr), len);
-  return ret;
-}
-
-static void sram_write(paddr_t addr, int len, word_t data) {
-  host_write(guest_to_sram(addr), len, data);
-}
-
-static word_t flash_read(paddr_t addr, int len) {
-  word_t ret = host_read(guest_to_flash(addr), len);
-  return ret;
-}
-
-static void flash_write(paddr_t addr, int len, word_t data) {
-  host_write(guest_to_flash(addr), len, data);
-}
-
-static word_t sdram_read(paddr_t addr, int len) {
-  word_t ret = host_read(guest_to_sdram(addr), len);
-  return ret;
-}
-
-static void sdram_write(paddr_t addr, int len, word_t data) {
-  host_write(guest_to_sdram(addr), len, data);
-}
+#endif
 
 static void out_of_bound(paddr_t addr) {
+#ifdef CONFIG_TARGET_SHARE
+  panic(
+    "address = " FMT_PADDR " is out of ysyxsoc memory map "
+    "mrom[" FMT_PADDR ", " FMT_PADDR "], "
+    "sram[" FMT_PADDR ", " FMT_PADDR "], "
+    "flash[" FMT_PADDR ", " FMT_PADDR "], "
+    "psram[" FMT_PADDR ", " FMT_PADDR "], "
+    "sdram[" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
+    addr,
+    MROM_LEFT, MROM_RIGHT,
+    SRAM_LEFT, SRAM_RIGHT,
+    FLASH_LEFT, FLASH_RIGHT,
+    PSRAM_LEFT, PSRAM_RIGHT,
+    SDRAM_LEFT, SDRAM_RIGHT,
+    cpu.pc
+  );
+#else
   panic("address = " FMT_PADDR " is out of bound of pmem [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
       addr, PMEM_LEFT, PMEM_RIGHT, cpu.pc);
+#endif
 }
 
 void init_mem() {
-#if   defined(CONFIG_PMEM_MALLOC)
+#if defined(CONFIG_PMEM_MALLOC) && !defined(CONFIG_TARGET_SHARE)
   pmem = malloc(CONFIG_MSIZE);
   assert(pmem);
 #endif
+
+#ifndef CONFIG_TARGET_SHARE
   IFDEF(CONFIG_MEM_RANDOM, memset(pmem, rand(), CONFIG_MSIZE));
   Log("physical memory area [" FMT_PADDR ", " FMT_PADDR "]", PMEM_LEFT, PMEM_RIGHT);
+#else
+  memset(mrom, 0, CONFIG_MROMSIZE);
+  memset(flash, 0, CONFIG_FLASHSIZE);
+  IFDEF(CONFIG_MEM_RANDOM, memset(sram, rand(), CONFIG_SRAMSIZE));
+  IFDEF(CONFIG_MEM_RANDOM, memset(psram, rand(), CONFIG_PSRAMSIZE));
+  IFDEF(CONFIG_MEM_RANDOM, memset(sdram, rand(), CONFIG_SDRAMSIZE));
+  Log("mrom  area [" FMT_PADDR ", " FMT_PADDR "]", MROM_LEFT, MROM_RIGHT);
+  Log("sram  area [" FMT_PADDR ", " FMT_PADDR "]", SRAM_LEFT, SRAM_RIGHT);
+  Log("flash area [" FMT_PADDR ", " FMT_PADDR "]", FLASH_LEFT, FLASH_RIGHT);
+  Log("psram area [" FMT_PADDR ", " FMT_PADDR "]", PSRAM_LEFT, PSRAM_RIGHT);
+  Log("sdram area [" FMT_PADDR ", " FMT_PADDR "]", SDRAM_LEFT, SDRAM_RIGHT);
+#endif
 }
 
 word_t paddr_read(paddr_t addr, int len, mem_read_t read_type) {
 #if defined(CONFIG_MTRACE) || defined(CONFIG_DTRACE)
   const char *str_type[] = { "inst", "data", "debug" };
 #endif
+
+#ifndef CONFIG_TARGET_SHARE
   if (likely(in_pmem(addr))) {
 #ifdef CONFIG_MTRACE
-    if(CONFIG_MTRACE_COND)
+    if (CONFIG_MTRACE_COND) {
       _Log("[mtrace] pmem_read (%s): addr = " FMT_PADDR ", len = %d\n", str_type[read_type], addr, len);
+    }
 #endif
     return pmem_read(addr, len);
   }
-  else if(in_mrom(addr)) {
+#else
+  mem_region_t *r = find_region(addr);
+  if (likely(r != NULL)) {
 #ifdef CONFIG_MTRACE
-    if(CONFIG_MTRACE_COND)
-      _Log("[mtrace] mrom_read (%s): addr = " FMT_PADDR ", len = %d\n", str_type[read_type], addr, len);
+    if (CONFIG_MTRACE_COND) {
+      _Log("[mtrace] %s_read (%s): addr = " FMT_PADDR ", len = %d\n",
+          r->name, str_type[read_type], addr, len);
+    }
 #endif
-    word_t data = mrom_read(addr, len);
-    // _Log("DEBUG: [mtrace] mrom_read: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
-    return data;
+    return region_read(r, addr, len);
   }
-  else if(in_sram(addr)) {
-#ifdef CONFIG_MTRACE
-    if(CONFIG_MTRACE_COND)
-      _Log("[mtrace] sram_read (%s): addr = " FMT_PADDR ", len = %d\n", str_type[read_type], addr, len);
 #endif
-    word_t data = sram_read(addr, len);
-    // _Log("DEBUG: [mtrace] sram_read: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
-    return data;
-  }
-  else if(in_flash(addr)) {
-#ifdef CONFIG_MTRACE
-    if(CONFIG_MTRACE_COND)
-      _Log("[mtrace] flash_read (%s): addr = " FMT_PADDR ", len = %d\n", str_type[read_type], addr, len);
-#endif
-    word_t data = flash_read(addr, len);
-    // _Log("DEBUG: [mtrace] flash_read: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
-    return data;
-  }
-  else if(in_sdram(addr)) {
-#ifdef CONFIG_MTRACE
-    if(CONFIG_MTRACE_COND)
-      _Log("[mtrace] sdram_read (%s): addr = " FMT_PADDR ", len = %d\n", str_type[read_type], addr, len);
-#endif
-    word_t data = sdram_read(addr, len);
-    // _Log("DEBUG: [mtrace] sdram_read: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
-    return data;
-  }
+
 #ifdef CONFIG_DEVICE
 #ifdef CONFIG_DTRACE
-  if(CONFIG_DTRACE_COND)
+  if (CONFIG_DTRACE_COND) {
     _Log("[dtrace] mmio_read (%s): addr = " FMT_PADDR ", len = %d\n", str_type[read_type], addr, len);
+  }
 #endif
   return mmio_read(addr, len);
 #endif
+
   out_of_bound(addr);
   return 0;
 }
 
 void paddr_write(paddr_t addr, int len, word_t data) {
+#ifndef CONFIG_TARGET_SHARE
   if (likely(in_pmem(addr))) {
 #ifdef CONFIG_MTRACE
-    if(CONFIG_MTRACE_COND)
+    if (CONFIG_MTRACE_COND) {
       _Log("[mtrace] pmem_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
+    }
 #endif
-    pmem_write(addr, len, data); 
-    return; 
-  }
-  else if(in_mrom(addr)) {
-#ifdef CONFIG_MTRACE
-    if(CONFIG_MTRACE_COND)
-      _Log("[mtrace] mrom_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
-#endif
-    // _Log("DEBUG: [mtrace] mrom_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
-    mrom_write(addr, len, data);
+    pmem_write(addr, len, data);
     return;
   }
-  else if(in_sram(addr)) {
+#else
+  mem_region_t *r = find_region(addr);
+  if (likely(r != NULL)) {
 #ifdef CONFIG_MTRACE
-    if(CONFIG_MTRACE_COND)
-      _Log("[mtrace] sram_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
+    if (CONFIG_MTRACE_COND) {
+      _Log("[mtrace] %s_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n",
+          r->name, addr, len, data);
+    }
 #endif
-    // _Log("DEBUG: [mtrace] sram_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
-    sram_write(addr, len, data);
+    region_write(r, addr, len, data);
     return;
   }
-  else if(in_flash(addr)) {
-#ifdef CONFIG_MTRACE
-    if(CONFIG_MTRACE_COND)
-      _Log("[mtrace] flash_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
 #endif
-    // _Log("DEBUG: [mtrace] flash_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
-    flash_write(addr, len, data);
-    return;
-  }
-  else if(in_sdram(addr)) {
-#ifdef CONFIG_MTRACE
-    if(CONFIG_MTRACE_COND)
-      _Log("[mtrace] sdram_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
-#endif
-    // _Log("DEBUG: [mtrace] sdram_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
-    sdram_write(addr, len, data);
-    return;
-  }
+
 #ifdef CONFIG_DEVICE
 #ifdef CONFIG_DTRACE
-  if(CONFIG_DTRACE_COND)
+  if (CONFIG_DTRACE_COND) {
     _Log("[dtrace] mmio_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
+  }
 #endif
-  mmio_write(addr, len, data); return;
+  mmio_write(addr, len, data);
+  return;
 #endif
+
   out_of_bound(addr);
 }
