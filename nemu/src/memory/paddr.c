@@ -25,6 +25,7 @@ static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 static uint8_t mrom[CONFIG_MROMSIZE] PG_ALIGN = {};
 static uint8_t sram[CONFIG_SRAMSIZE] PG_ALIGN = {};
 static uint8_t flash[CONFIG_FLASHSIZE] PG_ALIGN = {};
+static uint8_t sdram[CONFIG_SDRAMSIZE] PG_ALIGN = {};
 #endif
 
 uint8_t* guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }
@@ -35,6 +36,8 @@ uint8_t* guest_to_sram(paddr_t paddr) { return sram + paddr - CONFIG_SRAMBASE; }
 paddr_t sram_to_guest(uint8_t *saddr) { return saddr - sram + CONFIG_SRAMBASE; }
 uint8_t* guest_to_flash(paddr_t paddr) { return flash + paddr - CONFIG_FLASHBASE; }
 paddr_t flash_to_guest(uint8_t *faddr) { return faddr - flash + CONFIG_FLASHBASE; }
+uint8_t* guest_to_sdram(paddr_t paddr) { return sdram + paddr - CONFIG_SDRAMBASE; }
+paddr_t sdram_to_guest(uint8_t *sdaddr) { return sdaddr - sdram + CONFIG_SDRAMBASE; }
 
 int flag_mrom_init = 1; // 完成MROM初始化之后就将它置为0，此后不再允许对MROM的写入
 
@@ -79,6 +82,15 @@ static word_t flash_read(paddr_t addr, int len) {
 
 static void flash_write(paddr_t addr, int len, word_t data) {
   host_write(guest_to_flash(addr), len, data);
+}
+
+static word_t sdram_read(paddr_t addr, int len) {
+  word_t ret = host_read(guest_to_sdram(addr), len);
+  return ret;
+}
+
+static void sdram_write(paddr_t addr, int len, word_t data) {
+  host_write(guest_to_sdram(addr), len, data);
 }
 
 static void out_of_bound(paddr_t addr) {
@@ -133,6 +145,15 @@ word_t paddr_read(paddr_t addr, int len, mem_read_t read_type) {
     // _Log("DEBUG: [mtrace] flash_read: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
     return data;
   }
+  else if(in_sdram(addr)) {
+#ifdef CONFIG_MTRACE
+    if(CONFIG_MTRACE_COND)
+      _Log("[mtrace] sdram_read (%s): addr = " FMT_PADDR ", len = %d\n", str_type[read_type], addr, len);
+#endif
+    word_t data = sdram_read(addr, len);
+    // _Log("DEBUG: [mtrace] sdram_read: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
+    return data;
+  }
 #ifdef CONFIG_DEVICE
 #ifdef CONFIG_DTRACE
   if(CONFIG_DTRACE_COND)
@@ -178,6 +199,15 @@ void paddr_write(paddr_t addr, int len, word_t data) {
 #endif
     // _Log("DEBUG: [mtrace] flash_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
     flash_write(addr, len, data);
+    return;
+  }
+  else if(in_sdram(addr)) {
+#ifdef CONFIG_MTRACE
+    if(CONFIG_MTRACE_COND)
+      _Log("[mtrace] sdram_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
+#endif
+    // _Log("DEBUG: [mtrace] sdram_write: addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
+    sdram_write(addr, len, data);
     return;
   }
 #ifdef CONFIG_DEVICE
