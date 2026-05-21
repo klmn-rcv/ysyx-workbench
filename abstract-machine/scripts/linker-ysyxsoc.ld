@@ -1,5 +1,5 @@
 ENTRY(_start)
-/* 为了适配RT-Thread中的extra.ld，只能把segment定义注释掉，否则加载会出问题。 */
+/* 为了适配RT-Thread中的extra.ld，只能把这里的segment定义注释掉，否则加载会出问题。 */
 /* PHDRS { fsbl PT_LOAD; ssbl PT_LOAD; text PT_LOAD; data PT_LOAD; } */
 
 MEMORY {

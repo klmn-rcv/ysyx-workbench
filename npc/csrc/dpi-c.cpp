@@ -172,7 +172,6 @@ extern "C" void iringbuf_flush_after_ifetch(uint32_t pc) {
 }
 
 extern "C" void ftrace(uint32_t pc, uint32_t target_pc, bool is_jalr, int rd, int rs1, int imm) {
-  // printf("DEBUG: ftrace called with pc = 0x%08x, target_pc = 0x%08x, is_jalr = %d, rd = %d, rs1 = %d, imm = %d\n", pc, target_pc, is_jalr, rd, rs1, imm);
 #ifdef CONFIG_FTRACE
   static int call_depth = 0;
   char func_name[128];

@@ -6,6 +6,7 @@ _start:
   mv s0, zero
   la sp, _stack_pointer
 
+  # copy .ssbl from its LMA in flash to its VMA in SRAM
   la t0, _ssbl_lma_start
   la t1, _ssbl_vma_start
   la t2, _ssbl_vma_end
