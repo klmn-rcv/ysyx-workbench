@@ -57,7 +57,7 @@ static void trace_and_difftest() {
   bool no_change = check_all_wp_no_change(&NO, &expr_str, &old_value, &new_value);
   if(!no_change) {
     npc_state.state = NPC_STOP;
-    // printf("Hit watchpoint %d: %s at pc = " FMT_PADDR "\nold value = 0x%x (%" PRIu32 ")\nnew value = 0x%x (%" PRIu32 ")\n", NO, expr_str, submit.pc, old_value, old_value, new_value, new_value);
+    printf("Hit watchpoint %d: %s at pc = " FMT_PADDR "\nold value = 0x%x (%" PRIu32 ")\nnew value = 0x%x (%" PRIu32 ")\n", NO, expr_str, submit.pc, old_value, old_value, new_value, new_value);
     return;
   }
 
@@ -65,7 +65,7 @@ static void trace_and_difftest() {
   bool bp_hit = check_bp_hit(submit.dnpc, &NO, &addr);
   if(bp_hit) {
     npc_state.state = NPC_STOP;
-    // printf("Hit breakpoint %d at pc = " FMT_PADDR "\n", NO, addr);
+    printf("Hit breakpoint %d at pc = " FMT_PADDR "\n", NO, addr);
   }
 #endif
 }
