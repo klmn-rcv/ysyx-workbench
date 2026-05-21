@@ -13,7 +13,7 @@ void test8(uintptr_t start, uintptr_t end) {
   }
   printf("test8: write done\n");
   for (uintptr_t addr = start; addr < end; addr++) {
-    printf("test8: start reading addr = 0x%08lx\n", (unsigned long)addr);
+    printf("test8: start reading addr = 0x%x\n", (unsigned long)addr);
     uint8_t expect = (uint8_t)(addr & 0xff);
     uint8_t got = *(volatile uint8_t *)addr;
     if (got != expect) {
