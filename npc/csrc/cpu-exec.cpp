@@ -74,13 +74,13 @@ static void cycle_once() {
   top->clock = 0;
   top->eval();
 #ifdef CONFIG_GEN_WAVE
-  if(g_nr_inst > 185500) tfp->dump(sim_time++); // temporarily for debug
+  tfp->dump(sim_time++);
 #endif
 
   top->clock = 1;
   top->eval();
 #ifdef CONFIG_GEN_WAVE
-  if(g_nr_inst > 185500) tfp->dump(sim_time++); // temporarily for debug
+  tfp->dump(sim_time++);
 #endif
 }
 

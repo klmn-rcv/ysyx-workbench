@@ -64,7 +64,7 @@ void test64(uintptr_t start, uintptr_t end) {
 #endif
 
 int main() {
-  uintptr_t start = 0xa0006000;
+  uintptr_t start = 0xa0006001;
   uintptr_t end = 0xa0006600;
 
   check(start < end);
