@@ -65,8 +65,7 @@ int main() {
   // uintptr_t start = (uintptr_t)&_heap_start;
   // uintptr_t end = (uintptr_t)&_heap_end;
   uintptr_t start = 0xa0000000;
-  // uintptr_t end = 0xa1ffffff;
-  uintptr_t end = 0xa0000007;
+  uintptr_t end = 0xa1ffffff;
 
   check(start < end);
   check((start & 0x7) == 0);
