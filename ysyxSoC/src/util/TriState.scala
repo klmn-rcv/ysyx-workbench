@@ -47,7 +47,7 @@ class TriStateInBufVecEn(bits: Int) extends BlackBox(Map("width" -> bits)) with 
 
   setInline("TriStateInBufVecEn.v",
     """module TriStateInBufVecEn #(
-      |  parameter width = 1,
+      |  parameter width = 1
       |)(
       |  inout  [width-1:0] dio,
       |  input  [width-1:0] dout,
