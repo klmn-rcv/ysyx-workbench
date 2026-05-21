@@ -68,10 +68,14 @@ int main() {
   check(start < end);
   check((start & 0x7) == 0);
 
+  printf("Start test8\n");
   test8(start, end);
+  printf("Start test16\n");
   test16(start, end);
+  printf("Start test32\n");
   test32(start, end);
 #if __riscv_xlen >= 64
+  printf("Start test64\n");
   test64(start, end);
 #endif
 
