@@ -155,6 +155,7 @@ void init_mem() {
 }
 
 word_t paddr_read(paddr_t addr, int len, mem_read_t read_type) {
+  printf("DEBUG: NEMU: paddr_read called with addr = " FMT_PADDR ", len = %d, read_type = %d\n", addr, len, read_type);
 #if defined(CONFIG_MTRACE) || defined(CONFIG_DTRACE)
   const char *str_type[] = { "inst", "data", "debug" };
 #endif
@@ -195,6 +196,7 @@ word_t paddr_read(paddr_t addr, int len, mem_read_t read_type) {
 }
 
 void paddr_write(paddr_t addr, int len, word_t data) {
+  printf("DEBUG: NEMU: paddr_write called with addr = " FMT_PADDR ", len = %d, data = " FMT_WORD "\n", addr, len, data);
 #ifndef CONFIG_TARGET_SHARE
   if (likely(in_pmem(addr))) {
 #ifdef CONFIG_MTRACE
