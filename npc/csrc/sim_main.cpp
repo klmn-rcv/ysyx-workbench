@@ -159,6 +159,8 @@ int main(int argc, char** argv) {
 
   sdb_mainloop();
 
+  printf("DEBUG: Here!\n");
+
   IFDEF(CONFIG_GEN_WAVE, end_wave());
   delete top;
 
