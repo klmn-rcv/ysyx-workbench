@@ -38,6 +38,22 @@ config FLASHSIZE
   hex "Flash size"
   default 0x10000000
 
+config PSRAMBASE
+  hex "PSRAM base address"
+  default 0x80000000
+
+config PSRAMSIZE
+  hex "PSRAM size"
+  default 0x400000
+
+config SDRAMBASE
+  hex "SDRAM base address"
+  default 0xa0000000
+
+config SDRAMSIZE
+  hex "SDRAM size"
+  default 0x2000000
+
 choice
   prompt "Physical memory definition"
   default PMEM_GARRAY

@@ -27,6 +27,8 @@ class Xbar extends Module with HasYsyxModuleName {
     val soc_uart_end = "h10000fff".U(32.W)
     val soc_psram_base = "h80000000".U(32.W)
     val soc_psram_end = "h803fffff".U(32.W)
+    val soc_sdram_base = "ha0000000".U(32.W)
+    val soc_sdram_end = "ha1ffffff".U(32.W)
 
     val ar_fire = io.arbiter.arvalid && io.arbiter.arready
     val r_fire = io.arbiter.rvalid && io.arbiter.rready
@@ -52,8 +54,10 @@ class Xbar extends Module with HasYsyxModuleName {
     val hit_soc_uart_w = inRange(io.arbiter.awaddr, soc_uart_base, soc_uart_end)
     val hit_soc_psram_r = inRange(io.arbiter.araddr, soc_psram_base, soc_psram_end)
     val hit_soc_psram_w = inRange(io.arbiter.awaddr, soc_psram_base, soc_psram_end)
-    val hit_soc_r = hit_soc_mrom_r || hit_soc_sram_r || hit_soc_flash_r || hit_soc_uart_r || hit_soc_psram_r
-    val hit_soc_w = hit_soc_mrom_w || hit_soc_sram_w || hit_soc_flash_w || hit_soc_uart_w || hit_soc_psram_w
+    val hit_soc_sdram_r = inRange(io.arbiter.araddr, soc_sdram_base, soc_sdram_end)
+    val hit_soc_sdram_w = inRange(io.arbiter.awaddr, soc_sdram_base, soc_sdram_end)
+    val hit_soc_r = hit_soc_mrom_r || hit_soc_sram_r || hit_soc_flash_r || hit_soc_uart_r || hit_soc_psram_r || hit_soc_sdram_r
+    val hit_soc_w = hit_soc_mrom_w || hit_soc_sram_w || hit_soc_flash_w || hit_soc_uart_w || hit_soc_psram_w || hit_soc_sdram_w
     val hit_addrerr_r = !hit_clint_r && !hit_soc_r
     val hit_addrerr_w = !hit_clint_w && !hit_soc_w
 
