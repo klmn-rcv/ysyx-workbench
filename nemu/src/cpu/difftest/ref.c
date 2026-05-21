@@ -25,7 +25,9 @@ __EXPORT void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction)
     for (size_t i = 0; i < n; i++) {
       paddr_write(addr + i, 1, *((uint8_t*)buf + i));
     }
+#ifdef CONFIG_TARGET_SHARE
     flag_mrom_init = 0;
+#endif
   } else {
     for (size_t i = 0; i < n; i++) {
       *((uint8_t*)buf + i) = paddr_read(addr + i, 1, MEM_READ_DEBUG);

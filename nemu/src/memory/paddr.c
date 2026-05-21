@@ -146,7 +146,6 @@ void init_mem() {
   IFDEF(CONFIG_MEM_RANDOM, memset(sram, rand(), CONFIG_SRAMSIZE));
   IFDEF(CONFIG_MEM_RANDOM, memset(psram, rand(), CONFIG_PSRAMSIZE));
   IFDEF(CONFIG_MEM_RANDOM, memset(sdram, rand(), CONFIG_SDRAMSIZE));
-  flag_mrom_init = 1;
   Log("mrom  area [" FMT_PADDR ", " FMT_PADDR "]", MROM_LEFT, MROM_RIGHT);
   Log("sram  area [" FMT_PADDR ", " FMT_PADDR "]", SRAM_LEFT, SRAM_RIGHT);
   Log("flash area [" FMT_PADDR ", " FMT_PADDR "]", FLASH_LEFT, FLASH_RIGHT);
