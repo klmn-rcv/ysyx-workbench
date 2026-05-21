@@ -63,18 +63,18 @@ class sdramChisel extends RawModule {
     val DQM_READ_LATENCY = 2
 
     object Cmd {
-      val CommandInhibit = BitPat("b1???")
-      val Nop = BitPat("b0111")
-      val Active = BitPat("b0011")
-      val Read = BitPat("b0101")
-      val Write = BitPat("b0100")
-      val BurstTerminate = BitPat("b0110")
-      val Precharge = BitPat("b0010")
-      val AutoRefresh = BitPat("b0001")
-      val LoadMode = BitPat("b0000")
+      // val CommandInhibit = BitPat("b1???")
+      val Nop = "b0111".U(4.W)
+      val Active = "b0011".U(4.W)
+      val Read = "b0101".U(4.W)
+      val Write = "b0100".U(4.W)
+      val BurstTerminate = "b0110".U(4.W)
+      val Precharge = "b0010".U(4.W)
+      val AutoRefresh = "b0001".U(4.W)
+      val LoadMode = "b0000".U(4.W)
     }
 
-    object Mode {
+    class Mode extends Bundle {
       val mode_loaded = RegInit(false.B)
       val burst_length = RegInit(2.U(4.W))      // bit 0-2
       val burst_type = RegInit(0.U(1.W))        // bit 3
@@ -82,6 +82,8 @@ class sdramChisel extends RawModule {
       val operating_mode = RegInit(0.U(2.W))    // bit 7-8
       val write_burst_mode = RegInit(0.U(1.W))  // bit 9
     }
+
+    val mode = new Mode
 
     val bank_mem = Seq.fill(BANK_COUNT)(Mem(BANK_ROW_COUNT * BANK_COL_COUNT, UInt(16.W)))
     val bank_row_buffer = RegInit(VecInit(Seq.fill(BANK_COUNT)(VecInit(Seq.fill(BANK_COL_COUNT)(0.U(16.W))))))
@@ -129,13 +131,13 @@ class sdramChisel extends RawModule {
 
               is(BankState.Open) {
                 when(read_start(bank_idx)) {
-                  when(Mode.cas_latency === 1.U) {
+                  when(mode.cas_latency === 1.U) {
                     state(bank_idx) := BankState.ReadData
                   }.otherwise {
                     state(bank_idx) := BankState.ReadWait
                   }
                 }.elsewhen(write_start(bank_idx)) {
-                  when(Mode.burst_length === 1.U) {
+                  when(mode.burst_length === 1.U) {
                     state(bank_idx) := BankState.Open
                   }.otherwise {
                     state(bank_idx) := BankState.WriteData
@@ -202,7 +204,7 @@ class sdramChisel extends RawModule {
     def decodeBurstLen(a: UInt): UInt = {
       val code = a(2, 0)
       assert(code === "b000".U || code === "b001".U || code === "b010".U || code === "b011".U, "Unsupported SDRAM burst length")
-      MuxLookup(code, 0.U(4.W), Seq(
+      MuxLookup(code, 0.U(4.W))(Seq(
         "b000".U -> 1.U(4.W),
         "b001".U -> 2.U(4.W),
         "b010".U -> 4.U(4.W),
@@ -299,79 +301,79 @@ class sdramChisel extends RawModule {
           }
         }
       }
-
-      switch(cmd) {
-        is(Cmd.CommandInhibit) {
-        }
-
-        is(Cmd.Nop) {
-        }
-
-        is(Cmd.Active) {
-          assert(Mode.mode_loaded, "SDRAM ACTIVE before LOAD MODE REGISTER")
-          assert(!any_bank_busy, "BankFSM does not accept ACTIVE during ongoing burst")
-          assert(BankFSM.state(io.ba) === BankFSM.BankState.Idle, "SDRAM ACTIVE requires selected bank in Idle state")
-          loadRowBuffer(io.ba, io.a)
-        }
-
-        is(Cmd.Read) {
-          assert(Mode.mode_loaded, "SDRAM READ before LOAD MODE REGISTER")
-          assert(!any_bank_busy, "BankFSM does not accept overlapping READ/WRITE bursts")
-          assert(io.a(10) === 0.U, "Auto-precharge READ is not modeled")
-          assert(BankFSM.state(io.ba) === BankFSM.BankState.Open, "SDRAM READ requires selected bank in Open state")
-          assert(bank_active_row_valid(io.ba), "SDRAM READ before ACTIVE")
-          bank_read_wait_cnt(io.ba) := Mode.cas_latency - 1.U
-          bank_burst_col(io.ba) := io.a(8, 0)
-          bank_read_cnt(io.ba) := Mode.burst_length
-        }
-
-        is(Cmd.Write) {
-          assert(Mode.mode_loaded, "SDRAM WRITE before LOAD MODE REGISTER")
-          assert(!any_bank_busy, "BankFSM does not accept overlapping READ/WRITE bursts")
-          assert(io.a(10) === 0.U, "Auto-precharge WRITE is not modeled")
-          assert(BankFSM.state(io.ba) === BankFSM.BankState.Open, "SDRAM WRITE requires selected bank in Open state")
-          assert(bank_active_row_valid(io.ba), "SDRAM WRITE before ACTIVE")
-          val first_col = io.a(8, 0)
-          writeOpenRowByCol(io.ba, first_col, dq_in, io.dqm)
-
-          when(Mode.burst_length =/= 1.U) {
-            bank_burst_col(io.ba) := first_col + 1.U
-            bank_write_cnt(io.ba) := Mode.burst_length - 1.U
+      when(io.cs) {
+        // Command Inhibit
+      }.otherwise {
+        switch(cmd) {
+          is(Cmd.Nop) {
           }
-        }
 
-        is(Cmd.BurstTerminate) {
-        }
-
-        is(Cmd.Precharge) {
-          assert(!any_bank_busy, "BankFSM does not accept PRECHARGE during ongoing burst")
-          when(io.a(10)) {
-            precharge_all_cmd_fire := true.B
-            bank_active_row_valid.foreach(_ := false.B)
-          }.otherwise {
-            assert(BankFSM.state(io.ba) === BankFSM.BankState.Open, "SDRAM PRECHARGE requires selected bank in Open state")
-            precharge_one_cmd_fire := true.B
-            bank_active_row_valid(io.ba) := false.B
+          is(Cmd.Active) {
+            assert(mode.mode_loaded, "SDRAM ACTIVE before LOAD MODE REGISTER")
+            assert(!any_bank_busy, "BankFSM does not accept ACTIVE during ongoing burst")
+            assert(BankFSM.state(io.ba) === BankFSM.BankState.Idle, "SDRAM ACTIVE requires selected bank in Idle state")
+            loadRowBuffer(io.ba, io.a)
           }
-        }
 
-        is(Cmd.AutoRefresh) {
-          assert(!any_bank_busy, "BankFSM does not accept REFRESH during ongoing burst")
-          assert(all_banks_idle, "SDRAM AUTO REFRESH requires all banks in Idle state")
-        }
+          is(Cmd.Read) {
+            assert(mode.mode_loaded, "SDRAM READ before LOAD MODE REGISTER")
+            assert(!any_bank_busy, "BankFSM does not accept overlapping READ/WRITE bursts")
+            assert(io.a(10) === 0.U, "Auto-precharge READ is not modeled")
+            assert(BankFSM.state(io.ba) === BankFSM.BankState.Open, "SDRAM READ requires selected bank in Open state")
+            assert(bank_active_row_valid(io.ba), "SDRAM READ before ACTIVE")
+            bank_read_wait_cnt(io.ba) := mode.cas_latency - 1.U
+            bank_burst_col(io.ba) := io.a(8, 0)
+            bank_read_cnt(io.ba) := mode.burst_length
+          }
 
-        is(Cmd.LoadMode) {
-          assert(all_banks_idle, "SDRAM LOAD MODE REGISTER requires all banks in Idle state")
-          assert(io.a(3) === 0.U, "Unimplemented SDRAM burst_type")
-          assert(io.a(8, 7) === 0.U, "Unimplemented SDRAM operating_mode")
-          assert(io.a(9) === 0.U, "Unimplemented SDRAM write_burst_mode")
-          assert(io.a(12, 10) === 0.U, "Unimplemented SDRAM reserved mode bits")
-          Mode.burst_length := decodeBurstLen(io.a)
-          Mode.burst_type := io.a(3)
-          Mode.cas_latency := io.a(6, 4)
-          Mode.operating_mode := io.a(8, 7)
-          Mode.write_burst_mode := io.a(9)
-          Mode.mode_loaded := true.B
+          is(Cmd.Write) {
+            assert(mode.mode_loaded, "SDRAM WRITE before LOAD MODE REGISTER")
+            assert(!any_bank_busy, "BankFSM does not accept overlapping READ/WRITE bursts")
+            assert(io.a(10) === 0.U, "Auto-precharge WRITE is not modeled")
+            assert(BankFSM.state(io.ba) === BankFSM.BankState.Open, "SDRAM WRITE requires selected bank in Open state")
+            assert(bank_active_row_valid(io.ba), "SDRAM WRITE before ACTIVE")
+            val first_col = io.a(8, 0)
+            writeOpenRowByCol(io.ba, first_col, dq_in, io.dqm)
+
+            when(mode.burst_length =/= 1.U) {
+              bank_burst_col(io.ba) := first_col + 1.U
+              bank_write_cnt(io.ba) := mode.burst_length - 1.U
+            }
+          }
+
+          is(Cmd.BurstTerminate) {
+          }
+
+          is(Cmd.Precharge) {
+            assert(!any_bank_busy, "BankFSM does not accept PRECHARGE during ongoing burst")
+            when(io.a(10)) {
+              precharge_all_cmd_fire := true.B
+              bank_active_row_valid.foreach(_ := false.B)
+            }.otherwise {
+              assert(BankFSM.state(io.ba) === BankFSM.BankState.Open, "SDRAM PRECHARGE requires selected bank in Open state")
+              precharge_one_cmd_fire := true.B
+              bank_active_row_valid(io.ba) := false.B
+            }
+          }
+
+          is(Cmd.AutoRefresh) {
+            assert(!any_bank_busy, "BankFSM does not accept REFRESH during ongoing burst")
+            assert(all_banks_idle, "SDRAM AUTO REFRESH requires all banks in Idle state")
+          }
+
+          is(Cmd.LoadMode) {
+            assert(all_banks_idle, "SDRAM LOAD MODE REGISTER requires all banks in Idle state")
+            assert(io.a(3) === 0.U, "Unimplemented SDRAM burst_type")
+            assert(io.a(8, 7) === 0.U, "Unimplemented SDRAM operating_mode")
+            assert(io.a(9) === 0.U, "Unimplemented SDRAM write_burst_mode")
+            assert(io.a(12, 10) === 0.U, "Unimplemented SDRAM reserved mode bits")
+            mode.burst_length := decodeBurstLen(io.a)
+            mode.burst_type := io.a(3)
+            mode.cas_latency := io.a(6, 4)
+            mode.operating_mode := io.a(8, 7)
+            mode.write_burst_mode := io.a(9)
+            mode.mode_loaded := true.B
+          }
         }
       }
     }
