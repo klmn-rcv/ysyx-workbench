@@ -154,6 +154,7 @@ static void checkregs(CPU_state *ref, vaddr_t pc) {
     Log(ANSI_FG_RED "Difftest: Failed at pc = " FMT_WORD ANSI_NONE, pc);
     reg_display();
     IFDEF(CONFIG_ITRACE, iringbuf_print());
+    end_wave();
   }
 }
 
