@@ -10,7 +10,7 @@ import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.util._
 
-class SDRAMIO(dataWidth: Int = 32) extends Bundle {
+class SDRAMIO16 extends Bundle {
   val clk = Output(Bool())
   val cke = Output(Bool())
   val cs  = Output(Bool())
@@ -19,8 +19,22 @@ class SDRAMIO(dataWidth: Int = 32) extends Bundle {
   val we  = Output(Bool())
   val a   = Output(UInt(13.W))
   val ba  = Output(UInt(2.W))
-  val dqm = Output(UInt((dataWidth / 8).W))
-  val dq  = Analog(dataWidth.W)
+  val dqm = Output(UInt(2.W))
+  val dq  = Analog(16.W)
+}
+
+class SDRAMIO32 extends Bundle {
+  val clk = Output(Bool())
+  val cke = Output(Bool())
+  val cs  = Output(Bool())
+  val ras = Output(Bool())
+  val cas = Output(Bool())
+  val we  = Output(Bool())
+  val a   = Output(UInt(13.W))
+  val ba  = Output(UInt(2.W))
+  val dqm = Output(UInt(4.W))
+  val dq_lo  = Analog(16.W)
+  val dq_hi  = Analog(16.W)
 }
 
 class sdram_top_axi extends BlackBox {
@@ -28,7 +42,7 @@ class sdram_top_axi extends BlackBox {
     val clock = Input(Clock())
     val reset = Input(Bool())
     val in = Flipped(new AXI4Bundle(AXI4BundleParameters(addrBits = 32, dataBits = 32, idBits = 4)))
-    val sdram = new SDRAMIO
+    val sdram = new SDRAMIO32
   })
 }
 
@@ -37,17 +51,17 @@ class sdram_top_apb extends BlackBox {
     val clock = Input(Clock())
     val reset = Input(Bool())
     val in = Flipped(new APBBundle(APBBundleParameters(addrBits = 32, dataBits = 32)))
-    val sdram = new SDRAMIO
+    val sdram = new SDRAMIO32
   })
 }
 
 class sdram extends BlackBox {
-  val io = IO(Flipped(new SDRAMIO))
+  val io = IO(Flipped(new SDRAMIO16))
 }
 
 class sdramChisel extends RawModule {
   val io = IO(new Bundle {
-    val sdramio = Flipped(new SDRAMIO(16))
+    val sdramio = Flipped(new SDRAMIO16)
     val reset = Input(Reset())
   })
 
@@ -382,57 +396,22 @@ class sdramChisel extends RawModule {
   }
 }
 
-class sdramChiselExtended extends BlackBox with HasBlackBoxInline {
+class sdramChiselExtended extends RawModule {
   val io = IO(new Bundle {
-    val sdramio = Flipped(new SDRAMIO)
+    val sdramio = Flipped(new SDRAMIO32)
     val reset = Input(Reset())
   })
 
-  setInline("sdram_chisel_extended.v",
-    """module sdramChiselExtended (
-      |  input         sdramio_clk,
-      |  input         sdramio_cke,
-      |  input         sdramio_cs,
-      |  input         sdramio_ras,
-      |  input         sdramio_cas,
-      |  input         sdramio_we,
-      |  input  [12:0] sdramio_a,
-      |  input  [ 1:0] sdramio_ba,
-      |  input  [ 3:0] sdramio_dqm,
-      |  inout  [31:0] sdramio_dq,
-      |  input         reset
-      |);
-      |
-      |  sdramChisel sdram_lo (
-      |    .io_sdramio_clk(sdramio_clk),
-      |    .io_sdramio_cke(sdramio_cke),
-      |    .io_sdramio_cs(sdramio_cs),
-      |    .io_sdramio_ras(sdramio_ras),
-      |    .io_sdramio_cas(sdramio_cas),
-      |    .io_sdramio_we(sdramio_we),
-      |    .io_sdramio_a(sdramio_a),
-      |    .io_sdramio_ba(sdramio_ba),
-      |    .io_sdramio_dqm(sdramio_dqm[1:0]),
-      |    .io_sdramio_dq(sdramio_dq[15:0]),
-      |    .io_reset(reset)
-      |  );
-      |
-      |  sdramChisel sdram_hi (
-      |    .io_sdramio_clk(sdramio_clk),
-      |    .io_sdramio_cke(sdramio_cke),
-      |    .io_sdramio_cs(sdramio_cs),
-      |    .io_sdramio_ras(sdramio_ras),
-      |    .io_sdramio_cas(sdramio_cas),
-      |    .io_sdramio_we(sdramio_we),
-      |    .io_sdramio_a(sdramio_a),
-      |    .io_sdramio_ba(sdramio_ba),
-      |    .io_sdramio_dqm(sdramio_dqm[3:2]),
-      |    .io_sdramio_dq(sdramio_dq[31:16]),
-      |    .io_reset(reset)
-      |  );
-      |
-      |endmodule
-      |""".stripMargin)
+  val sdram_lo = Module(new sdramChisel)
+  val sdram_hi = Module(new sdramChisel)
+
+  sdram_lo.io.exclude(_.dqm, _.dq) :<>= io.sdramio.exclude(_.dqm, _.dq_lo, _.dq_hi)
+  sdram_hi.io.exclude(_.dqm, _.dq) :<>= io.sdramio.exclude(_.dqm, _.dq_lo, _.dq_hi)
+
+  sdram_lo.io.dqm := io.sdramio.dqm(1, 0)
+  sdram_hi.io.dqm := io.sdramio.dqm(3, 2)
+  attach(sdram_lo.io.dq, io.sdramio.dq_lo)
+  attach(sdram_hi.io.dq, io.sdramio.dq_hi)
 }
 
 class AXI4SDRAM(address: Seq[AddressSet])(implicit p: Parameters) extends LazyModule {
@@ -450,7 +429,7 @@ class AXI4SDRAM(address: Seq[AddressSet])(implicit p: Parameters) extends LazyMo
   lazy val module = new Impl
   class Impl extends LazyModuleImp(this) {
     val (in, _) = node.in(0)
-    val sdram_bundle = IO(new SDRAMIO)
+    val sdram_bundle = IO(new SDRAMIO32)
 
     val msdram = Module(new sdram_top_axi)
     msdram.io.clock := clock
@@ -472,7 +451,7 @@ class APBSDRAM(address: Seq[AddressSet])(implicit p: Parameters) extends LazyMod
   lazy val module = new Impl
   class Impl extends LazyModuleImp(this) {
     val (in, _) = node.in(0)
-    val sdram_bundle = IO(new SDRAMIO)
+    val sdram_bundle = IO(new SDRAMIO32)
 
     val msdram = Module(new sdram_top_apb)
     msdram.io.clock := clock
