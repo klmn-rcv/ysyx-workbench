@@ -10,7 +10,7 @@ import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.util._
 
-class SDRAMIO extends Bundle {
+class SDRAMIO(dataWidth: Int = 32) extends Bundle {
   val clk = Output(Bool())
   val cke = Output(Bool())
   val cs  = Output(Bool())
@@ -19,8 +19,8 @@ class SDRAMIO extends Bundle {
   val we  = Output(Bool())
   val a   = Output(UInt(13.W))
   val ba  = Output(UInt(2.W))
-  val dqm = Output(UInt(2.W))
-  val dq  = Analog(16.W)
+  val dqm = Output(UInt((dataWidth / 8).W))
+  val dq  = Analog(dataWidth.W)
 }
 
 class sdram_top_axi extends BlackBox {
@@ -46,14 +46,16 @@ class sdram extends BlackBox {
 }
 
 class sdramChisel extends RawModule {
-  val io = IO(Flipped(new SDRAMIO))
-  val reset = IO(Input(Reset()))
+  val io = IO(new Bundle {
+    val sdramio = Flipped(new SDRAMIO(16))
+    val reset = Input(Reset())
+  })
 
   val dq_out = WireDefault(0.U(16.W))
   val dq_out_en = WireDefault(0.U(2.W))
-  val dq_in = TriStateInBufVecEn(io.dq, dq_out, dq_out_en)
+  val dq_in = TriStateInBufVecEn(io.sdramio.dq, dq_out, dq_out_en)
 
-  withClockAndReset(io.clk.asClock, reset) {
+  withClockAndReset(io.sdramio.clk.asClock, io.reset) {
     val BANK_COUNT = 4
     val BANK_ROW_COUNT = 8192
     val BANK_COL_COUNT = 512
@@ -76,7 +78,7 @@ class sdramChisel extends RawModule {
 
     class Mode extends Bundle {
       val mode_loaded = RegInit(false.B)
-      val burst_length = RegInit(2.U(4.W))      // bit 0-2
+      val burst_length = RegInit(1.U(4.W))      // bit 0-2
       val burst_type = RegInit(0.U(1.W))        // bit 3
       val cas_latency = RegInit(2.U(3.W))       // bit 4-6
       val operating_mode = RegInit(0.U(2.W))    // bit 7-8
@@ -98,7 +100,7 @@ class sdramChisel extends RawModule {
 
     val read_dqm_q = RegInit(VecInit(Seq.fill(DQM_READ_LATENCY)(0.U(2.W))))
 
-    val cmd = Cat(io.cs, io.ras, io.cas, io.we)
+    val cmd = Cat(io.sdramio.cs, io.sdramio.ras, io.sdramio.cas, io.sdramio.we)
 
     object BankFSM {
       object BankState extends ChiselEnum {
@@ -117,7 +119,7 @@ class sdramChisel extends RawModule {
       val read_data_done = WireDefault(VecInit(Seq.fill(BANK_COUNT)(false.B)))
       val write_data_done = WireDefault(VecInit(Seq.fill(BANK_COUNT)(false.B)))
 
-      when(io.cke) {
+      when(io.sdramio.cke) {
         for (bank_idx <- 0 until BANK_COUNT) {
           when(precharge_all) {
             state(bank_idx) := BankState.Idle
@@ -176,7 +178,7 @@ class sdramChisel extends RawModule {
     val precharge_all_cmd_fire = WireDefault(false.B)
 
     for (bank_idx <- 0 until BANK_COUNT) {
-      val bank_selected = io.ba === bank_idx.U
+      val bank_selected = io.sdramio.ba === bank_idx.U
 
       BankFSM.active_start(bank_idx) := cmd === Cmd.Active && bank_selected
       BankFSM.read_start(bank_idx) := cmd === Cmd.Read && bank_selected
@@ -222,8 +224,8 @@ class sdramChisel extends RawModule {
           }
         }
       }
-      bank_active_row(io.ba) := io.a
-      bank_active_row_valid(io.ba) := true.B
+      bank_active_row(io.sdramio.ba) := io.sdramio.a
+      bank_active_row_valid(io.sdramio.ba) := true.B
     }
 
     def readRowBufferByCol(bank_sel: UInt, col_addr: UInt): UInt = {
@@ -273,8 +275,8 @@ class sdramChisel extends RawModule {
       0.U(2.W)
     )
 
-    when(io.cke) {
-      read_dqm_q(0) := io.dqm
+    when(io.sdramio.cke) {
+      read_dqm_q(0) := io.sdramio.dqm
       for (delay_idx <- 1 until DQM_READ_LATENCY) {
         read_dqm_q(delay_idx) := read_dqm_q(delay_idx - 1)
       }
@@ -294,14 +296,14 @@ class sdramChisel extends RawModule {
         }
 
         when(BankFSM.state(bank_idx) === BankFSM.BankState.WriteData) {
-          writeOpenRowByCol(bank_idx.U, bank_burst_col(bank_idx), dq_in, io.dqm)
+          writeOpenRowByCol(bank_idx.U, bank_burst_col(bank_idx), dq_in, io.sdramio.dqm)
           when(bank_write_cnt(bank_idx) =/= 1.U) {
             bank_burst_col(bank_idx) := bank_burst_col(bank_idx) + 1.U
             bank_write_cnt(bank_idx) := bank_write_cnt(bank_idx) - 1.U
           }
         }
       }
-      when(io.cs) {
+      when(io.sdramio.cs) {
         // Command Inhibit
       }.otherwise {
         switch(cmd) {
@@ -311,33 +313,33 @@ class sdramChisel extends RawModule {
           is(Cmd.Active) {
             assert(mode.mode_loaded, "SDRAM ACTIVE before LOAD MODE REGISTER")
             assert(!any_bank_busy, "BankFSM does not accept ACTIVE during ongoing burst")
-            assert(BankFSM.state(io.ba) === BankFSM.BankState.Idle, "SDRAM ACTIVE requires selected bank in Idle state")
-            loadRowBuffer(io.ba, io.a)
+            assert(BankFSM.state(io.sdramio.ba) === BankFSM.BankState.Idle, "SDRAM ACTIVE requires selected bank in Idle state")
+            loadRowBuffer(io.sdramio.ba, io.sdramio.a)
           }
 
           is(Cmd.Read) {
             assert(mode.mode_loaded, "SDRAM READ before LOAD MODE REGISTER")
             assert(!any_bank_busy, "BankFSM does not accept overlapping READ/WRITE bursts")
-            assert(io.a(10) === 0.U, "Auto-precharge READ is not modeled")
-            assert(BankFSM.state(io.ba) === BankFSM.BankState.Open, "SDRAM READ requires selected bank in Open state")
-            assert(bank_active_row_valid(io.ba), "SDRAM READ before ACTIVE")
-            bank_read_wait_cnt(io.ba) := mode.cas_latency - 1.U
-            bank_burst_col(io.ba) := io.a(8, 0)
-            bank_read_cnt(io.ba) := mode.burst_length
+            assert(io.sdramio.a(10) === 0.U, "Auto-precharge READ is not modeled")
+            assert(BankFSM.state(io.sdramio.ba) === BankFSM.BankState.Open, "SDRAM READ requires selected bank in Open state")
+            assert(bank_active_row_valid(io.sdramio.ba), "SDRAM READ before ACTIVE")
+            bank_read_wait_cnt(io.sdramio.ba) := mode.cas_latency - 1.U
+            bank_burst_col(io.sdramio.ba) := io.sdramio.a(8, 0)
+            bank_read_cnt(io.sdramio.ba) := mode.burst_length
           }
 
           is(Cmd.Write) {
             assert(mode.mode_loaded, "SDRAM WRITE before LOAD MODE REGISTER")
             assert(!any_bank_busy, "BankFSM does not accept overlapping READ/WRITE bursts")
-            assert(io.a(10) === 0.U, "Auto-precharge WRITE is not modeled")
-            assert(BankFSM.state(io.ba) === BankFSM.BankState.Open, "SDRAM WRITE requires selected bank in Open state")
-            assert(bank_active_row_valid(io.ba), "SDRAM WRITE before ACTIVE")
-            val first_col = io.a(8, 0)
-            writeOpenRowByCol(io.ba, first_col, dq_in, io.dqm)
+            assert(io.sdramio.a(10) === 0.U, "Auto-precharge WRITE is not modeled")
+            assert(BankFSM.state(io.sdramio.ba) === BankFSM.BankState.Open, "SDRAM WRITE requires selected bank in Open state")
+            assert(bank_active_row_valid(io.sdramio.ba), "SDRAM WRITE before ACTIVE")
+            val first_col = io.sdramio.a(8, 0)
+            writeOpenRowByCol(io.sdramio.ba, first_col, dq_in, io.sdramio.dqm)
 
             when(mode.burst_length =/= 1.U) {
-              bank_burst_col(io.ba) := first_col + 1.U
-              bank_write_cnt(io.ba) := mode.burst_length - 1.U
+              bank_burst_col(io.sdramio.ba) := first_col + 1.U
+              bank_write_cnt(io.sdramio.ba) := mode.burst_length - 1.U
             }
           }
 
@@ -346,13 +348,13 @@ class sdramChisel extends RawModule {
 
           is(Cmd.Precharge) {
             assert(!any_bank_busy, "BankFSM does not accept PRECHARGE during ongoing burst")
-            when(io.a(10)) {
+            when(io.sdramio.a(10)) {
               precharge_all_cmd_fire := true.B
               bank_active_row_valid.foreach(_ := false.B)
             }.otherwise {
-              assert(BankFSM.state(io.ba) === BankFSM.BankState.Open, "SDRAM PRECHARGE requires selected bank in Open state")
+              assert(BankFSM.state(io.sdramio.ba) === BankFSM.BankState.Open, "SDRAM PRECHARGE requires selected bank in Open state")
               precharge_one_cmd_fire := true.B
-              bank_active_row_valid(io.ba) := false.B
+              bank_active_row_valid(io.sdramio.ba) := false.B
             }
           }
 
@@ -363,21 +365,74 @@ class sdramChisel extends RawModule {
 
           is(Cmd.LoadMode) {
             assert(all_banks_idle, "SDRAM LOAD MODE REGISTER requires all banks in Idle state")
-            assert(io.a(3) === 0.U, "Unimplemented SDRAM burst_type")
-            assert(io.a(8, 7) === 0.U, "Unimplemented SDRAM operating_mode")
-            assert(io.a(9) === 0.U, "Unimplemented SDRAM write_burst_mode")
-            assert(io.a(12, 10) === 0.U, "Unimplemented SDRAM reserved mode bits")
-            mode.burst_length := decodeBurstLen(io.a)
-            mode.burst_type := io.a(3)
-            mode.cas_latency := io.a(6, 4)
-            mode.operating_mode := io.a(8, 7)
-            mode.write_burst_mode := io.a(9)
+            assert(io.sdramio.a(3) === 0.U, "Unimplemented SDRAM burst_type")
+            assert(io.sdramio.a(8, 7) === 0.U, "Unimplemented SDRAM operating_mode")
+            assert(io.sdramio.a(9) === 0.U, "Unimplemented SDRAM write_burst_mode")
+            assert(io.sdramio.a(12, 10) === 0.U, "Unimplemented SDRAM reserved mode bits")
+            mode.burst_length := decodeBurstLen(io.sdramio.a)
+            mode.burst_type := io.sdramio.a(3)
+            mode.cas_latency := io.sdramio.a(6, 4)
+            mode.operating_mode := io.sdramio.a(8, 7)
+            mode.write_burst_mode := io.sdramio.a(9)
             mode.mode_loaded := true.B
           }
         }
       }
     }
   }
+}
+
+class sdramChiselExtended extends BlackBox with HasBlackBoxInline {
+  val io = IO(new Bundle {
+    val sdramio = Flipped(new SDRAMIO)
+    val reset = Input(Reset())
+  })
+
+  setInline("sdram_chisel_extended.v",
+    """module sdramChiselExtended (
+      |  input         io_sdramio_clk,
+      |  input         io_sdramio_cke,
+      |  input         io_sdramio_cs,
+      |  input         io_sdramio_ras,
+      |  input         io_sdramio_cas,
+      |  input         io_sdramio_we,
+      |  input  [12:0] io_sdramio_a,
+      |  input  [ 1:0] io_sdramio_ba,
+      |  input  [ 3:0] io_sdramio_dqm,
+      |  inout  [31:0] io_sdramio_dq,
+      |  input         io_reset
+      |);
+      |
+      |  sdramChisel sdram_lo (
+      |    .io_sdramio_clk(io_sdramio_clk),
+      |    .io_sdramio_cke(io_sdramio_cke),
+      |    .io_sdramio_cs(io_sdramio_cs),
+      |    .io_sdramio_ras(io_sdramio_ras),
+      |    .io_sdramio_cas(io_sdramio_cas),
+      |    .io_sdramio_we(io_sdramio_we),
+      |    .io_sdramio_a(io_sdramio_a),
+      |    .io_sdramio_ba(io_sdramio_ba),
+      |    .io_sdramio_dqm(io_sdramio_dqm[1:0]),
+      |    .io_sdramio_dq(io_sdramio_dq[15:0]),
+      |    .io_reset(io_reset)
+      |  );
+      |
+      |  sdramChisel sdram_hi (
+      |    .io_sdramio_clk(io_sdramio_clk),
+      |    .io_sdramio_cke(io_sdramio_cke),
+      |    .io_sdramio_cs(io_sdramio_cs),
+      |    .io_sdramio_ras(io_sdramio_ras),
+      |    .io_sdramio_cas(io_sdramio_cas),
+      |    .io_sdramio_we(io_sdramio_we),
+      |    .io_sdramio_a(io_sdramio_a),
+      |    .io_sdramio_ba(io_sdramio_ba),
+      |    .io_sdramio_dqm(io_sdramio_dqm[3:2]),
+      |    .io_sdramio_dq(io_sdramio_dq[31:16]),
+      |    .io_reset(io_reset)
+      |  );
+      |
+      |endmodule
+      |""".stripMargin)
 }
 
 class AXI4SDRAM(address: Seq[AddressSet])(implicit p: Parameters) extends LazyModule {
