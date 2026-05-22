@@ -390,45 +390,45 @@ class sdramChiselExtended extends BlackBox with HasBlackBoxInline {
 
   setInline("sdram_chisel_extended.v",
     """module sdramChiselExtended (
-      |  input         io_sdramio_clk,
-      |  input         io_sdramio_cke,
-      |  input         io_sdramio_cs,
-      |  input         io_sdramio_ras,
-      |  input         io_sdramio_cas,
-      |  input         io_sdramio_we,
-      |  input  [12:0] io_sdramio_a,
-      |  input  [ 1:0] io_sdramio_ba,
-      |  input  [ 3:0] io_sdramio_dqm,
-      |  inout  [31:0] io_sdramio_dq,
-      |  input         io_reset
+      |  input         sdramio_clk,
+      |  input         sdramio_cke,
+      |  input         sdramio_cs,
+      |  input         sdramio_ras,
+      |  input         sdramio_cas,
+      |  input         sdramio_we,
+      |  input  [12:0] sdramio_a,
+      |  input  [ 1:0] sdramio_ba,
+      |  input  [ 3:0] sdramio_dqm,
+      |  inout  [31:0] sdramio_dq,
+      |  input         reset
       |);
       |
       |  sdramChisel sdram_lo (
-      |    .io_sdramio_clk(io_sdramio_clk),
-      |    .io_sdramio_cke(io_sdramio_cke),
-      |    .io_sdramio_cs(io_sdramio_cs),
-      |    .io_sdramio_ras(io_sdramio_ras),
-      |    .io_sdramio_cas(io_sdramio_cas),
-      |    .io_sdramio_we(io_sdramio_we),
-      |    .io_sdramio_a(io_sdramio_a),
-      |    .io_sdramio_ba(io_sdramio_ba),
-      |    .io_sdramio_dqm(io_sdramio_dqm[1:0]),
-      |    .io_sdramio_dq(io_sdramio_dq[15:0]),
-      |    .io_reset(io_reset)
+      |    .io_sdramio_clk(sdramio_clk),
+      |    .io_sdramio_cke(sdramio_cke),
+      |    .io_sdramio_cs(sdramio_cs),
+      |    .io_sdramio_ras(sdramio_ras),
+      |    .io_sdramio_cas(sdramio_cas),
+      |    .io_sdramio_we(sdramio_we),
+      |    .io_sdramio_a(sdramio_a),
+      |    .io_sdramio_ba(sdramio_ba),
+      |    .io_sdramio_dqm(sdramio_dqm[1:0]),
+      |    .io_sdramio_dq(sdramio_dq[15:0]),
+      |    .io_reset(reset)
       |  );
       |
       |  sdramChisel sdram_hi (
-      |    .io_sdramio_clk(io_sdramio_clk),
-      |    .io_sdramio_cke(io_sdramio_cke),
-      |    .io_sdramio_cs(io_sdramio_cs),
-      |    .io_sdramio_ras(io_sdramio_ras),
-      |    .io_sdramio_cas(io_sdramio_cas),
-      |    .io_sdramio_we(io_sdramio_we),
-      |    .io_sdramio_a(io_sdramio_a),
-      |    .io_sdramio_ba(io_sdramio_ba),
-      |    .io_sdramio_dqm(io_sdramio_dqm[3:2]),
-      |    .io_sdramio_dq(io_sdramio_dq[31:16]),
-      |    .io_reset(io_reset)
+      |    .io_sdramio_clk(sdramio_clk),
+      |    .io_sdramio_cke(sdramio_cke),
+      |    .io_sdramio_cs(sdramio_cs),
+      |    .io_sdramio_ras(sdramio_ras),
+      |    .io_sdramio_cas(sdramio_cas),
+      |    .io_sdramio_we(sdramio_we),
+      |    .io_sdramio_a(sdramio_a),
+      |    .io_sdramio_ba(sdramio_ba),
+      |    .io_sdramio_dqm(sdramio_dqm[3:2]),
+      |    .io_sdramio_dq(sdramio_dq[31:16]),
+      |    .io_reset(reset)
       |  );
       |
       |endmodule
