@@ -63,15 +63,19 @@ void test64(uintptr_t start, uintptr_t end) {
 
 int main() {
   uintptr_t start = 0xa0000000;
-  uintptr_t end = 0xa1ffffff;
+  uintptr_t end = 0xa2000000;
 
   check(start < end);
   check((start & 0x7) == 0);
 
+  printf("Start test8\n");
   test8(start, end);
+  printf("Start test16\n");
   test16(start, end);
+  printf("Start test32\n");
   test32(start, end);
 #if __riscv_xlen >= 64
+  printf("Start test64\n");
   test64(start, end);
 #endif
 

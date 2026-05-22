@@ -30,7 +30,7 @@ load_ssbl_end:
 .type _ssbl_start, @function
 
 _ssbl_start:
-  # copy .text from its LMA in flash to its VMA in PSRAM
+  # copy .text from its LMA in flash to its VMA in SDRAM
   la t0, _text_lma_start
   la t1, _text_vma_start
   la t2, _text_vma_end
@@ -43,7 +43,7 @@ load_text:
   j load_text
 load_text_end:
 
-  # copy .rodata from its LMA in flash to its VMA in PSRAM
+  # copy .rodata from its LMA in flash to its VMA in SDRAM
   la t0, _rodata_lma_start
   la t1, _rodata_vma_start
   la t2, _rodata_vma_end
@@ -56,7 +56,7 @@ load_rodata:
   j load_rodata
 load_rodata_end:
 
-  # copy .data from its LMA in flash to its VMA in PSRAM
+  # copy .data from its LMA in flash to its VMA in SDRAM
   la t0, _data_lma_start
   la t1, _data_vma_start
   la t2, _data_vma_end
@@ -69,7 +69,7 @@ load_data:
   j load_data
 load_data_end:
 
-  # copy optional .data.extra (in RT-Thread) section from flash to PSRAM
+  # copy optional .data.extra (in RT-Thread) section from flash to SDRAM
   la t0, _extra_data_lma_start
   la t1, _extra_data_vma_start
   la t2, _extra_data_vma_end
@@ -82,7 +82,7 @@ load_extra_data:
   j load_extra_data
 load_extra_data_end:
 
-  # zero .bss in PSRAM before entering C code
+  # zero .bss in SDRAM before entering C code
   la t1, _bss_vma_start
   la t2, _bss_vma_end
 clear_bss:
@@ -92,7 +92,7 @@ clear_bss:
   j clear_bss
 clear_bss_end:
 
-  # zero optional .bss.extra (in RT-Thread) section in PSRAM
+  # zero optional .bss.extra (in RT-Thread) section in SDRAM
   la t1, _extra_bss_vma_start
   la t2, _extra_bss_vma_end
 clear_extra_bss:
