@@ -34,11 +34,11 @@ SECTIONS {
   _stack_pointer = _stack_base;
 
   /* Program text/rodata run from SRAM, but are stored in flash image. */
-  .text ORIGIN(psram) : {
+  .text ORIGIN(sdram) : {
     . = ALIGN(4);
     _text_vma_start = .;
     *(.text*)
-  } > psram AT> flash /*: text*/
+  } > sdram AT> flash /*: text*/
   _text_lma_start = LOADADDR(.text);
   _text_vma_end = .;
 
@@ -47,7 +47,7 @@ SECTIONS {
     _rodata_vma_start = .;
     *(.rodata*)
     *(.srodata*)
-  } > psram AT> flash /*: text*/
+  } > sdram AT> flash /*: text*/
   _rodata_lma_start = LOADADDR(.rodata);
   _rodata_vma_end = .;
 
@@ -56,7 +56,7 @@ SECTIONS {
     _data_vma_start = .;
     *(.data*)
     *(.sdata*)
-  } > psram AT> flash /*: data*/
+  } > sdram AT> flash /*: data*/
   _data_lma_start = LOADADDR(.data);
   _data_vma_end = .;
 
@@ -66,11 +66,11 @@ SECTIONS {
     *(.bss*)
     *(.sbss*)
     *(.scommon)
-  } > psram /*: data*/
+  } > sdram /*: data*/
   _bss_vma_end = .;
 
   _heap_start = ALIGN(8);
-  _heap_end = ORIGIN(psram) + LENGTH(psram);
+  _heap_end = ORIGIN(sdram) + LENGTH(sdram);
   /* _stack_top = ORIGIN(sram);
   _stack_base = ORIGIN(sram) + LENGTH(sram);
   _stack_pointer = _stack_base; */
