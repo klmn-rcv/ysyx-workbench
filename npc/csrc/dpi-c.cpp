@@ -11,6 +11,7 @@
 #endif
 #include "VysyxSoCFull___024root.h"
 #include "VysyxSoCFull_sdramChisel.h"
+#include "VysyxSoCFull_sdramChisel_2.h"
 #include "VysyxSoCFull_bank_mem_4194304x16.h"
 
 extern char mrom[];  // mask rom
@@ -33,6 +34,27 @@ static inline uint32_t load_le_u32(const Mem &mem, uint32_t offset) {
          (static_cast<uint32_t>(static_cast<uint8_t>(mem[offset + 1])) << 8) |
          (static_cast<uint32_t>(static_cast<uint8_t>(mem[offset + 2])) << 16) |
          (static_cast<uint32_t>(static_cast<uint8_t>(mem[offset + 3])) << 24);
+}
+
+template <typename Sdram>
+static inline VysyxSoCFull_bank_mem_4194304x16 *sdram_bank_mem(Sdram *sdram, uint32_t bank) {
+  switch (bank) {
+    case 0: return sdram->__PVT__bank_mem_0_ext;
+    case 1: return sdram->__PVT__bank_mem_1_ext;
+    case 2: return sdram->__PVT__bank_mem_2_ext;
+    case 3: return sdram->__PVT__bank_mem_3_ext;
+    default: return nullptr;
+  }
+}
+
+template <typename SdramLo, typename SdramHi>
+static inline uint32_t sdram_rank_read(SdramLo *sdram_lo, SdramHi *sdram_hi, uint32_t bank, uint32_t index) {
+  auto *bank_mem_lo = sdram_bank_mem(sdram_lo, bank);
+  auto *bank_mem_hi = sdram_bank_mem(sdram_hi, bank);
+  Assert(bank_mem_lo != nullptr && bank_mem_hi != nullptr, "debug_mem_read SDRAM bank invalid: %u", bank);
+  const uint32_t lo = bank_mem_lo->__PVT__Memory[index];
+  const uint32_t hi = bank_mem_hi->__PVT__Memory[index];
+  return lo | (hi << 16);
 }
 
 static uint32_t debug_mem_read(uint32_t raddr) {
@@ -63,44 +85,26 @@ static uint32_t debug_mem_read(uint32_t raddr) {
     constexpr uint32_t kSdramBankBits = 2;
     constexpr uint32_t kSdramRowBits = 13;
 
-    // Match sdram_axi_core address slicing for the widened 32-bit SDRAM path.
+    // Match sdram_axi_core address slicing for two 32-bit SDRAM ranks.
     const uint32_t word_index = sdram_addr >> 2;  // (31,2)
     const uint32_t bank = (word_index >> kSdramColBits) & ((1u << kSdramBankBits) - 1); // (12,11)
     const uint32_t row = (word_index >> (kSdramColBits + kSdramBankBits)) & ((1u << kSdramRowBits) - 1); // (25,13)
     const uint32_t col = word_index & ((1u << kSdramColBits) - 1); // (10,2)
+    const uint32_t rank = word_index >> (kSdramColBits + kSdramBankBits + kSdramRowBits); // (26)
     const uint32_t index = (row << kSdramColBits) | col;
 
-    auto *sdram_lo = root->__PVT__ysyxSoCFull__DOT__sdram__DOT__sdram_lo;
-    auto *sdram_hi = root->__PVT__ysyxSoCFull__DOT__sdram__DOT__sdram_hi;
-    VysyxSoCFull_bank_mem_4194304x16 *bank_mem_lo = nullptr;
-    VysyxSoCFull_bank_mem_4194304x16 *bank_mem_hi = nullptr;
-    switch (bank) {
+    switch (rank) {
       case 0:
-        bank_mem_lo = sdram_lo->__PVT__bank_mem_0_ext;
-        bank_mem_hi = sdram_hi->__PVT__bank_mem_0_ext;
-        break;
+        return sdram_rank_read(root->__PVT__ysyxSoCFull__DOT__sdram__DOT__sdram_rank0_lo,
+                               root->__PVT__ysyxSoCFull__DOT__sdram__DOT__sdram_rank0_hi,
+                               bank, index);
       case 1:
-        bank_mem_lo = sdram_lo->__PVT__bank_mem_1_ext;
-        bank_mem_hi = sdram_hi->__PVT__bank_mem_1_ext;
-        break;
-      case 2:
-        bank_mem_lo = sdram_lo->__PVT__bank_mem_2_ext;
-        bank_mem_hi = sdram_hi->__PVT__bank_mem_2_ext;
-        break;
-      case 3:
-        bank_mem_lo = sdram_lo->__PVT__bank_mem_3_ext;
-        bank_mem_hi = sdram_hi->__PVT__bank_mem_3_ext;
-        break;
+        return sdram_rank_read(root->__PVT__ysyxSoCFull__DOT__sdram__DOT__sdram_rank1_lo,
+                               root->__PVT__ysyxSoCFull__DOT__sdram__DOT__sdram_rank1_hi,
+                               bank, index);
       default:
-        bank_mem_lo = nullptr;
-        bank_mem_hi = nullptr;
-        break;
+        Assert(0, "debug_mem_read SDRAM rank invalid: %u", rank);
     }
-
-    Assert(bank_mem_lo != nullptr && bank_mem_hi != nullptr, "debug_mem_read SDRAM bank invalid: %u", bank);
-    const uint32_t lo = bank_mem_lo->__PVT__Memory[index];
-    const uint32_t hi = bank_mem_hi->__PVT__Memory[index];
-    return lo | (hi << 16);
   }
 
   Assert(0, "debug_mem_read out of bounds at address 0x%x", raddr);
