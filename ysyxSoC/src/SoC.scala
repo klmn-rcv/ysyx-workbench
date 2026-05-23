@@ -144,8 +144,8 @@ class ysyxSoCFull(implicit p: Parameters) extends LazyModule {
     psram.reset := reset
     psram.io <> masic.psram
     val sdram = Module(new sdramChiselExtended)
-    sdram.io.reset := reset
-    sdram.io.sdramio <> masic.sdram
+    sdram.reset := reset
+    sdram.io <> masic.sdram
 
     val externalPins = IO(new Bundle{
       val gpio = chiselTypeOf(masic.gpio)
