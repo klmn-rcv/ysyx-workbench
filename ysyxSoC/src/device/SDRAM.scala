@@ -403,7 +403,7 @@ class sdramChiselExtended extends RawModule {
   val sdram_rank1_lo = Module(new sdramChisel(rank = 1))
   val sdram_rank1_hi = Module(new sdramChisel(rank = 1))
 
-  Seq(sdram_rank0_lo, sdram_rank0_hi, sdram_rank1_lo, sdram_rank1_hi).foreach { sdram =>
+  List(sdram_rank0_lo, sdram_rank0_hi, sdram_rank1_lo, sdram_rank1_hi).foreach { sdram =>
     sdram.reset := reset
     sdram.io.ctrl <> io.ctrl
   }
