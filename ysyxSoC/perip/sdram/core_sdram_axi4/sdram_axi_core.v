@@ -70,6 +70,7 @@ module sdram_axi_core
 parameter SDRAM_MHZ              = 50;
 parameter SDRAM_ADDR_W           = 24;
 parameter SDRAM_COL_W            = 9;
+parameter SDRAM_RANK_W           = 1;
 parameter SDRAM_READ_LATENCY     = 1;
 
 //-----------------------------------------------------------------
