@@ -10,6 +10,7 @@
 #include "difftest.h"
 #endif
 #include "VysyxSoCFull___024root.h"
+#include "VysyxSoCFull_sdramChisel.h"
 #include "VysyxSoCFull_bank_mem_4194304x16.h"
 
 extern char mrom[];  // mask rom
@@ -57,7 +58,7 @@ static uint32_t debug_mem_read(uint32_t raddr) {
   }
 
   if (in_range(aligned_addr, SDRAM_BASE, SDRAM_SIZE)) {
-    const uint32_t sdram_addr = aligned_addr - SDRAM_BASE;(
+    const uint32_t sdram_addr = aligned_addr - SDRAM_BASE;
     constexpr uint32_t kSdramColBits = 9;
     constexpr uint32_t kSdramBankBits = 2;
     constexpr uint32_t kSdramRowBits = 13;
