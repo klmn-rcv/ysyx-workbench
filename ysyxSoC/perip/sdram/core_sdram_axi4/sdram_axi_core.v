@@ -159,7 +159,6 @@ reg [SDRAM_DATA_W-1:0] data_q;
 reg                    data_rd_en_q;
 reg [SDRAM_DQM_W-1:0]  dqm_q;
 reg                    cke_q;
-reg [SDRAM_RANKS-1:0]  rank_cs_n_q;
 reg [SDRAM_BANK_W-1:0] bank_q;
 
 wire [SDRAM_DATA_W-1:0] sdram_data_in_w;
@@ -501,9 +500,9 @@ begin
     begin
         // Default
         command_q    <= CMD_NOP;
+        rank_cs_n_q  <= {SDRAM_RANKS{1'b0}};
         addr_q       <= {SDRAM_ROW_W{1'b0}};
         bank_q       <= {SDRAM_BANK_W{1'b0}};
-        rank_cs_n_q  <= {SDRAM_RANKS{1'b0}};
         data_rd_en_q <= 1'b1;
     end
     //-----------------------------------------
