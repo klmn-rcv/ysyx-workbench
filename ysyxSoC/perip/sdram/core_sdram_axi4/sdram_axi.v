@@ -53,7 +53,7 @@ module sdram_axi
     ,input  [  7:0]  inport_arlen_i
     ,input  [  1:0]  inport_arburst_i
     ,input           inport_rready_i
-    ,input  [ 31:0]  sdram_data_input_i
+    ,input  [ 15:0]  sdram_data_input_i
 
     // Outputs
     ,output          inport_awready_o
@@ -69,14 +69,14 @@ module sdram_axi
     ,output          inport_rlast_o
     ,output          sdram_clk_o
     ,output          sdram_cke_o
-    ,output [  1:0]  sdram_cs_o
+    ,output          sdram_cs_o
     ,output          sdram_ras_o
     ,output          sdram_cas_o
     ,output          sdram_we_o
-    ,output [  3:0]  sdram_dqm_o
+    ,output [  1:0]  sdram_dqm_o
     ,output [ 12:0]  sdram_addr_o
     ,output [  1:0]  sdram_ba_o
-    ,output [ 31:0]  sdram_data_output_o
+    ,output [ 15:0]  sdram_data_output_o
     ,output          sdram_data_out_en_o
 );
 
@@ -88,8 +88,7 @@ module sdram_axi
 parameter SDRAM_MHZ             = 50;
 parameter SDRAM_ADDR_W          = 24;
 parameter SDRAM_COL_W           = 9;
-parameter SDRAM_READ_LATENCY    = 1;
-parameter SDRAM_RANK_W          = 1;
+parameter SDRAM_READ_LATENCY    = 2;
 
 //-----------------------------------------------------------------
 // AXI Interface
@@ -160,7 +159,6 @@ sdram_axi_core
     ,.SDRAM_ADDR_W(SDRAM_ADDR_W)
     ,.SDRAM_COL_W(SDRAM_COL_W)
     ,.SDRAM_READ_LATENCY(SDRAM_READ_LATENCY)
-    ,.SDRAM_RANK_W(SDRAM_RANK_W)
 )
 u_core
 (
