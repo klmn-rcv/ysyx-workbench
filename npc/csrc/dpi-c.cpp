@@ -63,15 +63,32 @@ static uint32_t debug_mem_read(uint32_t raddr) {
     constexpr uint32_t kSdramBankBits = 2;
     constexpr uint32_t kSdramRowBits = 13;
 
-    // Match sdram_axi_core address slicing for the widened 32-bit SDRAM path.
+    // Match sdram_axi_core address slicing for two 32-bit SDRAM ranks.
     const uint32_t word_index = sdram_addr >> 2;  // (31,2)
     const uint32_t bank = (word_index >> kSdramColBits) & ((1u << kSdramBankBits) - 1); // (12,11)
     const uint32_t row = (word_index >> (kSdramColBits + kSdramBankBits)) & ((1u << kSdramRowBits) - 1); // (25,13)
     const uint32_t col = word_index & ((1u << kSdramColBits) - 1); // (10,2)
+    const uint32_t rank = word_index >> (kSdramColBits + kSdramBankBits + kSdramRowBits); // (26)
     const uint32_t index = (row << kSdramColBits) | col;
 
-    auto *sdram_lo = root->__PVT__ysyxSoCFull__DOT__sdram__DOT__sdram_lo;
-    auto *sdram_hi = root->__PVT__ysyxSoCFull__DOT__sdram__DOT__sdram_hi;
+    VysyxSoCFull_sdramChisel *sdram_lo = nullptr;
+    VysyxSoCFull_sdramChisel *sdram_hi = nullptr;
+    switch (rank) {
+      case 0:
+        sdram_lo = root->__PVT__ysyxSoCFull__DOT__sdram__DOT__sdram_rank0_lo;
+        sdram_hi = root->__PVT__ysyxSoCFull__DOT__sdram__DOT__sdram_rank0_hi;
+        break;
+      case 1:
+        sdram_lo = root->__PVT__ysyxSoCFull__DOT__sdram__DOT__sdram_rank1_lo;
+        sdram_hi = root->__PVT__ysyxSoCFull__DOT__sdram__DOT__sdram_rank1_hi;
+        break;
+      default:
+        sdram_lo = nullptr;
+        sdram_hi = nullptr;
+        break;
+    }
+
+    Assert(sdram_lo != nullptr && sdram_hi != nullptr, "debug_mem_read SDRAM rank invalid: %u", rank);
     VysyxSoCFull_bank_mem_4194304x16 *bank_mem_lo = nullptr;
     VysyxSoCFull_bank_mem_4194304x16 *bank_mem_hi = nullptr;
     switch (bank) {
