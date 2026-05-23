@@ -12,10 +12,10 @@ _start:
   la t2, _ssbl_vma_end
 load_ssbl:
   beq t1, t2, load_ssbl_end
-  lbu a0, 0(t0)
-  sb a0, 0(t1)
-  addi t0, t0, 1
-  addi t1, t1, 1
+  lw a0, 0(t0)
+  sw a0, 0(t1)
+  addi t0, t0, 4
+  addi t1, t1, 4
   j load_ssbl
 load_ssbl_end:
   # 不能直接用j _ssbl_start，因为j指令只能跳转到-2^21~2^21-1范围内的相对地址，而_ssbl_start不在这个范围内
@@ -26,6 +26,27 @@ load_ssbl_end:
 
 
 .section .ssbl, "ax"
+# Long copy/clear loops live in .ssbl, so SSBL executes them from SRAM.
+copy_region:
+  beq t1, t2, copy_region_end
+copy_region_loop:
+  lw a0, 0(t0)
+  sw a0, 0(t1)
+  addi t0, t0, 4
+  addi t1, t1, 4
+  bne t1, t2, copy_region_loop
+copy_region_end:
+  ret
+
+zero_region:
+  beq t1, t2, zero_region_end
+zero_region_loop:
+  sw zero, 0(t1)
+  addi t1, t1, 4
+  bne t1, t2, zero_region_loop
+zero_region_end:
+  ret
+
 .globl _ssbl_start
 .type _ssbl_start, @function
 
@@ -34,73 +55,35 @@ _ssbl_start:
   la t0, _text_lma_start
   la t1, _text_vma_start
   la t2, _text_vma_end
-load_text:
-  beq t1, t2, load_text_end
-  lbu a0, 0(t0)
-  sb a0, 0(t1)
-  addi t0, t0, 1
-  addi t1, t1, 1
-  j load_text
-load_text_end:
+  call copy_region
 
   # copy .rodata from its LMA in flash to its VMA in SDRAM
   la t0, _rodata_lma_start
   la t1, _rodata_vma_start
   la t2, _rodata_vma_end
-load_rodata:
-  beq t1, t2, load_rodata_end
-  lbu a0, 0(t0)
-  sb a0, 0(t1)
-  addi t0, t0, 1
-  addi t1, t1, 1
-  j load_rodata
-load_rodata_end:
+  call copy_region
 
   # copy .data from its LMA in flash to its VMA in SDRAM
   la t0, _data_lma_start
   la t1, _data_vma_start
   la t2, _data_vma_end
-load_data:
-  beq t1, t2, load_data_end
-  lbu a0, 0(t0)
-  sb a0, 0(t1)
-  addi t0, t0, 1
-  addi t1, t1, 1
-  j load_data
-load_data_end:
+  call copy_region
 
   # copy optional .data.extra (in RT-Thread) section from flash to SDRAM
   la t0, _extra_data_lma_start
   la t1, _extra_data_vma_start
   la t2, _extra_data_vma_end
-load_extra_data:
-  beq t1, t2, load_extra_data_end
-  lbu a0, 0(t0)
-  sb a0, 0(t1)
-  addi t0, t0, 1
-  addi t1, t1, 1
-  j load_extra_data
-load_extra_data_end:
+  call copy_region
 
   # zero .bss in SDRAM before entering C code
   la t1, _bss_vma_start
   la t2, _bss_vma_end
-clear_bss:
-  beq t1, t2, clear_bss_end
-  sb zero, 0(t1)
-  addi t1, t1, 1
-  j clear_bss
-clear_bss_end:
+  call zero_region
 
   # zero optional .bss.extra (in RT-Thread) section in SDRAM
   la t1, _extra_bss_vma_start
   la t2, _extra_bss_vma_end
-clear_extra_bss:
-  beq t1, t2, clear_extra_bss_end
-  sb zero, 0(t1)
-  addi t1, t1, 1
-  j clear_extra_bss
-clear_extra_bss_end:
+  call zero_region
 
   call _trm_init
 

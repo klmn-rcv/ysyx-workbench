@@ -15,18 +15,18 @@ SECTIONS {
 
   /* First Stage Bootloader stays in flash and runs directly after reset. */
   .fsbl : {
-    . = ALIGN(4);
     *(.fsbl)
+    . = ALIGN(4);
   } > flash /*: fsbl*/
 
   /* Second Stage Bootloader runs from SRAM, but are stored in flash image. */
   .ssbl ORIGIN(sram) : {
-    . = ALIGN(4);
     _ssbl_vma_start = .;
     *(.ssbl)
+    . = ALIGN(4);
+    _ssbl_vma_end = .;
   } > sram AT> flash /*: ssbl*/
   _ssbl_lma_start = LOADADDR(.ssbl);
-  _ssbl_vma_end = .;
 
   /* Stack uses the reserved space in SRAM. */
   _stack_top = ALIGN(4);
@@ -35,39 +35,42 @@ SECTIONS {
 
   /* Program text/rodata run from SRAM, but are stored in flash image. */
   .text ORIGIN(sdram) : {
-    . = ALIGN(4);
     _text_vma_start = .;
     *(.text*)
+    . = ALIGN(4);
+    _text_vma_end = .;
   } > sdram AT> flash /*: text*/
   _text_lma_start = LOADADDR(.text);
-  _text_vma_end = .;
 
+  . = ALIGN(4);
   .rodata : {
-    . = ALIGN(4);
     _rodata_vma_start = .;
     *(.rodata*)
     *(.srodata*)
+    . = ALIGN(4);
+    _rodata_vma_end = .;
   } > sdram AT> flash /*: text*/
   _rodata_lma_start = LOADADDR(.rodata);
-  _rodata_vma_end = .;
 
+  . = ALIGN(4);
   .data : {
-    . = ALIGN(4);
     _data_vma_start = .;
     *(.data*)
     *(.sdata*)
+    . = ALIGN(4);
+    _data_vma_end = .;
   } > sdram AT> flash /*: data*/
   _data_lma_start = LOADADDR(.data);
-  _data_vma_end = .;
 
+  . = ALIGN(4);
   .bss (NOLOAD) : {
-    . = ALIGN(4);
     _bss_vma_start = .;
     *(.bss*)
     *(.sbss*)
     *(.scommon)
+    . = ALIGN(4);
+    _bss_vma_end = .;
   } > sdram /*: data*/
-  _bss_vma_end = .;
 
   _heap_start = ALIGN(8);
   _heap_end = ORIGIN(sdram) + LENGTH(sdram);
@@ -81,4 +84,25 @@ SECTIONS {
   PROVIDE(_extra_data_vma_end = 0);
   PROVIDE(_extra_bss_vma_start = 0);
   PROVIDE(_extra_bss_vma_end = 0);
+
+  ASSERT(((ORIGIN(flash) + _entry_offset) & 3) == 0, "entry address must be 4-byte aligned")
+  ASSERT((_ssbl_lma_start & 3) == 0, ".ssbl LMA must be 4-byte aligned")
+  ASSERT((_ssbl_vma_start & 3) == 0, ".ssbl VMA start must be 4-byte aligned")
+  ASSERT((_ssbl_vma_end & 3) == 0, ".ssbl VMA end must be 4-byte aligned")
+  ASSERT((_text_lma_start & 3) == 0, ".text LMA must be 4-byte aligned")
+  ASSERT((_text_vma_start & 3) == 0, ".text VMA start must be 4-byte aligned")
+  ASSERT((_text_vma_end & 3) == 0, ".text VMA end must be 4-byte aligned")
+  ASSERT((_rodata_lma_start & 3) == 0, ".rodata LMA must be 4-byte aligned")
+  ASSERT((_rodata_vma_start & 3) == 0, ".rodata VMA start must be 4-byte aligned")
+  ASSERT((_rodata_vma_end & 3) == 0, ".rodata VMA end must be 4-byte aligned")
+  ASSERT((_data_lma_start & 3) == 0, ".data LMA must be 4-byte aligned")
+  ASSERT((_data_vma_start & 3) == 0, ".data VMA start must be 4-byte aligned")
+  ASSERT((_data_vma_end & 3) == 0, ".data VMA end must be 4-byte aligned")
+  ASSERT((_bss_vma_start & 3) == 0, ".bss VMA start must be 4-byte aligned")
+  ASSERT((_bss_vma_end & 3) == 0, ".bss VMA end must be 4-byte aligned")
+  ASSERT((_extra_data_lma_start & 3) == 0, ".data.extra LMA must be 4-byte aligned")
+  ASSERT((_extra_data_vma_start & 3) == 0, ".data.extra VMA start must be 4-byte aligned")
+  ASSERT((_extra_data_vma_end & 3) == 0, ".data.extra VMA end must be 4-byte aligned")
+  ASSERT((_extra_bss_vma_start & 3) == 0, ".bss.extra VMA start must be 4-byte aligned")
+  ASSERT((_extra_bss_vma_end & 3) == 0, ".bss.extra VMA end must be 4-byte aligned")
 }
