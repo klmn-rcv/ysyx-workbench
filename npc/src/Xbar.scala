@@ -28,7 +28,7 @@ class Xbar extends Module with HasYsyxModuleName {
     val soc_psram_base = "h80000000".U(32.W)
     val soc_psram_end = "h803fffff".U(32.W)
     val soc_sdram_base = "ha0000000".U(32.W)
-    val soc_sdram_end = "ha1ffffff".U(32.W)
+    val soc_sdram_end = "ha3ffffff".U(32.W)
 
     val ar_fire = io.arbiter.arvalid && io.arbiter.arready
     val r_fire = io.arbiter.rvalid && io.arbiter.rready
