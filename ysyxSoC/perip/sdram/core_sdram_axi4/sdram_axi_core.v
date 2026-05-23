@@ -154,6 +154,7 @@ assign inport_accept_o    = ram_accept_w;
 //synthesis attribute IOB of data_q is "TRUE"
 
 reg [CMD_W-1:0]        command_q;
+reg [SDRAM_RANKS-1:0]  rank_cs_n_q;
 reg [SDRAM_ROW_W-1:0]  addr_q;
 reg [SDRAM_DATA_W-1:0] data_q;
 reg                    data_rd_en_q;
