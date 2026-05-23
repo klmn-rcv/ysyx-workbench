@@ -10,6 +10,7 @@
 #include "difftest.h"
 #endif
 #include "VysyxSoCFull___024root.h"
+#include "VysyxSoCFull_sdramChisel.h"
 #include "VysyxSoCFull_bank_mem_4194304x16.h"
 
 extern char mrom[];  // mask rom
@@ -61,36 +62,44 @@ static uint32_t debug_mem_read(uint32_t raddr) {
     constexpr uint32_t kSdramColBits = 9;
     constexpr uint32_t kSdramBankBits = 2;
     constexpr uint32_t kSdramRowBits = 13;
-    constexpr uint32_t kSdramWordIndexBits = kSdramColBits - 1;
 
-    // Match sdram_axi_core address slicing (SDRAM_ADDR_W=25, SDRAM_COL_W=9).
-    const uint32_t bank = (sdram_addr >> (kSdramColBits + 1)) & ((1u << kSdramBankBits) - 1);
-    const uint32_t row = (sdram_addr >> (kSdramColBits + 2 + 1)) & ((1u << kSdramRowBits) - 1);
-    const uint32_t col = ((sdram_addr >> 2) & ((1u << kSdramWordIndexBits) - 1)) << 1;
+    // Match sdram_axi_core address slicing for the widened 32-bit SDRAM path.
+    const uint32_t word_index = sdram_addr >> 2;  // (31,2)
+    const uint32_t bank = (word_index >> kSdramColBits) & ((1u << kSdramBankBits) - 1); // (12,11)
+    const uint32_t row = (word_index >> (kSdramColBits + kSdramBankBits)) & ((1u << kSdramRowBits) - 1); // (25,13)
+    const uint32_t col = word_index & ((1u << kSdramColBits) - 1); // (10,2)
     const uint32_t index = (row << kSdramColBits) | col;
 
-    VysyxSoCFull_bank_mem_4194304x16 *bank_mem = nullptr;
+    auto *sdram_lo = root->__PVT__ysyxSoCFull__DOT__sdram__DOT__sdram_lo;
+    auto *sdram_hi = root->__PVT__ysyxSoCFull__DOT__sdram__DOT__sdram_hi;
+    VysyxSoCFull_bank_mem_4194304x16 *bank_mem_lo = nullptr;
+    VysyxSoCFull_bank_mem_4194304x16 *bank_mem_hi = nullptr;
     switch (bank) {
       case 0:
-        bank_mem = root->__PVT__ysyxSoCFull__DOT__sdram__DOT__bank_mem_0_ext;
+        bank_mem_lo = sdram_lo->__PVT__bank_mem_0_ext;
+        bank_mem_hi = sdram_hi->__PVT__bank_mem_0_ext;
         break;
       case 1:
-        bank_mem = root->__PVT__ysyxSoCFull__DOT__sdram__DOT__bank_mem_1_ext;
+        bank_mem_lo = sdram_lo->__PVT__bank_mem_1_ext;
+        bank_mem_hi = sdram_hi->__PVT__bank_mem_1_ext;
         break;
       case 2:
-        bank_mem = root->__PVT__ysyxSoCFull__DOT__sdram__DOT__bank_mem_2_ext;
+        bank_mem_lo = sdram_lo->__PVT__bank_mem_2_ext;
+        bank_mem_hi = sdram_hi->__PVT__bank_mem_2_ext;
         break;
       case 3:
-        bank_mem = root->__PVT__ysyxSoCFull__DOT__sdram__DOT__bank_mem_3_ext;
+        bank_mem_lo = sdram_lo->__PVT__bank_mem_3_ext;
+        bank_mem_hi = sdram_hi->__PVT__bank_mem_3_ext;
         break;
       default:
-        bank_mem = nullptr;
+        bank_mem_lo = nullptr;
+        bank_mem_hi = nullptr;
         break;
     }
 
-    Assert(bank_mem != nullptr, "debug_mem_read SDRAM bank invalid: %u", bank);
-    const uint32_t lo = bank_mem->__PVT__Memory[index];
-    const uint32_t hi = bank_mem->__PVT__Memory[index + 1];
+    Assert(bank_mem_lo != nullptr && bank_mem_hi != nullptr, "debug_mem_read SDRAM bank invalid: %u", bank);
+    const uint32_t lo = bank_mem_lo->__PVT__Memory[index];
+    const uint32_t hi = bank_mem_hi->__PVT__Memory[index];
     return lo | (hi << 16);
   }
 
