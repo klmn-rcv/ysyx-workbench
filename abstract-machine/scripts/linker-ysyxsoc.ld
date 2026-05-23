@@ -86,7 +86,7 @@ SECTIONS {
   PROVIDE(_extra_bss_vma_end = 0);
 
   ASSERT(((ORIGIN(flash) + _entry_offset) & 3) == 0, "entry address must be 4-byte aligned")
-  ASSERT((_ssbl_lma_start & 3) == 0, ".ssbl LMA must be 4-byte aligned")
+  ASSERT((_ssbl_lma_start & 3) == 0, ".ssbl LMA start must be 4-byte aligned")
   ASSERT((_ssbl_vma_start & 3) == 0, ".ssbl VMA start must be 4-byte aligned")
   ASSERT((_ssbl_vma_end & 3) == 0, ".ssbl VMA end must be 4-byte aligned")
   ASSERT((_text_lma_start & 3) == 0, ".text LMA must be 4-byte aligned")
