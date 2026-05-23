@@ -14,7 +14,7 @@ module sdram_top_apb (
 
   output        sdram_ctrl_clk,
   output        sdram_ctrl_cke,
-  output        sdram_ctrl_cs,
+  output [ 1:0] sdram_ctrl_cs,
   output        sdram_ctrl_ras,
   output        sdram_ctrl_cas,
   output        sdram_ctrl_we,
@@ -51,7 +51,8 @@ module sdram_top_apb (
     .SDRAM_MHZ(100),
     .SDRAM_ADDR_W(24),
     .SDRAM_COL_W(9),
-    .SDRAM_READ_LATENCY(1)
+    .SDRAM_READ_LATENCY(1),
+    .SDRAM_RANK_W(1)
   ) u_sdram_ctrl(
     .clk_i(clock),
     .rst_i(reset),

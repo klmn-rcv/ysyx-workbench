@@ -13,7 +13,7 @@ import freechips.rocketchip.util._
 class SDRAMCtrlIO extends Bundle {
   val clk = Output(Bool())
   val cke = Output(Bool())
-  val cs  = Output(Bool())
+  val cs  = Output(UInt(2.W))
   val ras = Output(Bool())
   val cas = Output(Bool())
   val we  = Output(Bool())
@@ -56,9 +56,12 @@ class sdram extends BlackBox {
   val io = IO(Flipped(new SDRAMIO16))
 }
 
-class sdramChisel extends RawModule {
+class sdramChisel(rank: Int) extends RawModule {
+  require(rank >= 0 && rank < 2)
   val io = IO(Flipped(new SDRAMIO16))
   val reset = IO(Input(Reset()))
+
+  val chip_cs = io.ctrl.cs(rank)
 
   val dq_out = WireDefault(0.U(16.W))
   val dq_out_en = WireDefault(0.U(2.W))
@@ -109,7 +112,7 @@ class sdramChisel extends RawModule {
 
     val read_dqm_q = RegInit(VecInit(Seq.fill(DQM_READ_LATENCY)(0.U(2.W))))
 
-    val cmd = Cat(io.ctrl.cs, io.ctrl.ras, io.ctrl.cas, io.ctrl.we)
+    val cmd = Cat(chip_cs, io.ctrl.ras, io.ctrl.cas, io.ctrl.we)
 
     object BankFSM {
       object BankState extends ChiselEnum {
@@ -312,7 +315,7 @@ class sdramChisel extends RawModule {
           }
         }
       }
-      when(io.ctrl.cs) {
+      when(chip_cs) {
         // Command Inhibit
       }.otherwise {
         switch(cmd) {
@@ -395,20 +398,25 @@ class sdramChiselExtended extends RawModule {
   val io = IO(Flipped(new SDRAMIO32))
   val reset = IO(Input(Reset()))
 
-  val sdram_lo = Module(new sdramChisel)
-  val sdram_hi = Module(new sdramChisel)
+  val sdram_rank0_lo = Module(new sdramChisel(rank = 0))
+  val sdram_rank0_hi = Module(new sdramChisel(rank = 0))
+  val sdram_rank1_lo = Module(new sdramChisel(rank = 1))
+  val sdram_rank1_hi = Module(new sdramChisel(rank = 1))
 
-  sdram_lo.reset := reset
-  sdram_hi.reset := reset
+  Seq(sdram_rank0_lo, sdram_rank0_hi, sdram_rank1_lo, sdram_rank1_hi).foreach { sdram =>
+    sdram.reset := reset
+    sdram.io.ctrl <> io.ctrl
+  }
 
-  sdram_lo.io.ctrl <> io.ctrl
-  sdram_hi.io.ctrl <> io.ctrl
+  sdram_rank0_lo.io.dqm := io.dqm(1, 0)
+  sdram_rank0_hi.io.dqm := io.dqm(3, 2)
+  sdram_rank1_lo.io.dqm := io.dqm(1, 0)
+  sdram_rank1_hi.io.dqm := io.dqm(3, 2)
 
-  sdram_lo.io.dqm := io.dqm(1, 0)
-  sdram_hi.io.dqm := io.dqm(3, 2)
-
-  attach(sdram_lo.io.dq, io.dq_lo)
-  attach(sdram_hi.io.dq, io.dq_hi)
+  attach(sdram_rank0_lo.io.dq, io.dq_lo)
+  attach(sdram_rank0_hi.io.dq, io.dq_hi)
+  attach(sdram_rank1_lo.io.dq, io.dq_lo)
+  attach(sdram_rank1_hi.io.dq, io.dq_hi)
 }
 
 class AXI4SDRAM(address: Seq[AddressSet])(implicit p: Parameters) extends LazyModule {
