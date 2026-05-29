@@ -10,6 +10,7 @@
 #include "cpu-exec.h"
 #include "difftest.h"
 #include "debugpoint.h"
+#include <nvboard.h>
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -72,12 +73,14 @@ static void trace_and_difftest() {
 
 static void cycle_once() {
   top->clock = 0;
+  nvboard_update();
   top->eval();
 #ifdef CONFIG_GEN_WAVE
   tfp->dump(sim_time++);
 #endif
 
   top->clock = 1;
+  nvboard_update();
   top->eval();
 #ifdef CONFIG_GEN_WAVE
   tfp->dump(sim_time++);

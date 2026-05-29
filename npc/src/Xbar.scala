@@ -29,6 +29,8 @@ class Xbar extends Module with HasYsyxModuleName {
     val soc_psram_end = "h803fffff".U(32.W)
     val soc_sdram_base = "ha0000000".U(32.W)
     val soc_sdram_end = "ha7ffffff".U(32.W)
+    val soc_gpio_base = "h10002000".U(32.W)
+    val soc_gpio_end = "h1000200f".U(32.W)
 
     val ar_fire = io.arbiter.arvalid && io.arbiter.arready
     val r_fire = io.arbiter.rvalid && io.arbiter.rready
@@ -56,16 +58,18 @@ class Xbar extends Module with HasYsyxModuleName {
     val hit_soc_psram_w = inRange(io.arbiter.awaddr, soc_psram_base, soc_psram_end)
     val hit_soc_sdram_r = inRange(io.arbiter.araddr, soc_sdram_base, soc_sdram_end)
     val hit_soc_sdram_w = inRange(io.arbiter.awaddr, soc_sdram_base, soc_sdram_end)
-    val hit_soc_r = hit_soc_mrom_r || hit_soc_sram_r || hit_soc_flash_r || hit_soc_uart_r || hit_soc_psram_r || hit_soc_sdram_r
-    val hit_soc_w = hit_soc_mrom_w || hit_soc_sram_w || hit_soc_flash_w || hit_soc_uart_w || hit_soc_psram_w || hit_soc_sdram_w
+    val hit_soc_gpio_r = inRange(io.arbiter.araddr, soc_gpio_base, soc_gpio_end)
+    val hit_soc_gpio_w = inRange(io.arbiter.awaddr, soc_gpio_base, soc_gpio_end)
+    val hit_soc_r = hit_soc_mrom_r || hit_soc_sram_r || hit_soc_flash_r || hit_soc_uart_r || hit_soc_psram_r || hit_soc_sdram_r || hit_soc_gpio_r
+    val hit_soc_w = hit_soc_mrom_w || hit_soc_sram_w || hit_soc_flash_w || hit_soc_uart_w || hit_soc_psram_w || hit_soc_sdram_w || hit_soc_gpio_w
     val hit_addrerr_r = !hit_clint_r && !hit_soc_r
     val hit_addrerr_w = !hit_clint_w && !hit_soc_w
 
     val owner_soc :: owner_clint :: owner_addrerr :: Nil = Enum(3)
     val read_owner = RegInit(owner_soc)
     val write_owner = RegInit(owner_soc)
-    val hit_soc_uart_r_preserved = bool_preserve(ar_fire && hit_soc_uart_r, r_fire, false.B)._1
-    val hit_soc_uart_w_preserved = bool_preserve(aw_fire && hit_soc_uart_w, b_fire, false.B)._1
+    val hit_soc_bypass_r_preserved = bool_preserve(ar_fire && (hit_soc_uart_r || hit_soc_gpio_r), r_fire, false.B)._1
+    val hit_soc_bypass_w_preserved = bool_preserve(aw_fire && (hit_soc_uart_w || hit_soc_gpio_w), b_fire, false.B)._1
 
     when(ar_fire) {
         read_owner := Mux(hit_clint_r, owner_clint, Mux(hit_soc_r, owner_soc, owner_addrerr))
@@ -97,7 +101,7 @@ class Xbar extends Module with HasYsyxModuleName {
         connectFields(io.addrerr.r, io.arbiter.r, "rvalid", "rdata", "rresp", "rid", "rlast", "rready")
     }
     io.r_need_skip_ref := Mux(read_owner === owner_clint, io.clint_r_need_skip_ref,
-                            Mux(read_owner === owner_soc, hit_soc_uart_r_preserved, false.B))
+                            Mux(read_owner === owner_soc, hit_soc_bypass_r_preserved, false.B))
 
     // AW
     connectFields(io.arbiter.aw, io.soc.aw, "awaddr", "awid", "awlen", "awsize", "awburst")
@@ -128,5 +132,5 @@ class Xbar extends Module with HasYsyxModuleName {
     }.otherwise {
         connectFields(io.addrerr.b, io.arbiter.b, "bvalid", "bresp", "bid", "bready")
     }
-    io.b_need_skip_ref := write_owner === owner_soc && hit_soc_uart_w_preserved
+    io.b_need_skip_ref := write_owner === owner_soc && hit_soc_bypass_w_preserved
 }

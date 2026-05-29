@@ -4,6 +4,7 @@
 #include "state.h"
 #include "debug.h"
 #include "difftest.h"
+#include <nvboard.h>
 
 VysyxSoCFull* top = new VysyxSoCFull;
 #ifdef CONFIG_GEN_WAVE
@@ -13,6 +14,7 @@ VerilatedVcdC* tfp = new VerilatedVcdC;
 
 void init_disasm();
 void sdb_set_batch_mode();
+void nvboard_bind_all_pins(TOP_NAME* top);
 
 char mrom[MROM_SIZE]; // mask rom
 char flash[FLASH_SIZE]; // flash memory
@@ -55,12 +57,14 @@ static void init_sim() {
   // 为了适配SoC，改成了10周期复位（SoC里的移位寄存器会把它扩展成20拍复位）
   for (int i = 0; i < 10; i++) {
     top->clock = 0;
+    nvboard_update();
     top->eval();
 #ifdef CONFIG_GEN_WAVE
     tfp->dump(sim_time++);
 #endif
 
     top->clock = 1;
+    nvboard_update();
     top->eval();
 #ifdef CONFIG_GEN_WAVE
     tfp->dump(sim_time++);
@@ -133,6 +137,9 @@ int main(int argc, char** argv) {
   top->trace(tfp, 99);
   tfp->open("wave.vcd");
 #endif
+
+  nvboard_bind_all_pins(top);
+  nvboard_init();
 
   parse_args(argc, argv);
 
