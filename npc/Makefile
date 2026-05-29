@@ -84,6 +84,7 @@ sim: $(VERILOG_STAMP) $(LIBCAPSTONE) $(SRC_AUTO_BIND) $(NVBOARD_ARCHIVE)
 	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
 	verilator $(VERILATOR_FLAGS) \
 			$(VERILOG_SRCS) \
+			$(NVBOARD_ARCHIVE) \
 			--exe $(CSRCS) \
 			-CFLAGS "$(CFLAGS)" \
 			-LDFLAGS "$(LDFLAGS)" \
@@ -94,6 +95,7 @@ gdb: $(VERILOG_STAMP) $(LIBCAPSTONE) $(SRC_AUTO_BIND) $(NVBOARD_ARCHIVE)
 	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
 	verilator $(VERILATOR_FLAGS) \
 			$(VERILOG_SRCS) \
+			$(NVBOARD_ARCHIVE) \
 			--exe $(CSRCS) \
 			-CFLAGS "$(CFLAGS) -g" \
 			-LDFLAGS "$(LDFLAGS)" \
