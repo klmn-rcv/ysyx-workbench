@@ -10,6 +10,7 @@
 #include "cpu-exec.h"
 #include "difftest.h"
 #include "debugpoint.h"
+#include <nvboard.h>
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
