@@ -6,7 +6,7 @@
 #include "difftest.h"
 #include <nvboard.h>
 
-VysyxSoCTop* top = new VysyxSoCTop;
+VysyxSoCFull* top = new VysyxSoCFull;
 #ifdef CONFIG_GEN_WAVE
 vluint64_t sim_time = 0;
 VerilatedVcdC* tfp = new VerilatedVcdC;

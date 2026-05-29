@@ -8,7 +8,7 @@ IMG ?=
 LIBCAPSTONE = tools/capstone/repo/libcapstone.so.5
 VERILOG_STAMP = $(BUILD_DIR)/.verilog.stamp
 
-TOP_MODULE = ysyxSoCTop
+TOP_MODULE = ysyxSoCFull
 
 # constraint file
 SRC_AUTO_BIND = $(abspath $(BUILD_DIR)/auto_bind.cpp)
@@ -76,7 +76,7 @@ clean:
 $(LIBCAPSTONE):
 	$(MAKE) -C tools/capstone
 
-sim: $(VERILOG_STAMP) $(LIBCAPSTONE)
+sim: $(VERILOG_STAMP) $(LIBCAPSTONE) $(SRC_AUTO_BIND)
 	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
 	verilator $(VERILATOR_FLAGS) \
 			$(VERILOG_SRCS) \
@@ -86,7 +86,7 @@ sim: $(VERILOG_STAMP) $(LIBCAPSTONE)
 			--build -j 0 && ./obj_dir/V$(TOP_MODULE) $(ARGS) $(IMG)
 
 
-gdb: $(VERILOG_STAMP) $(LIBCAPSTONE)
+gdb: $(VERILOG_STAMP) $(LIBCAPSTONE) $(SRC_AUTO_BIND)
 	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
 	verilator $(VERILATOR_FLAGS) \
 			$(VERILOG_SRCS) \
