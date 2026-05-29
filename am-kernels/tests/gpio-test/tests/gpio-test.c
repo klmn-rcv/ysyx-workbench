@@ -32,6 +32,9 @@ static inline uint32_t switch_to_seg(uint16_t sw) {
 static inline void delay(volatile uint32_t cycles) {
   while (cycles-- > 0) {
   }
+  if(cycles % 10000 == 0) {
+    printf("gpio-test: delay, cycles = %u\n", cycles);
+  }
 }
 
 int main() {
