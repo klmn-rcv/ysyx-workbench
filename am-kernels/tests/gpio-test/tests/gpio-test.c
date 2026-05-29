@@ -39,14 +39,14 @@ int main() {
     0xffff, 0x0000, 0x5555, 0xaaaa, 0x0f0f, 0xf0f0, 0xa5a5, 0x5a5a,
   };
   static const uint32_t seg_patterns[] = {
-    0x01234567u, 0x89abcdefu, 0x13579bdfu, 0x2468ace0u,
+    0x01234567u, 0x89abcdefu, 0x13579bdfu, 0x2468ace0u, 0xdeadbeefu, 0xcafebabeu, 0xfacefeedu, 0xdecafbadu,
   };
 
   printf("gpio-test: switches are mirrored to LEDs and 7-seg displays.\n");
 
-  for (int i = 0; i < (int)LENGTH(led_patterns); i++) {
+  for (int i = 0; i < (int)LENGTH(led_patterns) && i < (int)LENGTH(seg_patterns); i++) {
     gpio_set_led(led_patterns[i]);
-    gpio_set_seg(seg_patterns[i & 3]);
+    gpio_set_seg(seg_patterns[i]);
     delay(2000);
   }
 
