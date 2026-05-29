@@ -80,7 +80,7 @@ clean:
 $(LIBCAPSTONE):
 	$(MAKE) -C tools/capstone
 
-sim: $(VERILOG_STAMP) $(LIBCAPSTONE) $(SRC_AUTO_BIND)
+sim: $(VERILOG_STAMP) $(LIBCAPSTONE) $(SRC_AUTO_BIND) $(NVBOARD_ARCHIVE)
 	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
 	verilator $(VERILATOR_FLAGS) \
 			$(VERILOG_SRCS) \
@@ -90,7 +90,7 @@ sim: $(VERILOG_STAMP) $(LIBCAPSTONE) $(SRC_AUTO_BIND)
 			--build -j 0 && ./obj_dir/V$(TOP_MODULE) $(ARGS) $(IMG)
 
 
-gdb: $(VERILOG_STAMP) $(LIBCAPSTONE) $(SRC_AUTO_BIND)
+gdb: $(VERILOG_STAMP) $(LIBCAPSTONE) $(SRC_AUTO_BIND) $(NVBOARD_ARCHIVE)
 	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
 	verilator $(VERILATOR_FLAGS) \
 			$(VERILOG_SRCS) \
