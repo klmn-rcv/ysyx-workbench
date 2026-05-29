@@ -1,5 +1,6 @@
 BUILD_DIR = ./build
 YOSYS_STA_DIR ?= ../yosys-sta
+NXDC_FILES = constr/top.nxdc
 NPC_CONFIG_H := $(abspath include/config.h)
 SOC_VERILOG := $(SOC_HOME)/build/ysyxSoCFull.v
 
@@ -7,7 +8,12 @@ IMG ?=
 LIBCAPSTONE = tools/capstone/repo/libcapstone.so.5
 VERILOG_STAMP = $(BUILD_DIR)/.verilog.stamp
 
-TOP_MODULE = ysyxSoCFull
+TOP_MODULE = ysyxSoCTop
+
+# constraint file
+SRC_AUTO_BIND = $(abspath $(BUILD_DIR)/auto_bind.cpp)
+$(SRC_AUTO_BIND): $(NXDC_FILES)
+	python3 $(NVBOARD_HOME)/scripts/auto_pin_bind.py $^ $@
 
 CHISEL_SRCS := $(shell find src -name '*.scala' | sort)
 VERILOG_RESOURCES := $(shell find resources -name '*.sv' | sort)
@@ -22,6 +28,7 @@ VERILATOR_FLAGS += --timescale "1ns/1ns" --no-timing
 VERILATOR_FLAGS += --top-module $(TOP_MODULE) --trace  --autoflush
 
 CSRCS := $(wildcard csrc/*.cpp)
+CSRCS += $(SRC_AUTO_BIND)
 CFLAGS += -I../include
 CFLAGS += -I../tools/capstone/repo/include
 LDFLAGS += -lreadline
@@ -29,6 +36,9 @@ LDFLAGS += -ldl
 ARGS ?=
 
 SYN_RTL_FILES = $(sort $(wildcard $(BUILD_DIR)/*.sv))
+
+# rules for NVBoard
+include $(NVBOARD_HOME)/scripts/nvboard.mk
 
 test:
 	mill -i test
