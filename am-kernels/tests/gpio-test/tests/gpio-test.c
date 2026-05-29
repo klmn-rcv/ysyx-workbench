@@ -57,7 +57,7 @@ int main() {
       last = sw;
       gpio_set_led(sw);
       gpio_set_seg(switch_to_seg(sw));
-      printf("gpio-test: switch = 0x%04x\n", sw);
+      printf("gpio-test: switch = 0x%x\n", sw);
     }
   }
 
