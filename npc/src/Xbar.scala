@@ -68,8 +68,8 @@ class Xbar extends Module with HasYsyxModuleName {
     val owner_soc :: owner_clint :: owner_addrerr :: Nil = Enum(3)
     val read_owner = RegInit(owner_soc)
     val write_owner = RegInit(owner_soc)
-    val hit_soc_uart_r_preserved = bool_preserve(ar_fire && hit_soc_uart_r, r_fire, false.B)._1
-    val hit_soc_uart_w_preserved = bool_preserve(aw_fire && hit_soc_uart_w, b_fire, false.B)._1
+    val hit_soc_bypass_r_preserved = bool_preserve(ar_fire && (hit_soc_uart_r || hit_soc_gpio_r), r_fire, false.B)._1
+    val hit_soc_bypass_w_preserved = bool_preserve(aw_fire && (hit_soc_uart_w || hit_soc_gpio_w), b_fire, false.B)._1
 
     when(ar_fire) {
         read_owner := Mux(hit_clint_r, owner_clint, Mux(hit_soc_r, owner_soc, owner_addrerr))
@@ -101,7 +101,7 @@ class Xbar extends Module with HasYsyxModuleName {
         connectFields(io.addrerr.r, io.arbiter.r, "rvalid", "rdata", "rresp", "rid", "rlast", "rready")
     }
     io.r_need_skip_ref := Mux(read_owner === owner_clint, io.clint_r_need_skip_ref,
-                            Mux(read_owner === owner_soc, hit_soc_uart_r_preserved, false.B))
+                            Mux(read_owner === owner_soc, hit_soc_bypass_r_preserved, false.B))
 
     // AW
     connectFields(io.arbiter.aw, io.soc.aw, "awaddr", "awid", "awlen", "awsize", "awburst")
@@ -132,5 +132,5 @@ class Xbar extends Module with HasYsyxModuleName {
     }.otherwise {
         connectFields(io.addrerr.b, io.arbiter.b, "bvalid", "bresp", "bid", "bready")
     }
-    io.b_need_skip_ref := write_owner === owner_soc && hit_soc_uart_w_preserved
+    io.b_need_skip_ref := write_owner === owner_soc && hit_soc_bypass_w_preserved
 }
