@@ -29,8 +29,8 @@ VERILATOR_FLAGS += --top-module $(TOP_MODULE) --trace  --autoflush
 
 CSRCS := $(wildcard csrc/*.cpp)
 CSRCS += $(SRC_AUTO_BIND)
-CFLAGS += -I../include
-CFLAGS += -I../tools/capstone/repo/include
+INC_PATH += ../include
+INC_PATH += ../tools/capstone/repo/include
 LDFLAGS += -lreadline
 LDFLAGS += -ldl
 ARGS ?=
@@ -39,6 +39,10 @@ SYN_RTL_FILES = $(sort $(wildcard $(BUILD_DIR)/*.sv))
 
 # rules for NVBoard
 include $(NVBOARD_HOME)/scripts/nvboard.mk
+
+INCFLAGS = $(addprefix -I, $(INC_PATH))
+CFLAGS += $(INCFLAGS)
+CFLAGS += -DTOP_NAME="\"V$(TOP_MODULE)\""
 
 test:
 	mill -i test
