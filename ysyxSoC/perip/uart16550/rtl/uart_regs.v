@@ -400,6 +400,25 @@ uart_transmitter transmitter(clk, wb_rst_i, lcr, tf_push, wb_dat_i, enable, seri
 wire serial_in = loopback ? serial_out : srx_pad;
 assign stx_pad_o = loopback ? 1'b1 : serial_out;
 
+`ifndef SYNTHESIS
+reg srx_pad_prev;
+reg serial_in_prev;
+initial begin
+  srx_pad_prev = 1'b1;
+  serial_in_prev = 1'b1;
+end
+
+always @(srx_pad) begin
+  $write("[uart_regs] srx_pad change at time %0t: %0b -> %0b\n", $time, srx_pad_prev, srx_pad);
+  srx_pad_prev = srx_pad;
+end
+
+always @(serial_in) begin
+  $write("[uart_regs] serial_in change at time %0t: %0b -> %0b\n", $time, serial_in_prev, serial_in);
+  serial_in_prev = serial_in;
+end
+`endif
+
 // Receiver Instance
 uart_receiver receiver(clk, wb_rst_i, lcr, rf_pop, serial_in, enable,
     counter_t, rf_count, rf_data_out, rf_error_bit, rf_overrun, rx_reset, lsr_mask, rstate, rf_push_pulse);
@@ -715,6 +734,15 @@ always @(posedge clk or posedge wb_rst_i) begin
         else
             enable <= #1 1'b0;
 end
+
+`ifndef SYNTHESIS
+always @(posedge clk) begin
+    if (!wb_rst_i && enable) begin
+        $write("[uart_regs] enable pulse at time %0t: dl=0x%04x dlc=0x%04x srx_pad=%0b serial_in=%0b\n",
+               $time, dl, dlc, srx_pad, serial_in);
+    end
+end
+`endif
 
 // Delaying THRE status for one character cycle after a character is written to an empty fifo.
 always @(lcr)
