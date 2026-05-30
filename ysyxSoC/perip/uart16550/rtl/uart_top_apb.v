@@ -38,6 +38,16 @@ module uart_top_apb (
    assign reg_re  = ~reset & in_psel & ~in_penable & ~in_pwrite;
    assign reg_adr = in_paddr[2:0]; //assign adr_o   = in_paddr[2:0];
    assign in_prdata  = (in_psel) ? {4{reg_dat8_r}} : 'h0;
+
+`ifndef SYNTHESIS
+   reg uart_rx_prev;
+   initial uart_rx_prev = 1'b1;
+   always @(uart_rx) begin
+     $write("[uart_top_apb] uart_rx change at time %0t: %0b -> %0b\n", $time, uart_rx_prev, uart_rx);
+     uart_rx_prev = uart_rx;
+   end
+`endif
+
    always @ (in_paddr[1:0] or in_pwdata) begin
              case (in_paddr[1:0])
              `ifdef ENDIAN_BIG
