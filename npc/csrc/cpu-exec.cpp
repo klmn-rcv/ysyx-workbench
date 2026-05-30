@@ -73,14 +73,12 @@ static void trace_and_difftest() {
 
 static void cycle_once() {
   top->clock = 0;
-  nvboard_update();
   top->eval();
 #ifdef CONFIG_GEN_WAVE
   tfp->dump(sim_time++);
 #endif
 
   top->clock = 1;
-  nvboard_update();
   top->eval();
 #ifdef CONFIG_GEN_WAVE
   tfp->dump(sim_time++);
@@ -95,6 +93,7 @@ static void exec_once() {
   uint64_t commit_begin = g_nr_commit;
 
   while (g_nr_commit == commit_begin && npc_state.state == NPC_RUNNING) {
+    nvboard_update();
     cycle_once();
     npc_state.cycles++;
   }
