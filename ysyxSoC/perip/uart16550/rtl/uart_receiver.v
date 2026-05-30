@@ -295,18 +295,15 @@ begin
   if (enable)
   begin
 	case (rstate)
-		sr_idle : begin
-				rf_push 			  <= #1 1'b0;
-				rf_data_in 	  <= #1 0;
-				rcounter16 	  <= #1 4'b1110;
-				if (srx_pad_i==1'b0 & ~break_error)   // detected a pulse (start bit?)
-				begin
-`ifndef SYNTHESIS
-					$write("[uart_rx] start bit detected at time %0t, srx_pad_i=%0b\n", $time, srx_pad_i);
-`endif
-					rstate 		  <= #1 sr_rec_start;
-				end
+	sr_idle : begin
+			rf_push 			  <= #1 1'b0;
+			rf_data_in 	  <= #1 0;
+			rcounter16 	  <= #1 4'b1110;
+			if (srx_pad_i==1'b0 & ~break_error)   // detected a pulse (start bit?)
+			begin
+				rstate 		  <= #1 sr_rec_start;
 			end
+		end
 	sr_rec_start :	begin
   			rf_push 			  <= #1 1'b0;
 				if (rcounter16_eq_7)    // check the pulse
@@ -400,35 +397,24 @@ begin
 				rcounter16 <= #1 rcounter16_minus_1;
 			end
 	sr_push :	begin
-	///////////////////////////////////////
-	//				$display($time, ": received: %b", rf_data_in);
-	        if(srx_pad_i | break_error)
-	          begin
-	            if(break_error)
-	        		  rf_data_in 	<= #1 {8'b0, 3'b100}; // break input (empty character) to receiver FIFO
-	            else
-	        			rf_data_in  <= #1 {rshift, 1'b0, rparity_error, rframing_error};
-`ifndef SYNTHESIS
-	            if(break_error)
-	              $write("[uart_rx] break received at time %0t\n", $time);
-	            else
-	              $write("[uart_rx] push byte at time %0t: data=0x%02x (%0d), parity_err=%0b, framing_err=%0b\n",
-	                     $time, rshift, rshift, rparity_error, rframing_error);
-`endif
-	      		  rf_push 		  <= #1 1'b1;
-	    				rstate        <= #1 sr_idle;
-	          end
-	        else if(~rframing_error)  // There's always a framing before break_error -> wait for break or srx_pad_i
-	          begin
-	       			rf_data_in  <= #1 {rshift, 1'b0, rparity_error, rframing_error};
-`ifndef SYNTHESIS
-	            $write("[uart_rx] push byte (continued frame) at time %0t: data=0x%02x (%0d), parity_err=%0b, framing_err=%0b\n",
-	                   $time, rshift, rshift, rparity_error, rframing_error);
-`endif
-	      		  rf_push 		  <= #1 1'b1;
-	      			rcounter16 	  <= #1 4'b1110;
-	    				rstate 		  <= #1 sr_rec_start;
-	          end
+///////////////////////////////////////
+//				$display($time, ": received: %b", rf_data_in);
+        if(srx_pad_i | break_error)
+          begin
+            if(break_error)
+        		  rf_data_in 	<= #1 {8'b0, 3'b100}; // break input (empty character) to receiver FIFO
+            else
+        			rf_data_in  <= #1 {rshift, 1'b0, rparity_error, rframing_error};
+      		  rf_push 		  <= #1 1'b1;
+    				rstate        <= #1 sr_idle;
+          end
+        else if(~rframing_error)  // There's always a framing before break_error -> wait for break or srx_pad_i
+          begin
+       			rf_data_in  <= #1 {rshift, 1'b0, rparity_error, rframing_error};
+      		  rf_push 		  <= #1 1'b1;
+      			rcounter16 	  <= #1 4'b1110;
+    				rstate 		  <= #1 sr_rec_start;
+          end
 
 			end
 	default : rstate <= #1 sr_idle;

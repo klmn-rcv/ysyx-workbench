@@ -18,7 +18,7 @@
  * You can modify this value as you want.
  */
 #define MAX_INST_TO_PRINT 10
-#define MAX_INST_TO_LOG 1000000
+#define MAX_INST_TO_LOG 100000
 
 static uint64_t g_nr_inst = 0;
 static uint64_t g_timer = 0; // unit: us
