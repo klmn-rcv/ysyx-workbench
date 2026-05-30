@@ -60,7 +60,7 @@ class gpioChisel extends Module {
   io.in.prdata := 0.U
   io.in.pslverr := false.B
 
-  when(io.in.psel) {
+  when(io.in.psel && io.in.penable) {
     assert(addrInRange(io.in.paddr), "GPIO: address out of range")
     io.in.pready := true.B
     switch(io.in.paddr - addr_base) {
