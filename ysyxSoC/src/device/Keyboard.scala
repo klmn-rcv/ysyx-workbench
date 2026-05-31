@@ -44,7 +44,7 @@ class ps2Chisel extends Module {
   ps2_clk_sync := Cat(ps2_clk_sync(1, 0), io.ps2.clk)
   val sampling = ps2_clk_sync(2) && !ps2_clk_sync(1)
 
-  val apb_access = io.in.psel && io.in.penable && addrInRange(io.in.paddr)
+  val apb_access = io.in.psel && io.in.penable
   val reg_offset = io.in.paddr - addr_base
   val fifo_empty = fifo_count === 0.U
   val fifo_full = fifo_count === 8.U
@@ -53,8 +53,11 @@ class ps2Chisel extends Module {
   io.in.pready := apb_access
   io.in.prdata := 0.U
   io.in.pslverr := false.B
-  when(apb_access && !io.in.pwrite && reg_offset === 0.U) {
-    io.in.prdata := fifo_head
+  when(apb_access) {
+    assert(addrInRange(io.in.paddr), "PS2: address out of range")
+    when(!io.in.pwrite && reg_offset === 0.U) {
+      io.in.prdata := fifo_head
+    }
   }
 
   val pop_req = apb_access && !io.in.pwrite && reg_offset === 0.U && !fifo_empty

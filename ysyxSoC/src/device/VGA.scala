@@ -46,7 +46,7 @@ class APBVGA(address: Seq[AddressSet])(implicit p: Parameters) extends LazyModul
     val (in, _) = node.in(0)
     val vga_bundle = IO(new VGAIO)
 
-    val mvga = Module(new vga_top_apb)
+    val mvga = Module(new vgaChisel)
     mvga.io.clock := clock
     mvga.io.reset := reset
     mvga.io.in <> in
