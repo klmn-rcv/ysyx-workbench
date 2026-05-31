@@ -33,6 +33,8 @@ class Xbar extends Module with HasYsyxModuleName {
     val soc_gpio_end = "h1000200f".U(32.W)
     val soc_kbd_base = "h10011000".U(32.W)
     val soc_kbd_end = "h1001100f".U(32.W)
+    val soc_vga_base = "h21000000".U(32.W)
+    val soc_vga_end = "h211fffff".U(32.W)
 
     val ar_fire = io.arbiter.arvalid && io.arbiter.arready
     val r_fire = io.arbiter.rvalid && io.arbiter.rready
@@ -64,16 +66,18 @@ class Xbar extends Module with HasYsyxModuleName {
     val hit_soc_gpio_w = inRange(io.arbiter.awaddr, soc_gpio_base, soc_gpio_end)
     val hit_soc_kbd_r = inRange(io.arbiter.araddr, soc_kbd_base, soc_kbd_end)
     val hit_soc_kbd_w = inRange(io.arbiter.awaddr, soc_kbd_base, soc_kbd_end)
-    val hit_soc_r = hit_soc_mrom_r || hit_soc_sram_r || hit_soc_flash_r || hit_soc_uart_r || hit_soc_psram_r || hit_soc_sdram_r || hit_soc_gpio_r || hit_soc_kbd_r
-    val hit_soc_w = hit_soc_mrom_w || hit_soc_sram_w || hit_soc_flash_w || hit_soc_uart_w || hit_soc_psram_w || hit_soc_sdram_w || hit_soc_gpio_w || hit_soc_kbd_w
+    val hit_soc_vga_r = inRange(io.arbiter.araddr, soc_vga_base, soc_vga_end)
+    val hit_soc_vga_w = inRange(io.arbiter.awaddr, soc_vga_base, soc_vga_end)
+    val hit_soc_r = hit_soc_mrom_r || hit_soc_sram_r || hit_soc_flash_r || hit_soc_uart_r || hit_soc_psram_r || hit_soc_sdram_r || hit_soc_gpio_r || hit_soc_kbd_r || hit_soc_vga_r
+    val hit_soc_w = hit_soc_mrom_w || hit_soc_sram_w || hit_soc_flash_w || hit_soc_uart_w || hit_soc_psram_w || hit_soc_sdram_w || hit_soc_gpio_w || hit_soc_kbd_w || hit_soc_vga_w
     val hit_addrerr_r = !hit_clint_r && !hit_soc_r
     val hit_addrerr_w = !hit_clint_w && !hit_soc_w
 
     val owner_soc :: owner_clint :: owner_addrerr :: Nil = Enum(3)
     val read_owner = RegInit(owner_soc)
     val write_owner = RegInit(owner_soc)
-    val hit_soc_bypass_r_preserved = bool_preserve(ar_fire && (hit_soc_uart_r || hit_soc_gpio_r || hit_soc_kbd_r), r_fire, false.B)._1
-    val hit_soc_bypass_w_preserved = bool_preserve(aw_fire && (hit_soc_uart_w || hit_soc_gpio_w || hit_soc_kbd_w), b_fire, false.B)._1
+    val hit_soc_bypass_r_preserved = bool_preserve(ar_fire && (hit_soc_uart_r || hit_soc_gpio_r || hit_soc_kbd_r || hit_soc_vga_r), r_fire, false.B)._1
+    val hit_soc_bypass_w_preserved = bool_preserve(aw_fire && (hit_soc_uart_w || hit_soc_gpio_w || hit_soc_kbd_w || hit_soc_vga_w), b_fire, false.B)._1
 
     when(ar_fire) {
         read_owner := Mux(hit_clint_r, owner_clint, Mux(hit_soc_r, owner_soc, owner_addrerr))
