@@ -1,4 +1,4 @@
-package cpu
+package cpu.npc
 
 import chisel3._
 import chisel3.util._
@@ -38,17 +38,15 @@ object StageConnect {
     }
 }
 
-class CPU(resetVector: Long = 0x30000000L) extends Module with HasYsyxModuleName {
-    override protected def moduleSuffix: String = "CPU"
+class CPU extends Module {
     val io = IO(new Bundle {
-        val inst_mem_axi = new AXI4(32, 32, 4)
-        val data_mem_axi = new AXI4(32, 32, 4)
-        val ls_lsw_load = Output(Bool())
+        val inst_mem_axi = new AXI4Lite(32, 32)
+        val data_mem_axi = new AXI4Lite(32, 32)
         val data_mem_r_need_skip_ref = Input(Bool())
         val data_mem_b_need_skip_ref = Input(Bool())
     })
 
-    val ifu = Module(new IFU(resetVector))
+    val ifu = Module(new IFU)
     val iwu = Module(new IWU)
     val idu = Module(new IDU)
     val exu = Module(new EXU)
@@ -63,7 +61,7 @@ class CPU(resetVector: Long = 0x30000000L) extends Module with HasYsyxModuleName
     val isRAW = Wire(Bool())
 
     // CPU core's output
-    // instruction/data memory AXI on flat AXI4 channel views
+    // instruction memory AXI
     io.inst_mem_axi.ar <> ifu.io.mem.ar
     io.inst_mem_axi.r <> iwu.io.mem.r
     io.inst_mem_axi.aw <> ifu.io.mem.aw
@@ -75,8 +73,6 @@ class CPU(resetVector: Long = 0x30000000L) extends Module with HasYsyxModuleName
     io.data_mem_axi.aw <> lsu.io.mem.aw
     io.data_mem_axi.w <> lsu.io.mem.w
     io.data_mem_axi.b <> lswu.io.mem.b
-    // LSU/LSWU中存在load指令，这会限制arbiter处理IFU的AR请求
-    io.ls_lsw_load := lsu.io.load || lswu.io.load
 
     // CSR's input
     csr.io.in.req := wbu.io.csr.csrReq
@@ -99,36 +95,31 @@ class CPU(resetVector: Long = 0x30000000L) extends Module with HasYsyxModuleName
     ifu.io.ctrl.jump_target := idu.io.ctrl.jump_target
     ifu.io.ctrl.br_taken := exu.io.ctrl.br_taken
     ifu.io.ctrl.br_target := exu.io.ctrl.br_target
-    ifu.io.ctrl.ex_found_in := iwu.io.ctrl.ex_found_out || idu.io.ctrl.ex_found_out || lswu.io.ctrl.ex_found_out
+    ifu.io.ctrl.ex_found := idu.io.ctrl.ex_found
 
     // IWU's input
     StageConnect(ifu.io.out, iwu.io.in, arch) // IWU不能flush
     iwu.io.flush.br_taken := exu.io.ctrl.br_taken
     iwu.io.flush.jump_valid := idu.io.ctrl.jump_valid
-    iwu.io.flush.ex_found_in := idu.io.ctrl.ex_found_out || lswu.io.ctrl.ex_found_out
-
+    iwu.io.flush.ex_found := idu.io.ctrl.ex_found
+    
     // IDU's input
     StageConnect(iwu.io.out, idu.io.in, arch, idu.io.flush.flush)
     idu.io.rf.rdata1 := regfile.io.out.rdata1
     idu.io.rf.rdata2 := regfile.io.out.rdata2
     idu.io.raw_info.isRAW := isRAW
     idu.io.flush.br_taken := exu.io.ctrl.br_taken
-    idu.io.flush.ex_found_in := lswu.io.ctrl.ex_found_out
 
     // EXU's input
     StageConnect(idu.io.out, exu.io.in, arch)
-    exu.io.flush.ex_found_in := lswu.io.ctrl.ex_found_out
 
     // LSU's input
-    StageConnect(exu.io.out, lsu.io.in, arch, lsu.io.flush.flush) // LSU能flush（仅对!mem_access的指令能）
-    lsu.io.ctrl.older_mem_pending := lswu.io.ctrl.older_mem_pending
-    lsu.io.flush.ex_found_in := lswu.io.ctrl.ex_found_out
+    StageConnect(exu.io.out, lsu.io.in, arch) // LSU不能flush
 
     // LSWU's input
-    StageConnect(lsu.io.out, lswu.io.in, arch, lswu.io.flush.flush) // LSWU能flush（仅对!mem_access的指令能）
+    StageConnect(lsu.io.out, lswu.io.in, arch) // LSWU不能flush
     lswu.io.mem.r_need_skip_ref := io.data_mem_r_need_skip_ref
     lswu.io.mem.b_need_skip_ref := io.data_mem_b_need_skip_ref
-    lswu.io.flush.ex_found_in := false.B
 
     // WBU's input
     StageConnect(lswu.io.out, wbu.io.in, arch, wbu.io.flush.flush)

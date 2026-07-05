@@ -13,7 +13,9 @@
 !README.md
 !resources/
 !resources/*.sv
+!resources/**/*.sv
 build/
+build-npc/
 docs/
 
 # mill
@@ -27,6 +29,7 @@ test_run_dir/
 
 # verilator
 obj_dir/
+obj_dir-*/
 *.vcd
 
 logisim-bin/

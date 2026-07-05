@@ -32,12 +32,12 @@ image: image-dep
 	@$(OBJCOPY) -S --set-section-flags .bss=alloc,contents -O binary $(IMAGE).elf $(IMAGE).bin
 
 run: insert-arg
-	$(MAKE) -C $(NPC_HOME) sim IMG=$(IMAGE).bin ARGS="$(NPCARGS) --batch"
+	$(MAKE) -C $(NPC_HOME) sim MODE=npc IMG=$(IMAGE).bin ARGS="$(NPCARGS) --batch"
 
 debug: insert-arg
-	$(MAKE) -C $(NPC_HOME) sim IMG=$(IMAGE).bin ARGS="$(NPCARGS)"
+	$(MAKE) -C $(NPC_HOME) sim MODE=npc IMG=$(IMAGE).bin ARGS="$(NPCARGS)"
 
 gdb: insert-arg
-	$(MAKE) -C $(NPC_HOME) gdb IMG=$(IMAGE).bin ARGS="$(NPCARGS)"
+	$(MAKE) -C $(NPC_HOME) gdb MODE=npc IMG=$(IMAGE).bin ARGS="$(NPCARGS)"
 
 .PHONY: insert-arg image run debug gdb
