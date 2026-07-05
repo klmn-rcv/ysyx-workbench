@@ -1,4 +1,4 @@
-STUID = ysyx_26050145
+STUID = 2023K8009916002
 STUNAME = 纪弘璐
 
 # DO NOT modify the following code!!!
