@@ -11,11 +11,12 @@ object Elaborate extends App {
   )
 
   val mode = sys.env.getOrElse("NPC_ELAB_MODE", "ysyxsoc")
-  val dut = mode match {
-    case "ysyxsoc" => new cpu.ysyx_26050145(resetVector = 0x30000000L)
-    case "npc"     => new cpu.Top
-    case other     => throw new IllegalArgumentException(s"unknown NPC_ELAB_MODE: $other")
+  mode match {
+    case "ysyxsoc" =>
+      circt.stage.ChiselStage.emitSystemVerilogFile(new cpu.ysyx_26050145(resetVector = 0x30000000L), args, firtoolOptions)
+    case "npc" =>
+      circt.stage.ChiselStage.emitSystemVerilogFile(new cpu.Top, args, firtoolOptions)
+    case other =>
+      throw new IllegalArgumentException(s"unknown NPC_ELAB_MODE: $other")
   }
-
-  circt.stage.ChiselStage.emitSystemVerilogFile(dut, args, firtoolOptions)
 }
