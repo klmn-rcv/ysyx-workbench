@@ -40,12 +40,14 @@ $(error unknown MODE '$(MODE)', expected npc or ysyxsoc)
 endif
 
 VERILOG_STAMP = $(BUILD_DIR)/.verilog.stamp
+OBJ_DIR = ./obj_dir-$(MODE)
 
 CHISEL_SRCS := $(shell find src -name '*.scala' | sort)
 VERILOG_RESOURCES := $(shell find resources -name '*.sv' | sort)
 VERILOG_DEPS := $(CHISEL_SRCS) $(VERILOG_RESOURCES) Makefile
 
 VERILATOR_FLAGS += -Wall -Wno-fatal --cc -I$(BUILD_DIR)
+VERILATOR_FLAGS += --Mdir $(OBJ_DIR)
 ifeq ($(MODE),ysyxsoc)
 VERILATOR_FLAGS += -I$(SOC_HOME)/perip/uart16550/rtl
 VERILATOR_FLAGS += -I$(SOC_HOME)/perip/spi/rtl
@@ -102,7 +104,7 @@ idea:
 	mill -i mill.idea.GenIdea/idea
 
 clean:
-	-rm -rf $(BUILD_DIR) obj_dir
+	-rm -rf $(BUILD_DIR) $(OBJ_DIR) obj_dir
 
 $(LIBCAPSTONE):
 	$(MAKE) -C tools/capstone
@@ -115,7 +117,7 @@ sim: $(VERILOG_STAMP) $(LIBCAPSTONE) $(SIM_DEPS)
 			--exe $(CSRCS) \
 			-CFLAGS "$(CFLAGS)" \
 			-LDFLAGS "$(LDFLAGS)" \
-			--build -j 0 && ./obj_dir/V$(TOP_MODULE) $(ARGS) $(IMG)
+			--build -j 0 && $(OBJ_DIR)/V$(TOP_MODULE) $(ARGS) $(IMG)
 
 gdb: $(VERILOG_STAMP) $(LIBCAPSTONE) $(SIM_DEPS)
 	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
@@ -125,7 +127,7 @@ gdb: $(VERILOG_STAMP) $(LIBCAPSTONE) $(SIM_DEPS)
 			--exe $(CSRCS) \
 			-CFLAGS "$(CFLAGS) -g" \
 			-LDFLAGS "$(LDFLAGS)" \
-			--build -j 0 && gdb --args ./obj_dir/V$(TOP_MODULE) $(ARGS) $(IMG)
+			--build -j 0 && gdb --args $(OBJ_DIR)/V$(TOP_MODULE) $(ARGS) $(IMG)
 
 syn: $(VERILOG_STAMP)
 	$(MAKE) -C $(YOSYS_STA_DIR) sta \
