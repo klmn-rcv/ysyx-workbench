@@ -16,13 +16,21 @@ class AXI4Arbiter extends Module with HasYsyxModuleName {
         val ls_lsw_b_need_skip_ref = Output(Bool())
     })
 
-    val if_iw_ar_fire = io.if_iw.arvalid && io.if_iw.arready
-    val if_iw_r_fire = io.if_iw.rvalid && io.if_iw.rready
+    val if_r_valid = RegInit(false.B)
+    val if_r_data = Reg(UInt(32.W))
+    val if_r_resp = Reg(UInt(2.W))
+    val if_r_id = Reg(UInt(4.W))
+    val if_r_last = Reg(Bool())
 
     // val ls_lsw_req = io.ls_lsw.arvalid || io.ls_lsw.awvalid || io.ls_lsw.wvalid
-    val grant_if_iw_read = io.if_iw.arvalid && !io.ls_lsw_load
-    val grant_if_iw_read_preserved = bool_preserve(grant_if_iw_read, if_iw_r_fire, false.B)._1
-    val read_owner_is_if_iw = boolreg_set_clear(if_iw_ar_fire, if_iw_r_fire)
+    val grant_if_iw_read = io.if_iw.arvalid && !io.ls_lsw_load && !if_r_valid
+    val xbar_ar_fire = io.xbar.arvalid && io.xbar.arready
+    val grant_if_iw_read_preserved = bool_preserve(grant_if_iw_read, xbar_ar_fire, false.B)._1
+    val read_owner_is_if_iw = RegInit(false.B)
+
+    val xbar_r_fire = io.xbar.rvalid && io.xbar.rready
+    val if_iw_r_fire = io.if_iw.rvalid && io.if_iw.rready
+    val if_xbar_r_fire = read_owner_is_if_iw && xbar_r_fire
 
     assert(!io.if_iw.awvalid && !io.if_iw.wvalid && !io.if_iw.bready)
     assert(!(io.ls_lsw.arvalid && (io.ls_lsw.awvalid || io.ls_lsw.wvalid)))
@@ -32,20 +40,34 @@ class AXI4Arbiter extends Module with HasYsyxModuleName {
     // 如果IFU的AR请求发到一半，突然LSU来了个load，IFU仍然需要完成AR握手，LSU要等到IFU的R握手都完成之后才有可能完成AR握手
     // 但这不会造成跟之前一样的死锁，因为“IFU的AR请求发到一半，突然LSU来了个load”意味着一定有空泡，IFU一定能进入IWU完成R握手，不会被LSU/LSWU卡住形成死锁
     // AR
-    io.xbar.arvalid := io.ls_lsw.arvalid || grant_if_iw_read
+    io.xbar.arvalid := Mux(grant_if_iw_read_preserved, io.if_iw.arvalid, io.ls_lsw.arvalid)
     when(grant_if_iw_read_preserved) {
         connectFields(io.if_iw.ar, io.xbar.ar, "araddr", "arid", "arlen", "arsize", "arburst")
         io.ls_lsw.arready := false.B
-        io.if_iw.arready := io.xbar.arready && grant_if_iw_read
+        io.if_iw.arready := io.xbar.arready
     }.otherwise {
         connectFields(io.ls_lsw.ar, io.xbar.ar, "araddr", "arid", "arlen", "arsize", "arburst")
         io.ls_lsw.arready := io.xbar.arready
         io.if_iw.arready := false.B
     }
 
+    when(grant_if_iw_read_preserved && xbar_ar_fire) {
+        read_owner_is_if_iw := true.B
+    }.elsewhen(if_xbar_r_fire) {
+        read_owner_is_if_iw := false.B
+    }.elsewhen(!grant_if_iw_read_preserved && xbar_ar_fire) {
+        read_owner_is_if_iw := false.B
+    }
+
     // R
+    io.if_iw.rvalid := if_r_valid
+    io.if_iw.rdata := if_r_data
+    io.if_iw.rresp := if_r_resp
+    io.if_iw.rid := if_r_id
+    io.if_iw.rlast := if_r_last
+
     when(read_owner_is_if_iw) {
-        connectFields(io.xbar.r, io.if_iw.r, "rvalid", "rdata", "rresp", "rid", "rlast", "rready")
+        io.xbar.rready := !if_r_valid || io.if_iw.rready
         io.ls_lsw.rvalid := false.B
         io.ls_lsw.rdata := 0.U
         io.ls_lsw.rresp := 0.U
@@ -53,11 +75,16 @@ class AXI4Arbiter extends Module with HasYsyxModuleName {
         io.ls_lsw.rlast := false.B
     }.otherwise {
         connectFields(io.xbar.r, io.ls_lsw.r, "rvalid", "rdata", "rresp", "rid", "rlast", "rready")
-        io.if_iw.rvalid := false.B
-        io.if_iw.rdata := 0.U
-        io.if_iw.rresp := 0.U
-        io.if_iw.rid := 0.U
-        io.if_iw.rlast := false.B
+    }
+
+    when(if_xbar_r_fire) {
+        if_r_valid := true.B
+        if_r_data := io.xbar.rdata
+        if_r_resp := io.xbar.rresp
+        if_r_id := io.xbar.rid
+        if_r_last := io.xbar.rlast
+    }.elsewhen(if_iw_r_fire) {
+        if_r_valid := false.B
     }
 
     // AW
