@@ -9,10 +9,12 @@
 #ifdef CONFIG_DIFFTEST
 #include "difftest.h"
 #endif
-#include "VysyxSoCFull___024root.h"
+#ifndef SIM_MODE_NPC
+#include TOP_ROOT_HEADER
 #include "VysyxSoCFull_sdramChisel.h"
 #include "VysyxSoCFull_sdramChisel_2.h"
 #include "VysyxSoCFull_bank_mem_4194304x16.h"
+#endif
 
 extern char mrom[];  // mask rom
 extern char flash[];
@@ -21,7 +23,11 @@ extern char pmem[];  // memory
 
 static uint64_t rtc_snapshot = 0; // 防止直接读系统时间可能导致的高32位和低32位不一致
 static auto boot_time = std::chrono::steady_clock::now();
+#ifdef SIM_MODE_NPC
+static const uint32_t start_pc = MEM_BASE;
+#else
 static const uint32_t start_pc = FLASH_BASE;
+#endif
 // static const uint32_t start_pmem = 0x80000000;
 
 static inline bool in_range(uint32_t addr, uint32_t base, uint32_t size) {
@@ -36,6 +42,14 @@ static inline uint32_t load_le_u32(const Mem &mem, uint32_t offset) {
          (static_cast<uint32_t>(static_cast<uint8_t>(mem[offset + 3])) << 24);
 }
 
+#ifdef SIM_MODE_NPC
+static uint32_t debug_mem_read(uint32_t raddr) {
+  const uint32_t aligned_addr = raddr & ~0x3u;
+  const uint32_t mem_addr = aligned_addr - MEM_BASE;
+  Assert(mem_addr + 4 <= MEM_SIZE, "debug_mem_read out of bounds at address 0x%x", raddr);
+  return load_le_u32(pmem, mem_addr);
+}
+#else
 template <typename Sdram>
 static inline VysyxSoCFull_bank_mem_4194304x16 *sdram_bank_mem(Sdram *sdram, uint32_t bank) {
   switch (bank) {
@@ -110,6 +124,7 @@ static uint32_t debug_mem_read(uint32_t raddr) {
   Assert(0, "debug_mem_read out of bounds at address 0x%x", raddr);
   return 0;
 }
+#endif
 
 extern "C" void sim_halt(int exit_code, uint32_t exit_pc) {
   npc_state.state = NPC_END;

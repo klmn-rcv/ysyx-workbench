@@ -42,12 +42,12 @@ image: image-dep
 	@$(OBJCOPY) -S -O binary $(IMAGE).elf $(IMAGE).bin
 
 run: insert-arg difftest-ref
-	$(MAKE) -C $(NPC_HOME) sim IMG=$(IMAGE).bin ARGS="$(NPCARGS) --batch"
+	$(MAKE) -C $(NPC_HOME) sim MODE=ysyxsoc IMG=$(IMAGE).bin ARGS="$(NPCARGS) --batch"
 
 debug: insert-arg difftest-ref
-	$(MAKE) -C $(NPC_HOME) sim IMG=$(IMAGE).bin ARGS="$(NPCARGS)"
+	$(MAKE) -C $(NPC_HOME) sim MODE=ysyxsoc IMG=$(IMAGE).bin ARGS="$(NPCARGS)"
 
 gdb: insert-arg difftest-ref
-	$(MAKE) -C $(NPC_HOME) gdb IMG=$(IMAGE).bin ARGS="$(NPCARGS)"
+	$(MAKE) -C $(NPC_HOME) gdb MODE=ysyxsoc IMG=$(IMAGE).bin ARGS="$(NPCARGS)"
 
 .PHONY: insert-arg image run debug gdb difftest-ref

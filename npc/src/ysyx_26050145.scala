@@ -3,14 +3,14 @@ package cpu
 import chisel3._
 import chisel3.reflect.DataMirror
 
-class ysyx_26050145 extends Module {
+class ysyx_26050145(resetVector: Long = 0x30000000L) extends Module {
     val io = IO(new Bundle {
         val interrupt = Input(Bool())
         val master = new AXI4(32, 32, 4)
         val slave = Flipped(new AXI4(32, 32, 4))
     })
 
-    val core = Module(new CPU)
+    val core = Module(new CPU(resetVector))
     val arbiter = Module(new AXI4Arbiter)
     val xbar = Module(new Xbar)
     val clint = Module(new CLINT)

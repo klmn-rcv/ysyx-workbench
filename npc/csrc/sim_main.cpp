@@ -4,9 +4,11 @@
 #include "state.h"
 #include "debug.h"
 #include "difftest.h"
+#ifndef SIM_MODE_NPC
 #include <nvboard.h>
+#endif
 
-VysyxSoCFull* top = new VysyxSoCFull;
+TOP_CLASS* top = new TOP_CLASS;
 #ifdef CONFIG_GEN_WAVE
 vluint64_t sim_time = 0;
 VerilatedVcdC* tfp = new VerilatedVcdC;
@@ -14,7 +16,9 @@ VerilatedVcdC* tfp = new VerilatedVcdC;
 
 void init_disasm();
 void sdb_set_batch_mode();
-void nvboard_bind_all_pins(TOP_NAME* top);
+#ifndef SIM_MODE_NPC
+void nvboard_bind_all_pins(TOP_CLASS* top);
+#endif
 
 char mrom[MROM_SIZE]; // mask rom
 char flash[FLASH_SIZE]; // flash memory
@@ -34,9 +38,11 @@ static long load_image(const char* path) {
     std::exit(1);
   }
 
-  // const long n = std::fread(pmem, 1, MEM_SIZE, fp);
-  // const long n = std::fread(mrom, 1, MROM_SIZE, fp);
+#ifdef SIM_MODE_NPC
+  const long n = std::fread(pmem, 1, MEM_SIZE, fp);
+#else
   const long n = std::fread(flash, 1, FLASH_SIZE, fp);
+#endif
 
   // printf("DEBUG: In load_image, mrom's first inst is 0x%08x\n", *(uint32_t *)mrom);
 
@@ -46,7 +52,11 @@ static long load_image(const char* path) {
     std::exit(1);
   }
   std::fclose(fp);
+#ifdef SIM_MODE_NPC
+  printf("[sim] loaded %ld bytes from %s to pmem\n", n, path);
+#else
   printf("[sim] loaded %ld bytes from %s to flash\n", n, path);
+#endif
   return n;
 }
 
@@ -54,9 +64,16 @@ static void init_sim() {
   top->clock = 0;
   top->reset = 1;
 
+#ifdef SIM_MODE_NPC
+  const int reset_cycles = 2;
+#else
   // 为了适配SoC，改成了10周期复位（SoC里的移位寄存器会把它扩展成20拍复位）
-  for (int i = 0; i < 10; i++) {
+  const int reset_cycles = 10;
+#endif
+  for (int i = 0; i < reset_cycles; i++) {
+#ifndef SIM_MODE_NPC
     nvboard_update();
+#endif
     top->clock = 0;
     top->eval();
 #ifdef CONFIG_GEN_WAVE
@@ -137,8 +154,10 @@ int main(int argc, char** argv) {
   tfp->open("wave.vcd");
 #endif
 
+#ifndef SIM_MODE_NPC
   nvboard_bind_all_pins(top);
   nvboard_init();
+#endif
 
   parse_args(argc, argv);
 

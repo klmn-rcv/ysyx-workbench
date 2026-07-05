@@ -38,7 +38,7 @@ object StageConnect {
     }
 }
 
-class CPU extends Module with HasYsyxModuleName {
+class CPU(resetVector: Long = 0x30000000L) extends Module with HasYsyxModuleName {
     override protected def moduleSuffix: String = "CPU"
     val io = IO(new Bundle {
         val inst_mem_axi = new AXI4(32, 32, 4)
@@ -48,7 +48,7 @@ class CPU extends Module with HasYsyxModuleName {
         val data_mem_b_need_skip_ref = Input(Bool())
     })
 
-    val ifu = Module(new IFU)
+    val ifu = Module(new IFU(resetVector))
     val iwu = Module(new IWU)
     val idu = Module(new IDU)
     val exu = Module(new EXU)
