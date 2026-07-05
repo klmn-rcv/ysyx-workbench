@@ -1,0 +1,45 @@
+From 069ec727167e6638b1495784c2077d3e5e44e7aa Mon Sep 17 00:00:00 2001
+From: Honglu Ji <jihonglu23@mails.ucas.ac.cn>
+Date: Wed, 20 May 2026 03:01:01 +0800
+Subject: [PATCH 2/4] fix: fix section definitions in extra.ld
+
+---
+ bsp/abstract-machine/extra.ld | 11 ++++++++---
+ 1 file changed, 8 insertions(+), 3 deletions(-)
+
+diff --git a/bsp/abstract-machine/extra.ld b/bsp/abstract-machine/extra.ld
+index 5cdc656..47602a4 100644
+--- a/bsp/abstract-machine/extra.ld
++++ b/bsp/abstract-machine/extra.ld
+@@ -26,20 +26,25 @@ SECTIONS {
+     *(__am_apps.data*)
+     *(__am_apps.sdata*)
+     __am_apps_data_end = .;
++    _extra_data_lma_start = LOADADDR(.data.extra);
++    _extra_data_vma_start = ADDR(.data.extra);
++    _extra_data_vma_end = ADDR(.data.extra) + SIZEOF(.data.extra);
+     . = ALIGN(8);
+-  }
++  } > psram AT> flash /*: data*/
+ }
+ INSERT BEFORE .data;
+ 
+ SECTIONS {
+-  .bss.extra : {
++  .bss.extra (NOLOAD) : {
+     . = ALIGN(8);
+     __am_apps_bss_start = .;
+     *(__am_apps.bss*)
+     *(__am_apps.sbss*)
+     *(__am_apps.scommon*)
+     __am_apps_bss_end = .;
++    _extra_bss_vma_start = ADDR(.bss.extra);
++    _extra_bss_vma_end = ADDR(.bss.extra) + SIZEOF(.bss.extra);
+     . = ALIGN(8);
+-  }
++  } > psram /*: data*/
+ }
+ INSERT BEFORE .bss;
+-- 
+2.34.1
+

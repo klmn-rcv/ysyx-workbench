@@ -1,0 +1,101 @@
+From 2db9d69bb33584d5b00ef7cd101d903549e0eb7b Mon Sep 17 00:00:00 2001
+From: Honglu Ji <jihonglu23@mails.ucas.ac.cn>
+Date: Mon, 13 Apr 2026 02:05:35 +0800
+Subject: [PATCH 1/4] feat: implement context.c in bsp
+
+---
+ bsp/abstract-machine/src/context.c | 60 +++++++++++++++++++++++++++---
+ 1 file changed, 54 insertions(+), 6 deletions(-)
+
+diff --git a/bsp/abstract-machine/src/context.c b/bsp/abstract-machine/src/context.c
+index ee38829..b046cc0 100644
+--- a/bsp/abstract-machine/src/context.c
++++ b/bsp/abstract-machine/src/context.c
+@@ -2,23 +2,60 @@
+ #include <klib.h>
+ #include <rtthread.h>
+ 
++struct rt_hw_tentry_wrapper_arg {
++  void *tentry;
++  void *parameter;
++  void *texit;
++};
++
++struct rt_hw_switch_contexts {
++  rt_ubase_t from;
++  rt_ubase_t to;
++};
++
+ static Context* ev_handler(Event e, Context *c) {
+   switch (e.event) {
++    case EVENT_YIELD: 
++      rt_thread_t current = rt_thread_self();
++      struct rt_hw_switch_contexts *switch_ctxs = (struct rt_hw_switch_contexts *)current->user_data;
++      if(switch_ctxs->from != (rt_ubase_t)NULL)
++        *((rt_ubase_t *)switch_ctxs->from) = (rt_ubase_t)c;
++      return *(Context **)switch_ctxs->to;
++    case EVENT_IRQ_TIMER: return c;
+     default: printf("Unhandled event ID = %d\n", e.event); assert(0);
+   }
+   return c;
+ }
+ 
++static void rt_hw_tentry_wrapper(void *arg) {
++  struct rt_hw_tentry_wrapper_arg *wrapper_arg = (struct rt_hw_tentry_wrapper_arg *)arg;
++  ((void (*)(void *))wrapper_arg->tentry)(wrapper_arg->parameter);
++  ((void (*)(void))wrapper_arg->texit)();
++  assert(0);
++}
++
+ void __am_cte_init() {
+   cte_init(ev_handler);
+ }
+ 
+-void rt_hw_context_switch_to(rt_ubase_t to) {
+-  assert(0);
++void rt_hw_context_switch(rt_ubase_t from, rt_ubase_t to) {
++  rt_thread_t current = rt_thread_self(); // current thread's PCB
++  assert(current != NULL);
++  rt_ubase_t saved_user_data = current->user_data; // 保存当前线程的user_data到栈上的局部变量saved_user_data
++
++  struct rt_hw_switch_contexts switch_ctxs = {
++    .from = from,
++    .to = to
++  };
++
++  current->user_data = (rt_ubase_t)&switch_ctxs;
++  yield();
++
++  current->user_data = saved_user_data; // 恢复旧的user_data
+ }
+ 
+-void rt_hw_context_switch(rt_ubase_t from, rt_ubase_t to) {
+-  assert(0);
++void rt_hw_context_switch_to(rt_ubase_t to) {
++  rt_hw_context_switch((rt_ubase_t)NULL, to);
+ }
+ 
+ void rt_hw_context_switch_interrupt(void *context, rt_ubase_t from, rt_ubase_t to, struct rt_thread *to_thread) {
+@@ -26,6 +63,17 @@ void rt_hw_context_switch_interrupt(void *context, rt_ubase_t from, rt_ubase_t t
+ }
+ 
+ rt_uint8_t *rt_hw_stack_init(void *tentry, void *parameter, rt_uint8_t *stack_addr, void *texit) {
+-  assert(0);
+-  return NULL;
++  /* stack_addr是栈底最后一个元素的地址 */
++  rt_ubase_t *top = (rt_ubase_t *)(((uintptr_t)stack_addr + sizeof(rt_ubase_t)) & ~((rt_ubase_t)sizeof(rt_ubase_t) - 1));  // 对齐
++  
++  rt_ubase_t *sp = (rt_ubase_t *)((uintptr_t)top - sizeof(struct rt_hw_tentry_wrapper_arg));
++  sp = (rt_ubase_t *)((uintptr_t)sp & ~((rt_ubase_t)sizeof(rt_ubase_t) - 1));  // 对齐
++  struct rt_hw_tentry_wrapper_arg *wrapper_arg = (struct rt_hw_tentry_wrapper_arg *)sp;
++  wrapper_arg->tentry = tentry;
++  wrapper_arg->parameter = parameter;
++  wrapper_arg->texit = texit;
++  
++  // 传入kcontext的Area.end不是栈底，而是在栈底压入了wrapper_arg之后的sp所在地址，这样就避免了后续使用栈时覆盖掉wrapper_arg
++  Context *ctx = kcontext((Area){.start = NULL, .end = sp}, rt_hw_tentry_wrapper, wrapper_arg);
++  return (rt_uint8_t *)ctx;
+ }
+-- 
+2.34.1
+

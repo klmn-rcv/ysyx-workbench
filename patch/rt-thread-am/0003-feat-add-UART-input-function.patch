@@ -1,0 +1,29 @@
+From 6bb049b83ccedeed9adbb3dd6ae46975c500386f Mon Sep 17 00:00:00 2001
+From: Honglu Ji <jihonglu23@mails.ucas.ac.cn>
+Date: Sat, 30 May 2026 22:16:21 +0800
+Subject: [PATCH 3/4] feat: add UART input function
+
+---
+ bsp/abstract-machine/src/uart.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/bsp/abstract-machine/src/uart.c b/bsp/abstract-machine/src/uart.c
+index e4eb866..5ed4c4f 100644
+--- a/bsp/abstract-machine/src/uart.c
++++ b/bsp/abstract-machine/src/uart.c
+@@ -38,7 +38,11 @@ static int _uart_putc(struct rt_serial_device *serial, char c) {
+ 
+ static int _uart_getc(struct rt_serial_device *serial) {
+   static const char *p = "help\ndate\nversion\nfree\nps\npwd\nls\nmemtrace\nmemcheck\nutest_list\n";
+-  return (*p != '\0' ? *(p ++) : -1);
++  if(*p != '\0') {
++    return *(p ++);
++  }
++  AM_UART_RX_T rx = io_read(AM_UART_RX);
++  return ((unsigned char)rx.data == 0xff) ? -1 : rx.data;
+ }
+ 
+ const struct rt_uart_ops _uart_ops = {
+-- 
+2.34.1
+

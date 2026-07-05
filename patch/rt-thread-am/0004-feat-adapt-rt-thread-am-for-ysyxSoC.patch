@@ -1,0 +1,136 @@
+From ec5a5124eef593fe144c1b987c0ac68e20f2a962 Mon Sep 17 00:00:00 2001
+From: Honglu Ji <jihonglu23@mails.ucas.ac.cn>
+Date: Sun, 5 Jul 2026 17:44:46 +0800
+Subject: [PATCH 4/4] feat: adapt rt-thread-am for ysyxSoC
+
+---
+ bsp/abstract-machine/Makefile         |  4 +++
+ bsp/abstract-machine/extra-ysyxsoc.ld | 50 +++++++++++++++++++++++++++
+ bsp/abstract-machine/extra.ld         | 11 ++----
+ bsp/abstract-machine/src/uart.c       |  4 +++
+ 4 files changed, 61 insertions(+), 8 deletions(-)
+ create mode 100644 bsp/abstract-machine/extra-ysyxsoc.ld
+
+diff --git a/bsp/abstract-machine/Makefile b/bsp/abstract-machine/Makefile
+index 8d70f31..fa9d40f 100644
+--- a/bsp/abstract-machine/Makefile
++++ b/bsp/abstract-machine/Makefile
+@@ -8,7 +8,11 @@ NAME = rtthread
+ SRCS = $(shell find src -name "*.c")
+ CFLAGS += -DHAVE_CCONFIG_H -D__RTTHREAD__
+ CFLAGS += -Wno-nonnull-compare
++ifneq ($(filter %-ysyxsoc,$(ARCH)),)
++LDFLAGS += -T extra-ysyxsoc.ld
++else
+ LDFLAGS += -T extra.ld
++endif
+ -include $(FILE_MK)
+ -include $(AM_APPS_MK)
+ include $(AM_HOME)/Makefile
+diff --git a/bsp/abstract-machine/extra-ysyxsoc.ld b/bsp/abstract-machine/extra-ysyxsoc.ld
+new file mode 100644
+index 0000000..47602a4
+--- /dev/null
++++ b/bsp/abstract-machine/extra-ysyxsoc.ld
+@@ -0,0 +1,50 @@
++SECTIONS {
++  .data.extra : {
++    /* section information for finsh shell */
++    __fsymtab_start = .;
++    KEEP(*(FSymTab))
++    __fsymtab_end = .;
++    . = ALIGN(8);
++    __vsymtab_start = .;
++    KEEP(*(VSymTab))
++    __vsymtab_end = .;
++    . = ALIGN(8);
++
++    /* section information for initial. */
++    . = ALIGN(8);
++    __rt_init_start = .;
++    KEEP(*(SORT(.rti_fn*)))
++    __rt_init_end = .;
++    . = ALIGN(8);
++
++    __rt_utest_tc_tab_start = .;
++    KEEP(*(UtestTcTab))
++    __rt_utest_tc_tab_end = .;
++
++    . = ALIGN(8);
++    __am_apps_data_start = .;
++    *(__am_apps.data*)
++    *(__am_apps.sdata*)
++    __am_apps_data_end = .;
++    _extra_data_lma_start = LOADADDR(.data.extra);
++    _extra_data_vma_start = ADDR(.data.extra);
++    _extra_data_vma_end = ADDR(.data.extra) + SIZEOF(.data.extra);
++    . = ALIGN(8);
++  } > psram AT> flash /*: data*/
++}
++INSERT BEFORE .data;
++
++SECTIONS {
++  .bss.extra (NOLOAD) : {
++    . = ALIGN(8);
++    __am_apps_bss_start = .;
++    *(__am_apps.bss*)
++    *(__am_apps.sbss*)
++    *(__am_apps.scommon*)
++    __am_apps_bss_end = .;
++    _extra_bss_vma_start = ADDR(.bss.extra);
++    _extra_bss_vma_end = ADDR(.bss.extra) + SIZEOF(.bss.extra);
++    . = ALIGN(8);
++  } > psram /*: data*/
++}
++INSERT BEFORE .bss;
+diff --git a/bsp/abstract-machine/extra.ld b/bsp/abstract-machine/extra.ld
+index 47602a4..5cdc656 100644
+--- a/bsp/abstract-machine/extra.ld
++++ b/bsp/abstract-machine/extra.ld
+@@ -26,25 +26,20 @@ SECTIONS {
+     *(__am_apps.data*)
+     *(__am_apps.sdata*)
+     __am_apps_data_end = .;
+-    _extra_data_lma_start = LOADADDR(.data.extra);
+-    _extra_data_vma_start = ADDR(.data.extra);
+-    _extra_data_vma_end = ADDR(.data.extra) + SIZEOF(.data.extra);
+     . = ALIGN(8);
+-  } > psram AT> flash /*: data*/
++  }
+ }
+ INSERT BEFORE .data;
+ 
+ SECTIONS {
+-  .bss.extra (NOLOAD) : {
++  .bss.extra : {
+     . = ALIGN(8);
+     __am_apps_bss_start = .;
+     *(__am_apps.bss*)
+     *(__am_apps.sbss*)
+     *(__am_apps.scommon*)
+     __am_apps_bss_end = .;
+-    _extra_bss_vma_start = ADDR(.bss.extra);
+-    _extra_bss_vma_end = ADDR(.bss.extra) + SIZEOF(.bss.extra);
+     . = ALIGN(8);
+-  } > psram /*: data*/
++  }
+ }
+ INSERT BEFORE .bss;
+diff --git a/bsp/abstract-machine/src/uart.c b/bsp/abstract-machine/src/uart.c
+index 5ed4c4f..3d9c318 100644
+--- a/bsp/abstract-machine/src/uart.c
++++ b/bsp/abstract-machine/src/uart.c
+@@ -41,6 +41,10 @@ static int _uart_getc(struct rt_serial_device *serial) {
+   if(*p != '\0') {
+     return *(p ++);
+   }
++  AM_UART_CONFIG_T cfg = io_read(AM_UART_CONFIG);
++  if (!cfg.present) {
++    return -1;
++  }
+   AM_UART_RX_T rx = io_read(AM_UART_RX);
+   return ((unsigned char)rx.data == 0xff) ? -1 : rx.data;
+ }
+-- 
+2.34.1
+
