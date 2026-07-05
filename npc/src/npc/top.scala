@@ -19,7 +19,7 @@ class Top extends Module {
     val core = Module(new CPU)
     val arbiter = Module(new AXI4LiteArbiter)
     val xbar = Module(new Xbar)
-    val mem = Module(new Mem)
+    val mem = Module(new _root_.cpu.npc.Mem)
     val uart = Module(new UART)
     val clint = Module(new CLINT)
 
