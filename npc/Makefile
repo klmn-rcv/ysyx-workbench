@@ -63,8 +63,6 @@ INCFLAGS = $(addprefix -I, $(INC_PATH))
 CFLAGS += $(INCFLAGS)
 CFLAGS += $(SIM_MODE_CFLAGS)
 CFLAGS += -DTOP_CLASS=V$(TOP_MODULE)
-CFLAGS += -DTOP_HEADER=\"V$(TOP_MODULE).h\"
-CFLAGS += -DTOP_ROOT_HEADER=\"V$(TOP_MODULE)___024root.h\"
 
 ifeq ($(MODE),ysyxsoc)
 # constraint file

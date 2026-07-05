@@ -4,7 +4,11 @@
 #include <verilated.h>
 #include <verilated_vcd_c.h>
 
-#include TOP_HEADER
+#ifdef SIM_MODE_NPC
+#include "VTop.h"
+#else
+#include "VysyxSoCFull.h"
+#endif
 
 // #define MROM_SIZE 0x1000
 // #define FLASH_SIZE 0x10000000

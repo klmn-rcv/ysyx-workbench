@@ -10,7 +10,9 @@
 #include "cpu-exec.h"
 #include "difftest.h"
 #include "debugpoint.h"
+#ifndef SIM_MODE_NPC
 #include <nvboard.h>
+#endif
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -93,7 +95,9 @@ static void exec_once() {
   uint64_t commit_begin = g_nr_commit;
 
   while (g_nr_commit == commit_begin && npc_state.state == NPC_RUNNING) {
+#ifndef SIM_MODE_NPC
     nvboard_update();
+#endif
     cycle_once();
     npc_state.cycles++;
   }

@@ -1,6 +1,10 @@
 #include "common.h"
 #include "sim.h"
-#include TOP_ROOT_HEADER
+#ifdef SIM_MODE_NPC
+#include "VTop___024root.h"
+#else
+#include "VysyxSoCFull___024root.h"
+#endif
 
 #define REG_NUM 16
 

@@ -10,7 +10,7 @@
 #include "difftest.h"
 #endif
 #ifndef SIM_MODE_NPC
-#include TOP_ROOT_HEADER
+#include "VysyxSoCFull___024root.h"
 #include "VysyxSoCFull_sdramChisel.h"
 #include "VysyxSoCFull_sdramChisel_2.h"
 #include "VysyxSoCFull_bank_mem_4194304x16.h"
