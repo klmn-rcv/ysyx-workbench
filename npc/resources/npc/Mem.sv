@@ -7,136 +7,272 @@ typedef enum logic [1:0] {
 module Mem(
     input wire clk,
     input wire rst,
+    input wire read_is_inst,  // 当前这笔AR请求是否来自IFU，只用于DPI-C函数，用于mtrace
+    // output reg r_need_skip_ref,
+    // output reg b_need_skip_ref,
 
-    output wire axi_awready,
-    input wire axi_awvalid,
-    input wire [31:0] axi_awaddr,
-    input wire [3:0] axi_awid,
-    input wire [7:0] axi_awlen,
-    input wire [2:0] axi_awsize,
-    input wire [1:0] axi_awburst,
+    // AR
+    input wire [31:0] axi_ar_araddr,
+    input wire axi_ar_arvalid,
+    output wire axi_ar_arready,
 
-    output wire axi_wready,
-    input wire axi_wvalid,
-    input wire [31:0] axi_wdata,
-    input wire [3:0] axi_wstrb,
-    input wire axi_wlast,
+    // R
+    output reg [31:0] axi_r_rdata,
+    output reg [1:0] axi_r_rresp,
+    output reg axi_r_rvalid,
+    input wire axi_r_rready,
 
-    input wire axi_bready,
-    output reg axi_bvalid,
-    output reg [1:0] axi_bresp,
-    output reg [3:0] axi_bid,
+    // AW
+    input wire [31:0] axi_aw_awaddr,
+    input wire axi_aw_awvalid,
+    output wire axi_aw_awready,
 
-    output wire axi_arready,
-    input wire axi_arvalid,
-    input wire [31:0] axi_araddr,
-    input wire [3:0] axi_arid,
-    input wire [7:0] axi_arlen,
-    input wire [2:0] axi_arsize,
-    input wire [1:0] axi_arburst,
+    // W
+    input wire [31:0] axi_w_wdata,
+    input wire [3:0] axi_w_wstrb,
+    input wire axi_w_wvalid,
+    output wire axi_w_wready,
 
-    input wire axi_rready,
-    output reg axi_rvalid,
-    output reg [31:0] axi_rdata,
-    output reg [1:0] axi_rresp,
-    output reg [3:0] axi_rid,
-    output reg axi_rlast
+    // B
+    output reg [1:0] axi_b_bresp,
+    output reg axi_b_bvalid,
+    input wire axi_b_bready
 );
-    import "DPI-C" function int pmem_read(input int unsigned raddr, input byte unsigned read_type);
-    import "DPI-C" function void pmem_write(input int unsigned waddr, input int wdata, input byte unsigned wmask);
+    import "DPI-C" function int pmem_read(input int unsigned raddr, input byte read_type);//, output byte need_skip_ref);
+    import "DPI-C" function void pmem_write(input int unsigned waddr, input int wdata, input byte unsigned wmask);//, output byte need_skip_ref);
 
-    localparam [1:0] AXI_RESP_OKAY = 2'd0;
+    wire [7:0] read_type = read_is_inst ? {6'd0, MEM_READ_INST} : {6'd0, MEM_READ_DATA}; // 只用于传给DPI-C函数，用于mtrace
 
-    reg aw_seen;
-    reg w_seen;
+    localparam R_IDLE = 2'd0, R_WAIT = 2'd1, R_RESP = 2'd2;
+    localparam W_IDLE = 2'd0, W_WAIT = 2'd1, W_RESP = 2'd2;
+
+    reg [1:0] r_current_state, r_next_state;
+    reg [1:0] w_current_state, w_next_state;
+
+    wire [7:0] r_lfsr_rand;
+    wire [7:0] w_lfsr_rand;
+    wire [3:0] r_latency = {1'b0, r_lfsr_rand[2:0]} + 4'd1;
+    wire [3:0] w_latency = {1'b0, w_lfsr_rand[2:0]} + 4'd1;
+    reg [3:0] r_latency_cnt;
+    reg [3:0] w_latency_cnt;
+
+    // reg [31:0] raddr_latched;
     reg [31:0] awaddr_latched;
-    reg [3:0] awid_latched;
     reg [31:0] wdata_latched;
-    reg [3:0] wstrb_latched;
+    reg [3:0]  wstrb_latched;
 
-    wire ar_fire = axi_arvalid && axi_arready;
-    wire r_fire = axi_rvalid && axi_rready;
-    wire aw_fire = axi_awvalid && axi_awready;
-    wire w_fire = axi_wvalid && axi_wready;
-    wire b_fire = axi_bvalid && axi_bready;
+    reg aw_fire_after;
+    reg w_fire_after;
+    wire ar_fire = axi_ar_arvalid && axi_ar_arready;
+    wire r_fire  = axi_r_rvalid   && axi_r_rready;
+    wire aw_fire = axi_aw_awvalid && axi_aw_awready;
+    wire w_fire  = axi_w_wvalid   && axi_w_wready;
+    wire b_fire  = axi_b_bvalid   && axi_b_bready;
 
-    wire write_active = aw_seen || w_seen || axi_awvalid || axi_wvalid || axi_bvalid;
-    assign axi_arready = !rst && !axi_rvalid && !write_active;
-    assign axi_awready = !rst && !axi_bvalid && !aw_seen;
-    assign axi_wready = !rst && !axi_bvalid && !w_seen;
+    wire aw_fire_preserved = aw_fire || aw_fire_after;
+    wire w_fire_preserved  = w_fire || w_fire_after;
+    wire w_req_complete = aw_fire_preserved && w_fire_preserved;
+    wire write_req_complete_pulse = (w_current_state == W_IDLE) && w_req_complete;
 
-    wire aw_seen_next = aw_seen || aw_fire;
-    wire w_seen_next = w_seen || w_fire;
-    wire write_req_complete = aw_seen_next && w_seen_next && !axi_bvalid;
-    wire [31:0] write_addr = aw_fire ? axi_awaddr : awaddr_latched;
-    wire [3:0] write_id = aw_fire ? axi_awid : awid_latched;
-    wire [31:0] write_data = w_fire ? axi_wdata : wdata_latched;
-    wire [3:0] write_strb = w_fire ? axi_wstrb : wstrb_latched;
-    wire [7:0] read_type = (axi_arid == 4'd0) ? {6'd0, MEM_READ_INST} : {6'd0, MEM_READ_DATA};
+    reg writing;
+    wire write_begin = (w_current_state == W_IDLE) && (aw_fire || w_fire);
+    wire write_finish = ((w_current_state == W_IDLE) && w_req_complete && (w_latency == 4'd1)) ||
+                        ((w_current_state == W_WAIT) && (w_latency_cnt == 4'd1));
 
     always @(posedge clk) begin
-        if (rst) begin
-            axi_rvalid <= 1'b0;
-            axi_rdata <= 32'd0;
-            axi_rresp <= AXI_RESP_OKAY;
-            axi_rid <= 4'd0;
-            axi_rlast <= 1'b0;
+        if(rst) begin
+            writing <= 1'b0;
         end
         else begin
-            if (ar_fire) begin
-                assert(axi_arlen == 8'd0);
-                axi_rdata <= pmem_read(axi_araddr, read_type);
-                axi_rresp <= AXI_RESP_OKAY;
-                axi_rid <= axi_arid;
-                axi_rlast <= 1'b1;
-                axi_rvalid <= 1'b1;
+            if(write_finish) writing <= 1'b0;
+            else if(write_begin) writing <= 1'b1;
+        end
+    end
+
+    // RAW阻塞：当内存有未完成的写操作时，禁止内存接收读请求
+    assign axi_ar_arready = (r_current_state == R_IDLE) && !writing && !write_begin;
+    assign axi_aw_awready = (w_current_state == W_IDLE) && !aw_fire_after;
+    assign axi_w_wready   = (w_current_state == W_IDLE) && !w_fire_after;
+
+    LFSR #(.SEED(8'h1)) r_lfsr_u (
+        .clk(clk),
+        .rst(rst),
+        .step(ar_fire),
+        .out(r_lfsr_rand)
+    );
+
+    LFSR #(.SEED(8'h2)) w_lfsr_u (
+        .clk(clk),
+        .rst(rst),
+        .step(write_req_complete_pulse),
+        .out(w_lfsr_rand)
+    );
+
+    always @(*) begin
+        case(r_current_state)
+            R_IDLE: begin
+                if(ar_fire) begin
+                    if(r_latency == 4'd1) r_next_state = R_RESP;
+                    else r_next_state = R_WAIT;
+                end
+                else r_next_state = R_IDLE;
             end
-            else if (r_fire) begin
-                axi_rvalid <= 1'b0;
-                axi_rlast <= 1'b0;
+            R_WAIT: begin
+                if(r_latency_cnt == 4'd1) r_next_state = R_RESP;
+                else r_next_state = R_WAIT;
             end
+            R_RESP: begin
+                if(r_fire) r_next_state = R_IDLE;
+                else r_next_state = R_RESP;
+            end
+            default: r_next_state = R_IDLE;
+        endcase
+    end
+
+    always @(*) begin
+        case(w_current_state)
+            W_IDLE: begin
+                if(w_req_complete) begin
+                    if(w_latency == 4'd1) w_next_state = W_RESP;
+                    else w_next_state = W_WAIT;
+                end
+                else w_next_state = W_IDLE;
+            end
+            W_WAIT: begin
+                if(w_latency_cnt == 4'd1) w_next_state = W_RESP;
+                else w_next_state = W_WAIT;
+            end
+            W_RESP: begin
+                if(b_fire) w_next_state = W_IDLE;
+                else w_next_state = W_RESP;
+            end
+            default: w_next_state = W_IDLE;
+        endcase
+    end
+
+    always @(posedge clk) begin
+        if(rst) r_current_state <= R_IDLE;
+        else r_current_state <= r_next_state;
+    end
+
+    always @(posedge clk) begin
+        if(rst) w_current_state <= W_IDLE;
+        else w_current_state <= w_next_state;
+    end
+
+    always @(posedge clk) begin
+        if(rst) begin
+            // raddr_latched <= 32'd0;
+            axi_r_rdata <= 32'd0;
+            axi_r_rresp <= 2'd0;
+            axi_r_rvalid <= 1'b0;
+            // r_need_skip_ref <= 1'b0;
+            r_latency_cnt <= 4'd0;
+        end
+        else begin
+            case(r_current_state)
+                R_IDLE: begin
+                    if(ar_fire) begin
+                        // raddr_latched <= axi_ar_araddr;
+                        axi_r_rdata <= pmem_read(axi_ar_araddr, read_type);//, {7'd0, r_need_skip_ref});
+                        if(r_latency == 4'd1) begin
+                            r_latency_cnt <= 4'd0;
+                            // axi_r_rdata <= pmem_read(axi_ar_araddr, read_type);
+                            axi_r_rresp <= 2'd0;
+                            axi_r_rvalid <= 1'b1;
+                        end
+                        else begin
+                            r_latency_cnt <= r_latency - 4'd1;
+                        end
+                    end
+                end
+                R_WAIT: begin
+                    if(r_latency_cnt == 4'd1) begin
+                        r_latency_cnt <= 4'd0;
+                        // axi_r_rdata <= pmem_read(raddr_latched, read_type);
+                        axi_r_rresp <= 2'd0;
+                        axi_r_rvalid <= 1'b1;
+                    end
+                    else begin
+                        r_latency_cnt <= r_latency_cnt - 4'd1;
+                    end
+                end
+                R_RESP: begin
+                    if(r_fire) begin
+                        axi_r_rvalid <= 1'b0;
+                        // r_need_skip_ref <= 1'b0;
+                    end
+                end
+                default: begin
+                end
+            endcase
         end
     end
 
     always @(posedge clk) begin
-        if (rst) begin
-            aw_seen <= 1'b0;
-            w_seen <= 1'b0;
+        if(rst) begin
+            aw_fire_after <= 1'b0;
+            w_fire_after <= 1'b0;
             awaddr_latched <= 32'd0;
-            awid_latched <= 4'd0;
             wdata_latched <= 32'd0;
             wstrb_latched <= 4'd0;
-            axi_bvalid <= 1'b0;
-            axi_bresp <= AXI_RESP_OKAY;
-            axi_bid <= 4'd0;
+            w_latency_cnt <= 4'd0;
+            axi_b_bresp <= 2'd0;
+            axi_b_bvalid <= 1'b0;
+            // b_need_skip_ref <= 1'b0;
         end
         else begin
-            if (b_fire) begin
-                axi_bvalid <= 1'b0;
-            end
+            case(w_current_state)
+                W_IDLE: begin
+                    if(aw_fire) begin
+                        awaddr_latched <= axi_aw_awaddr;
+                        aw_fire_after <= 1'b1;
+                    end
+                    if(w_fire) begin
+                        wdata_latched <= axi_w_wdata;
+                        wstrb_latched <= axi_w_wstrb;
+                        w_fire_after <= 1'b1;
+                    end
 
-            if (aw_fire) begin
-                assert(axi_awlen == 8'd0);
-                awaddr_latched <= axi_awaddr;
-                awid_latched <= axi_awid;
-                aw_seen <= 1'b1;
-            end
-
-            if (w_fire) begin
-                assert(axi_wlast);
-                wdata_latched <= axi_wdata;
-                wstrb_latched <= axi_wstrb;
-                w_seen <= 1'b1;
-            end
-
-            if (write_req_complete) begin
-                pmem_write(write_addr, write_data, write_strb);
-                axi_bresp <= AXI_RESP_OKAY;
-                axi_bid <= write_id;
-                axi_bvalid <= 1'b1;
-                aw_seen <= 1'b0;
-                w_seen <= 1'b0;
-            end
+                    if(w_req_complete) begin
+                        if(w_latency == 4'd1) begin
+                            w_latency_cnt <= 4'd0;
+                            pmem_write(
+                                aw_fire ? axi_aw_awaddr : awaddr_latched,
+                                w_fire  ? axi_w_wdata  : wdata_latched,
+                                w_fire  ? {4'd0, axi_w_wstrb} : {4'd0, wstrb_latched}//,
+                                //{7'd0, b_need_skip_ref}
+                            );
+                            axi_b_bresp <= 2'd0;
+                            axi_b_bvalid <= 1'b1;
+                        end
+                        else begin
+                            w_latency_cnt <= w_latency - 4'd1;
+                        end
+                    end
+                end
+                W_WAIT: begin
+                    if(w_latency_cnt == 4'd1) begin
+                        w_latency_cnt <= 4'd0;
+                        pmem_write(awaddr_latched, wdata_latched, {4'd0, wstrb_latched});//, {7'd0, b_need_skip_ref});
+                        axi_b_bresp <= 2'd0;
+                        axi_b_bvalid <= 1'b1;
+                    end
+                    else begin
+                        w_latency_cnt <= w_latency_cnt - 4'd1;
+                    end
+                end
+                W_RESP: begin
+                    if(b_fire) begin
+                        axi_b_bvalid <= 1'b0;
+                        // b_need_skip_ref <= 1'b0;
+                        aw_fire_after <= 1'b0;
+                        w_fire_after <= 1'b0;
+                    end
+                end
+                default: begin
+                end
+            endcase
         end
     end
 endmodule

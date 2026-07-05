@@ -1,11 +1,11 @@
 package cpu.npc
 
 import chisel3._
-import cpu._
+import chisel3.util._
 
 class CLINT extends Module {
     val io = IO(new Bundle {
-        val axi = Flipped(new AXI4(32, 32, 4))
+        val axi = Flipped(new AXI4Lite(32, 32))
         val r_need_skip_ref = Output(Bool())
     })
 
@@ -14,19 +14,18 @@ class CLINT extends Module {
 
     val mtime = RegInit(0.U(64.W))
     val mtime_snapshot = RegInit(0.U(64.W))
-    val rdata = RegInit(0.U(32.W))
-    val rid = RegInit(0.U(4.W))
-    val bid = RegInit(0.U(4.W))
-
-    val ar_fire = io.axi.arvalid && io.axi.arready
-    val r_fire = io.axi.rvalid && io.axi.rready
-    val aw_fire = io.axi.awvalid && io.axi.awready
-    val w_fire = io.axi.wvalid && io.axi.wready
-    val b_fire = io.axi.bvalid && io.axi.bready
-
+    val rdata_reg = RegInit(0.U(32.W))
     val write_req_complete = Wire(Bool())
+
+    val ar_fire = io.axi.ar.arvalid && io.axi.ar.arready
+    val r_fire = io.axi.r.rvalid && io.axi.r.rready
+    val aw_fire = io.axi.aw.awvalid && io.axi.aw.awready
+    val w_fire = io.axi.w.wvalid && io.axi.w.wready
+    val b_fire = io.axi.b.bvalid && io.axi.b.bready
+
     val rvalid = boolreg_set_clear(ar_fire, r_fire)
     val bvalid = boolreg_set_clear(write_req_complete, b_fire)
+
     val (aw_fire_preserved, aw_fire_after) = bool_preserve(aw_fire, b_fire, false.B)
     val (w_fire_preserved, w_fire_after) = bool_preserve(w_fire, b_fire, false.B)
     write_req_complete := aw_fire_preserved && w_fire_preserved && !bvalid
@@ -34,34 +33,22 @@ class CLINT extends Module {
     mtime := mtime + 1.U
 
     when(ar_fire) {
-        rid := io.axi.arid
-        assert(io.axi.arlen === 0.U)
-        assert(io.axi.arsize === AXI4Size.b4)
-        when(io.axi.araddr === mtime_hi_addr) {
+        when(io.axi.ar.araddr === mtime_hi_addr) {
             mtime_snapshot := mtime
-            rdata := mtime(63, 32)
+            rdata_reg := mtime(63, 32)
         }.otherwise {
-            rdata := mtime_snapshot(31, 0)
+            rdata_reg := mtime_snapshot(31, 0)
         }
     }
-    when(aw_fire) {
-        bid := io.axi.awid
-        assert(io.axi.awlen === 0.U)
-    }
-    when(w_fire) {
-        assert(io.axi.wlast)
-    }
-    io.axi.arready := !rvalid
-    io.axi.rvalid := rvalid
-    io.axi.rdata := rdata
-    io.axi.rresp := AXI4Resp.OKAY
-    io.axi.rid := rid
-    io.axi.rlast := true.B
-    io.r_need_skip_ref := rvalid
 
-    io.axi.awready := !bvalid && !aw_fire_after
-    io.axi.wready := !bvalid && !w_fire_after
-    io.axi.bvalid := bvalid
-    io.axi.bresp := AXI4Resp.SLVERR
-    io.axi.bid := bid
+    io.axi.ar.arready := !rvalid
+    io.axi.r.rvalid := rvalid
+    io.axi.r.rdata := rdata_reg
+    io.axi.r.rresp := AXI4Resp.OKAY
+    io.r_need_skip_ref := io.axi.r.rvalid
+
+    io.axi.aw.awready := !bvalid && !aw_fire_after
+    io.axi.w.wready := !bvalid && !w_fire_after
+    io.axi.b.bvalid := bvalid
+    io.axi.b.bresp := AXI4Resp.SLVERR
 }

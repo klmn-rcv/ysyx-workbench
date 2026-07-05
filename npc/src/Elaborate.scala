@@ -15,7 +15,7 @@ object Elaborate extends App {
     case "ysyxsoc" =>
       circt.stage.ChiselStage.emitSystemVerilogFile(new cpu.ysyx_26050145(resetVector = 0x30000000L), args, firtoolOptions)
     case "npc" =>
-      circt.stage.ChiselStage.emitSystemVerilogFile(new cpu.Top, args, firtoolOptions)
+      circt.stage.ChiselStage.emitSystemVerilogFile(new cpu.npc.Top, args, firtoolOptions)
     case other =>
       throw new IllegalArgumentException(s"unknown NPC_ELAB_MODE: $other")
   }
