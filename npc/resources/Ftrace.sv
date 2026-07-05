@@ -3,7 +3,7 @@ typedef enum logic [0:0] {
     JALR = 1'd1
 } inst_type_e;
 
-module Ftrace(
+module ysyx_26050145_Ftrace(
   input wire clk, 
   input wire rst,
   input wire [31:0] pc,
