@@ -27,7 +27,7 @@ PERIP_VERILOG_SRCS := $(shell find $(SOC_HOME)/perip -name '*.v' | sort)
 SRC_AUTO_BIND = $(abspath $(BUILD_DIR)/auto_bind.cpp)
 SIM_CSRCS = $(SRC_AUTO_BIND)
 SIM_VERILOG_INPUTS = $(BUILD_DIR)/ysyx_26050145.sv $(PERIP_VERILOG_SRCS) $(SOC_VERILOG)
-POST_PROCESS_VERILOG = tmp="$(BUILD_DIR)/ysyx_26050145.sv.tmp"; rm -f "$$tmp"; while IFS= read -r f; do f="$${f#./}"; [ -z "$$f" ] || { cat "$(BUILD_DIR)/$$f" >> "$$tmp"; printf '\n' >> "$$tmp"; }; done < "$(BUILD_DIR)/filelist.f"; mv "$$tmp" "$(BUILD_DIR)/ysyx_26050145.sv"
+POST_PROCESS_VERILOG = tmp="$(BUILD_DIR)/ysyx_26050145.sv.tmp"; rm -f "$$tmp"; while IFS= read -r f; do f=$$(printf '%s\n' "$$f" | sed 's|^\./||'); [ -z "$$f" ] || { cat "$(BUILD_DIR)/$$f" >> "$$tmp"; printf '\n' >> "$$tmp"; }; done < "$(BUILD_DIR)/filelist.f"; mv "$$tmp" "$(BUILD_DIR)/ysyx_26050145.sv"
 SYN_TOP = ysyx_26050145
 SYN_RTL_FILES = $(BUILD_DIR)/ysyx_26050145.sv
 
