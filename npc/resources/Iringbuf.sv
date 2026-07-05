@@ -1,4 +1,4 @@
-module Iringbuf (
+module ysyx_26050145_Iringbuf (
   input wire clk, 
   input wire rst,
   input wire [31:0] pc,

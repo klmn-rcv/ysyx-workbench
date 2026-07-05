@@ -1,4 +1,4 @@
-module Halt(
+module ysyx_26050145_Halt(
     input wire clk,
     input wire rst,
     input wire [31:0] exit_code,

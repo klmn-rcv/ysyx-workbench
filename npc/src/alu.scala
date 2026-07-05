@@ -3,7 +3,8 @@ package cpu
 import chisel3._
 import chisel3.util._
 
-class ALU extends Module {
+class ALU extends Module with HasYsyxModuleName {
+    override protected def moduleSuffix: String = "ALU"
     val io = IO(new Bundle {
         val in = new Bundle {
             val src1 = Input(UInt(32.W))

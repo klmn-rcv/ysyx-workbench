@@ -1,4 +1,4 @@
-module Itrace (
+module ysyx_26050145_Itrace (
     input wire clk,
     input wire rst,
     input wire valid,

@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 
 class Halt extends ExtModule {
+    override def desiredName: String = s"${YsyxName.prefix}_Halt"
     val clk = IO(Input(Clock()))
     val rst = IO(Input(Bool()))
     val exit_code = IO(Input(UInt(32.W)))
@@ -14,6 +15,7 @@ class Halt extends ExtModule {
 }
 
 class Itrace extends ExtModule {
+    override def desiredName: String = s"${YsyxName.prefix}_Itrace"
     val clk = IO(Input(Clock()))
     val rst = IO(Input(Bool()))
     val valid = IO(Input(Bool()))
@@ -26,6 +28,7 @@ class Itrace extends ExtModule {
 }
 
 class Iringbuf extends ExtModule {
+    override def desiredName: String = s"${YsyxName.prefix}_Iringbuf"
     val clk = IO(Input(Clock()))
     val rst = IO(Input(Bool()))
     val pc = IO(Input(UInt(32.W)))
@@ -38,6 +41,7 @@ class Iringbuf extends ExtModule {
 }
 
 class Ftrace extends ExtModule {
+    override def desiredName: String = s"${YsyxName.prefix}_Ftrace"
     val clk = IO(Input(Clock()))
     val rst = IO(Input(Bool()))
     val pc = IO(Input(UInt(32.W)))
