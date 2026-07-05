@@ -131,8 +131,9 @@ static void statistic() {
   Log("host time spent = %llu us", (unsigned long long)g_timer);
   Log("total guest instructions = %llu", (unsigned long long)g_nr_inst);
   if (g_timer > 0) {
-    Log("simulation frequency = %llu inst/s",
-        (unsigned long long)(g_nr_inst * 1000000 / g_timer));
+    Log("simulation frequency = %llu inst/s, IPC = %.2f",
+        (unsigned long long)(g_nr_inst * 1000000 / g_timer),
+        (float)g_nr_inst / (float)npc_state.cycles);
   } else {
     Log("Finish running in less than 1 us and can not calculate the simulation frequency");
   }
